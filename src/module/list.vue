@@ -1,5 +1,6 @@
 <script setup lang="ts">
     import type { FileOrDir } from '@/data';
+import { DEFAULT_DIR_ICON, DEFAULT_FILE_ICON } from '@/utils';
     import { computed, ref, shallowReactive, toRaw, watch } from 'vue';
 
     // ==================== 文件（夹）管理器 =======================
@@ -27,8 +28,8 @@
         fd.icon
             ? fd.icon
             : fd.type == 'dir'      // 默认
-                ? '/icon/dir.webp'
-                : '/icon/file.webp';
+                ? DEFAULT_DIR_ICON
+                : DEFAULT_FILE_ICON;
 
     //  ===================== 选择管理 ==================
     function mark_selected(){

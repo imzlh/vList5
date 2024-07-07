@@ -1,5 +1,5 @@
 <script setup lang="ts">
-    import type { CtxDispOpts, vFile } from '@/data';
+    import type { CtxDispOpts, vSimpleFileOrDir } from '@/data';
     import { regSelf } from '@/opener';
     import { FS, Global, splitPath } from '@/utils';
     import { onMounted, onUnmounted, reactive, ref } from 'vue';
@@ -12,11 +12,12 @@
             offset_y: 0,
             rotate: 0,
             id: 0,
-            imgs: [] as Array<vFile>,
+            imgs: [] as Array<vSimpleFileOrDir>,
             loading: true
         }),
         opts_ = defineProps(['option']),
-        file = opts_['option'] as vFile;
+        file = opts_['option'] as vSimpleFileOrDir,
+        ev = defineEmits(['show','hide','close']);
 
     // 自动加载的图片类型
     const IMAGE = [
@@ -35,7 +36,7 @@
     }
     
     let dir = '';
-    async function initFile(f:vFile){
+    async function initFile(f:vSimpleFileOrDir){
         const info = splitPath(f);
 
         if(info.dir == dir){
@@ -53,10 +54,10 @@
             })
         }else{
             // 请求URL
-            const temp:Array<vFile> = [];
+            const temp:Array<vSimpleFileOrDir> = [];
             let id = -1;
             (await FS.list(info.dir)).forEach(data => {
-                (data.type == 'file' && IMAGE.includes(splitPath(data)['ext'].toLowerCase())) 
+                (IMAGE.includes(splitPath(data)['ext'].toLowerCase())) 
                     ? ( data.path == f.path ? id = temp.push(data)-1 : temp.push(data) ) : null
             });
             cfg.imgs = temp;
@@ -126,7 +127,7 @@
                     handle: () => cfg.scale *= .9
                 },{
                     "text": "恢复默认值",
-                    handle: () => (cfg.scale = cfg.rotate = 1, cfg.offset_x = cfg.offset_y = 0)
+                    handle: () => (cfg.scale = 1, cfg.rotate = cfg.offset_x = cfg.offset_y = 0)
                 },'---',{
                     "text": "复制图片",
                     handle() {
@@ -224,7 +225,10 @@
         }
     }
 
-    const unreg = regSelf('Imager',initFile);
+    const unreg = regSelf('Imager',f => {
+        initFile(f);
+        ev('show');
+    });
     onUnmounted(() => unreg());
 
     initFile(file);
@@ -240,7 +244,7 @@
                 display: cfg.loading ? 'none' : 'block'
             }"
             :src="cfg.imgs[cfg.id].url" 
-            :alt="cfg.imgs[cfg.id].dispName || cfg.imgs[cfg.id].name"
+            :alt="cfg.imgs[cfg.id].name"
             @load="cfg.loading = false" @loadstart="cfg.loading = true"
             @pointerdown.prevent="moveStart"
         >
@@ -294,7 +298,7 @@
         </div>
         <span class="vcount">{{ cfg.id + 1 }} / <span style="color: darkgray;">{{ cfg.imgs.length }}</span></span>
     </div>
-    <div v-show="cfg.loading" class="imager-async"></div>
+    <div v-show="cfg.loading" class="tab-loading"></div>
 </template>
 
 <style lang="scss">
@@ -356,26 +360,6 @@
         }
         100% {
             transform: rotate(360deg);
-        }
-    }
-
-    .imager-async{
-        display: flex;
-        width: 100%;
-        height: 100%;
-        align-items: center;
-        justify-content: center;
-        z-index: 1;
-
-        &::after{
-            content: '';
-            width: 3rem;
-            height: 3rem;
-            border: .4rem solid;
-            border-color: #90cf5b transparent;
-            border-radius: 50%;
-            -webkit-animation: rotation 1s linear infinite;
-            animation: rotation 1s linear infinite;
         }
     }
 </style>

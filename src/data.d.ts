@@ -28,6 +28,12 @@ interface vDir extends FileAndDir{
     child?: Array<FileOrDir>
 }
 
+interface vSimpleFileOrDir{
+    name: string,
+    url: string,
+    path: string
+}
+
 type FileOrDir = vFile | vDir;
 
 interface HotKey{
@@ -108,6 +114,92 @@ interface AlertOpts{
         color?: string,
         role: Function|'close'|'submit'
     }>,
-    data?: Ref<any>,
     callback: (data:boolean|string) => any
 }
+
+type SettingItem = ({
+    name: string,
+    key: string,
+    desc?: string
+} & ({
+    type: 'text',
+    value: Ref<string>,
+} | {
+    type: 'number',
+    step: number,
+    value: Ref<number>,
+} | {
+    type: 'select',
+    value: Ref<string>,
+    item: Array<{
+        display: string,
+        value: string
+    }>,
+} | {
+    type: 'check',
+    value: Ref<boolean>,
+} | {
+    type: 'range',
+    value: Ref<number>,
+    min: number,
+    max: number,
+    step: number
+} | {
+    type: 'object',
+    child: Array<SettingItem>
+})) | string;
+
+interface SettingObject{
+    name: string,
+    key: string,
+    desc?: string,
+    type: 'object',
+    child: Array<SettingItem>
+}
+
+type SettingItemFactory = ({
+    name: string,
+    key: string,
+    desc?: string
+} & ({
+    type: 'text',
+    default: string,
+} | {
+    type: 'number',
+    step: number,
+    default: number,
+} | {
+    type: 'select',
+    item: Array<{
+        display: string,
+        value: string
+    }>,
+    default: string,
+} | {
+    type: 'check',
+    default: boolean,
+} | {
+    type: 'range',
+    min: number,
+    max: number,
+    step: number
+    default: number
+} | {
+    type: 'object',
+    child: Array<SettingItemFactory>
+})) | string;
+
+type ListPredirect = {
+    select: 'name',
+    reg: string,
+} | {
+    select: 'type',
+    type: 'file' | 'dir'
+} | {
+    select: 'size',
+    min?: number,
+    max?: number
+} | {
+    select: 'mode',
+    mode: 'r' | 'w' | 'x' | 'f'
+};

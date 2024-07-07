@@ -1,12 +1,17 @@
-import { reactive } from "vue";
-import type { FileOrDir, MessageOpinion, OpenerOption, TabWindow, vDir, vFile } from "./data";
+import { markRaw, reactive, ref, shallowReactive, type Ref } from "vue";
+import type { FileOrDir, ListPredirect, MessageOpinion, OpenerOption, SettingItem, SettingItemFactory, SettingObject, TabWindow, vDir, vFile, vSimpleFileOrDir } from "./data";
 import { OPENER } from "./opener";
+import Setting from "./module/setting.vue";
 
-export const APP_API = 'http://localhost/@fs_api/';
-export const APP_NAME = 'ShineCloud';
-export const DEFAULT_FILE_ICON = '/icon/file.webp'
-export const DEFAULT_DIR_ICON = '/icon/dir.webp';
-export const FILE_PROXY_SERVER = 'http://localhost/';
+import I_File from '/icon/file.webp';
+import I_DIR from '/icon/dir.webp';
+import I_SETTING from '/app/settings.webp';
+
+export const APP_API = 'http://192.168.1.1:81/@api/';
+export const APP_NAME = 'izCloud';
+export const DEFAULT_FILE_ICON = I_File;
+export const DEFAULT_DIR_ICON = I_DIR;
+export const FILE_PROXY_SERVER = 'http://192.168.1.1:81/';
 
 const pool = {};
 
@@ -74,12 +79,20 @@ class ReactiveData{
 
 /**
  * 加载文件夹，用于列表
- * @param file 文件
+ * @param parent 文件
  */
-export async function load(file:vDir){
+export async function load(parent:vDir){
     // 异步获取
     try{
-        var f = await fetch(APP_API + '?mode=list&path=' + encodeURIComponent(file.path));
+        var f = await fetch(APP_API + '?action=slist', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                path: parent.path
+            })
+        });
     }catch(e){
         return Global('ui.message').call({
             "type": "error",
@@ -109,8 +122,8 @@ export async function load(file:vDir){
         regexp = /[^\d]+|\d+/g;
     data.forEach((element) => {
         const e = element as fd;
-        element.url = file.url + e.name + (e.type == 'dir' ? '/' : '');
-        element.path = file.path + e.name + (e.type == 'dir' ? '/' : '');
+        element.url = parent.url + e.name + (e.type == 'dir' ? '/' : '');
+        element.path = parent.path + e.name + (e.type == 'dir' ? '/' : '');
         if(regexp.test(e.name))
             e.weights = e.name.match(regexp) as RegExpMatchArray;
         if(e.type == 'file')
@@ -131,7 +144,7 @@ export async function load(file:vDir){
         }
         return weightA ? 1 : -1;
     }
-    file.child = (dirs.sort(SortHandle) as Array<fd>).concat(files.sort(SortHandle));
+    parent.child = (dirs.sort(SortHandle) as Array<fd>).concat(files.sort(SortHandle));
 }
 
 export function clearPath(path:string){
@@ -141,8 +154,8 @@ export function clearPath(path:string){
         .replace(/\/[\w\W]+\/\.\.\//,'/');
 }
 
-export function splitPath(fname:FileOrDir){
-    const path = clearPath(fname.path),
+export function splitPath(f: { path: string }){
+    const path = clearPath(f.path),
         slash = path.lastIndexOf('/'),
         dot = path.lastIndexOf('.');
     return {
@@ -162,7 +175,7 @@ export function getOpenerId(file:vFile):Promise<OpenerOption>|OpenerOption{
     return Global('opener.chooser.choose').call(file);
 }
 
-export function clipFName(file:vFile,maxlen = 20){
+export function clipFName(file:{name: string},maxlen = 20){
     if(file.name.length > maxlen){
         return file.name.substring(0,maxlen - 3) + '..'
     }else{
@@ -197,92 +210,113 @@ export function size2str(size: number){
 
 type file_action = 'move'|'copy';
 
+export class PermissionDeniedError extends Error{}
+export class LoginError extends Error{}
+
 export const FS = {
     marked: [] as Array<FileOrDir>,
     action: 'copy' as file_action,
 
-    async __request(query:string):Promise<any>{
-        // 异步获取
-        const f = await fetch(APP_API + '?' + query);
-        if(!f.ok)
-            throw new Error('Request failed: Server returns with ' + f.status);
-        const data:Array<vFile|vDir> = await f.json();
-        if(typeof data != 'object')
-            throw new Error('invaild server response.Not JSON?');
-        return data;
+    async __request(method: string,body: Object, json = false){
+        const xhr = await fetch(APP_API + '?action=' + method,{
+            method: 'POST',
+            body: JSON.stringify(body),
+            headers: {
+                'Content-Type': 'application/json'
+            },
+        });
+        if(xhr.status == 403) throw new PermissionDeniedError();
+        else if(xhr.status == 400) throw new SyntaxError(await xhr.text());
+        else if(xhr.status == 401) throw new LoginError(await xhr.text());
+        else if(xhr.status != 200) throw new Error(await xhr.text());
+           
+        try{
+            if(json) return await xhr.json();
+            else return await xhr.text();
+        }catch{
+            throw new TypeError('Server Error');
+        }
     },
 
-    async __request_int(query:string):Promise<number>{
-        // 异步获取
-        const f = await fetch(APP_API + '?' + query);
-        if(!f.ok)
-            throw new Error('Request failed: Server returns with ' + f.status);
-        return parseInt(await f.text());
+    /**
+     * 列举一个文件夹
+     * @param dir 文件夹路径
+     * @returns 列表
+     */
+    async list(path:string, predirect: ListPredirect | {} = {}){
+        path = (predirect as any).path = path[path.length -1] == '/' ? path : path + '/';
+        return (await this.__request('list',predirect,true) as Array<string>)
+            .map((item) => ({
+                name: item,
+                path: path + item,
+                url: FILE_PROXY_SERVER + path + item
+            } satisfies vSimpleFileOrDir));
     },
 
-    async list(dir:string):Promise<Array<FileOrDir>>{
-        return (await this.__request('mode=list&path=' + encodeURIComponent(dir))).map((item:FileOrDir) => {
-            item.url = FILE_PROXY_SERVER + dir + item.name + (item.type == 'dir' ? '/' : '');
-            item.path = dir + item.name + (item.type == 'dir' ? '/' : '');
+    async listall(path:string):Promise<Array<FileOrDir>>{
+        return (await this.__request('slist',{ path },true)).map((item:FileOrDir) => {
+            item.url = FILE_PROXY_SERVER + path + item.name + (item.type == 'dir' ? '/' : '');
+            item.path = path + item.name + (item.type == 'dir' ? '/' : '');
             return item;
         });
     },
 
-    stat(file:string):Promise<FileOrDir>{
-        return this.__request('mode=stat&path=' + encodeURIComponent(file));
+    stat(path:string):Promise<FileOrDir>{
+        return this.__request('stat',{ path }, true);
     },
 
-    delete(file:string,action:file_action){
-        return this.__request_int('mode=delete&path=' + encodeURIComponent(file));
+    delete(files:Array<string>|string){
+        return this.__request('delete', { files: typeof files == 'string' ? [files] : files });
     },
 
-    mkdir(path: string){
-        return this.__request_int('mode=mkdir&path=' + encodeURIComponent(path));
+    mkdir(dirs: Array<string>|string){
+        return this.__request('mkdir', { files: typeof dirs == 'string' ? [dirs] : dirs });
     },
 
-    touch(path: string){
-        return this.__request_int('mode=touch&path=' + encodeURIComponent(path));
-    },
-
-    copy(from:string,to:string){
-        return this.__request_int('mode=copy&from=' + encodeURIComponent(from) + '&to=' + encodeURIComponent(to));
-    },
-
-    move(from:string,to:string){
-        return this.__request_int('mode=move&from=' + encodeURIComponent(from) + '&to=' + encodeURIComponent(to));
-    },
-
-    async deleteAll(fds:Array<FileOrDir>):Promise<boolean>{
-        // 异步获取
-        const f = await fetch(APP_API + '?mode=post_delete', {
-            "method": "POST",
-            "body": JSON.stringify(fds.map(each => each.path)),
-            "headers": {
-                "Content-Type": "application/json"
-            }
+    touch(files:Array<string>|string, mode?: number){
+        if(mode && mode > 0o7777)
+            throw new Error('Mode Error');
+        return this.__request('touch', { 
+            files: typeof files == 'string' ? [files] : files,
+            mode
         });
-        if(!f.ok){
-            Global('ui.message').call({
-                "type": "error",
-                "title": "文件资源管理器",
-                "content":{
-                    "title": '删除文件失败',
-                    "content": await f.text()
-                }
-            } satisfies MessageOpinion);
-            return false;
-        }
-        return true;
+    },
+
+    copy(from:Array<string>|string,to:string){
+        return this.__request('copy', {
+            from: typeof from == 'string' ? [from] : from,
+            to
+        });
+    },
+
+    move(from:Array<string>|string,to:string){
+        return this.__request('copy', {
+            from: typeof from == 'string' ? [from] : from,
+            to
+        });
+    },
+
+    write(file:string,content: Blob,progress?:(this: XMLHttpRequest, ev: ProgressEvent<EventTarget>) => any):Promise<ProgressEvent<EventTarget>>{
+        return new Promise((rs,rj) => {
+            const xhr = new XMLHttpRequest();
+            xhr.open('POST',APP_API + '?action=upload&path=' + encodeURIComponent(file));
+            xhr.onprogress = progress || null;
+            xhr.onerror = rj,xhr.onload = rs;
+            xhr.send(content);
+        });
     },
 
     async exec(dest: vDir):Promise<boolean|number>{
         // 异步获取
-        const f = await fetch(APP_API + '?mode=post_' + this.action + '&to=' + encodeURIComponent(dest.path), {
+        const f = await fetch(APP_API + '?action=' + this.action, {
             "method": "POST",
-            "body": JSON.stringify(this.marked.map(item => item.path)),
-            "headers": {
-                "Content-Type": "application/json"
-            }
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            "body": JSON.stringify({
+                from: JSON.stringify(this.marked.map(item => item.path)),
+                to: dest.path
+            })
         });
         if(!f.ok){
             Global('ui.message').call({
@@ -298,7 +332,7 @@ export const FS = {
             } satisfies MessageOpinion);
             return false;
         }
-        return parseInt(await f.text());
+        return true;
     },
 
     mark(action:file_action,file:Array<FileOrDir>){
@@ -329,4 +363,97 @@ export function reloadTree(dir:Array<string>){
                 if(fd.type == 'dir') subTree(fd);
     }
     subTree(TREE);
+}
+
+var CONFIG: undefined | Record<string,Array<SettingItem>>,
+    cached: undefined | Record<string,Record<string,any>>;
+
+export function regConfig(namespace: string, config:Array<SettingItemFactory>){
+    if(!cached) try{
+        cached = JSON.parse(localStorage.getItem('vlist5') || '{}') as Record<string,Record<string,any>>;
+    }catch{
+        cached = {} as Record<string,Record<string,any>>;
+    }
+    if(!CONFIG) CONFIG = {};
+    const cache = (cached[namespace] || {}) as Record<string,string>;
+    // 填充value
+    function fill(config:Array<SettingItemFactory>){
+        for (const item of config)
+            if(typeof item == 'object')
+                if(item.type == 'object')
+                    fill(item.child)
+                else
+                    (item as any).value = ref(cache[item.key] || item.default);
+    }
+    fill(config);
+    // 加载
+    CONFIG[namespace] = config as any;
+}
+
+export function getConfig(namespace: string){
+    // 创建新配置
+    if(!CONFIG) return CONFIG = {};
+    if(namespace in CONFIG){
+        const temp = {} as Record<string,Ref<any>>;
+        
+        function proc(obj:Array<SettingItem>){
+            for (const item of obj)
+                if(typeof item == 'object')
+                    if(item.type == 'object')
+                        proc(item.child);
+                    else
+                        temp[item.key] = item.value;
+        }
+
+        proc(CONFIG[namespace]);
+
+        return temp;
+    }else throw new Error('Unknown namespace');
+}
+
+export function openSetting(){
+    if(!CONFIG) return CONFIG = {};
+    const item:Array<SettingItem> = [];
+    for (const key in CONFIG) {
+        item.push({
+            "type": "object",
+            "name": key,
+            "child": CONFIG[key],
+            "key": key
+        })
+    }
+    Global('ui.window.add').call({
+        "content": Setting,
+        "icon": I_SETTING,
+        "name": "设置",
+        "option": markRaw({
+            "name": "设置",
+            "child": item,
+            "type": "object",
+            "key": ""
+        } satisfies SettingObject)
+    });
+}
+
+// 保存状态
+window.onbeforeunload = function(){
+    let temp = {} as Record<string,any>;
+    const real = {} as Record<string,any>;
+    
+    function proc(obj:Array<SettingItem>){
+        for (const item of obj)
+            if(typeof item == 'object')
+                if(item.type == 'object')
+                    proc(item.child);
+                else
+                    temp[item.key] = item.value.value;
+    }
+
+    for (const key in CONFIG){
+        temp = {};
+        proc(CONFIG[key]);
+        real[key] = temp;
+    }
+
+    localStorage.setItem('vlist5',JSON.stringify(real));
 }

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-    import type { MessageOpinion, vFile } from '@/data';
+    import type { MessageOpinion, vSimpleFileOrDir } from '@/data';
     import { regSelf } from '@/opener';
     import { FS, Global, clipFName, splitPath } from '@/utils';
     import ASS from 'assjs';
@@ -11,13 +11,13 @@
         sub_type: 'ass' | 'vtt'
     }
 
-    interface videoOption extends vFile {
+    interface videoOption extends vSimpleFileOrDir {
         vid_name: string,
         subtitle: Array<subOption>
     }
 
     const opts_ = defineProps(['option']),
-        file = opts_['option'] as vFile,
+        file = opts_['option'] as vSimpleFileOrDir,
         config = shallowReactive({
             // 信息条
             alert: '',
@@ -50,11 +50,14 @@
             // 活动
             active: false,
             // 显示字幕
-            disp_sub: true
+            disp_sub: true,
+            // 操作提示
+            action: ''
         }),
         video = shallowRef<HTMLVideoElement>(),
         cached = shallowRef<Array<[number,number]>>([]),
-        container = shallowRef<HTMLDivElement>();
+        container = shallowRef<HTMLDivElement>(),
+        ev = defineEmits(['show']);
 
     // 信息栏监听器
     let alert_timer = false as false|number;
@@ -193,6 +196,75 @@
         }
     }
 
+    const touch = {
+        moved: {
+            x: 0, y: 0, 
+            xmoved: 0, ymoved: 0, 
+            started: false,
+            lastClick: 0
+        },
+        start(e:TouchEvent){
+            this.moved.started = true;
+            this.moved.x = e.touches[0].clientX,
+            this.moved.y = e.touches[0].clientY,
+            this.moved.xmoved = this.moved.ymoved = 0;
+        },
+        move(e:TouchEvent){
+            if(!this.moved.started) return false;
+            const x = e.touches[0].clientX,
+                y = e.touches[0].clientY;
+            this.moved.xmoved = x - this.moved.x,
+            this.moved.ymoved = y - this.moved.y;
+
+            // 进度调节
+            if(Math.abs(this.moved.xmoved) > Math.abs(this.moved.ymoved) 
+                && Math.abs(this.moved.xmoved) > 10
+            )   config.action = (this.moved.xmoved > 0 ? '快进 ' : '快退 ') + Math.abs(this.moved.xmoved).toFixed() + ' 秒';
+
+            // 声音调节
+            else if(Math.abs(this.moved.ymoved) > 10)
+                config.action = '声音 ' + (
+                    config.volume * 100 - this.moved.ymoved > 100
+                    ? 100
+                    : (
+                        config.volume * 100 - this.moved.ymoved < 0
+                        ? 0
+                        : (config.volume * 100 - this.moved.ymoved).toFixed()
+                    )
+                ) + '%';
+
+            else config.action = '';
+        },
+        end(e:TouchEvent){
+            this.moved.started = false;
+            const now = new Date().valueOf();
+
+            if(!video.value) return;
+
+            // 进度调节
+            if(Math.abs(this.moved.xmoved) > Math.abs(this.moved.ymoved) && Math.abs(this.moved.xmoved) > 10)
+                video.value.currentTime += this.moved.xmoved;
+
+            // 声音调节
+            else if(Math.abs(this.moved.ymoved) > 10)
+                video.value.volume = 
+                    config.volume * 100 - this.moved.ymoved > 100
+                    ? 1
+                    : (
+                        config.volume * 100 - this.moved.ymoved < 0
+                        ? 0
+                        : Math.floor(config.volume - this.moved.ymoved / 100)
+                    );
+            
+            // 唤起菜单
+            else if(now - this.moved.lastClick < 500)
+                config.playing ? video.value.pause() : video.value.play()
+            else mouse();
+
+            this.moved.lastClick = now;
+        }
+    }
+
     const CONFIG = {
         seek_time: 10,
         subtitle: [
@@ -214,18 +286,18 @@
             const subnow = config.subtitle.map(each => each.name),
                 subfor = config.current;
             Global('util.choose').call(this.dir)
-                .then((items: Array<vFile>) => items.forEach(each => {
+                .then((items: Array<vSimpleFileOrDir>) => items.forEach(each => {
                     // 已经包含
                     if (subnow.includes(each.name)) return;
                     // 字幕太大
-                    if (each.size > 10 * 1024 * 1024) return Global('ui.message').call({
-                        "type": "error",
-                        "title": "vPlayer",
-                        "content": {
-                            "title": "无法打开" + clipFName(each, 15),
-                            "content": '文件太大，libass拒绝渲染'
-                        }
-                    } satisfies MessageOpinion);
+                    // if (each.size > 10 * 1024 * 1024) return Global('ui.message').call({
+                    //     "type": "error",
+                    //     "title": "vPlayer",
+                    //     "content": {
+                    //         "title": "无法打开" + clipFName(each, 15),
+                    //         "content": '文件太大，libass拒绝渲染'
+                    //     }
+                    // } satisfies MessageOpinion);
                     // 非推荐格式
                     const info = splitPath(each);
                     if (!['ass', 'ssa', 'vtt'].includes(info.ext.toLowerCase()))
@@ -249,7 +321,7 @@
                     }
                 }));
         },
-        async play(file: vFile) {
+        async play(file: vSimpleFileOrDir) {
             const dir = splitPath(file)['dir'];
             let id: number | undefined;
             if (this.dir == dir) {
@@ -265,7 +337,7 @@
                     subs = {} as Record<string, Array<subOption>>;
                 config.playlist = []; config.subtitle = [];
                 let i = 0;
-                list.forEach(item => item.type == 'dir' ? null : (() => {
+                list.forEach(item => {
                     const info = splitPath(item);
                     // 是视频
                     if (CONFIG.video.includes(info.ext.toLowerCase())) {
@@ -284,7 +356,7 @@
                             url: item.url
                         })
                     }
-                })());
+                });
 
                 // 字幕配对
                 for (let i = 0; i < config.playlist.length; i++)
@@ -325,7 +397,10 @@
     };
 
     // 初始化自己
-    const cancel = regSelf('vPlayer',f => CTRL.play(f));
+    const cancel = regSelf('vPlayer',f => {
+        CTRL.play(f);
+        ev('show');
+    });
     onUnmounted(cancel);
 
     // 初始化文件
@@ -333,11 +408,14 @@
 </script>
 
 <template>
-    <div class="vpf_container" :active="config.active" @pointermove="mouse" tabindex="-1"
+    <div class="vpf_container" :active="config.active"  tabindex="-1"
         @dblclick="config.playing ? video?.pause() : video?.play()" ref="container"
+        @pointermove="mouse" @click="mouse"
         @keydown="keyev"
+    >
+        <div class="video"
+            @touchstart.stop.prevent="touch.start" @touchmove.stop.prevent="touch.move" @touchend.stop.prevent="touch.end"
         >
-        <div class="video">
             <video ref="video">
                 <track :default="config.disp_sub" v-if="config.subtitle[config.sub_current] && config.subtitle[config.sub_current].sub_type == 'vtt'"
                     kind="subtitle" lang="zh" :src="config.subtitle[config.sub_current].url">
@@ -351,6 +429,8 @@
         <div class="alert" :active="config.alert != ''">
             {{ config.alert }}
         </div>
+        <!-- 操作条 -->
+        <div class="action-modal" v-show="config.action != ''">{{ config.action }}</div>
         <!-- 底部 -->
         <div class="bottom" @dblclick.stop>
             <div class="time">
@@ -598,6 +678,17 @@
             &[active=true],&:hover{
                 top: 1rem;
             }
+        }
+
+        > .action-modal{
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50% ,-50%) !important;
+            background-color: #000000;
+            color: white;
+            font-size: 1.2rem;
+            padding: .5rem 1rem;border-radius: .35rem;
         }
 
         > .bottom{

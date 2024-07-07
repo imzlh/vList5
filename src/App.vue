@@ -1,10 +1,10 @@
 <script setup lang="ts">
-	import { onMounted, reactive, ref, watch } from 'vue';
+	import { onMounted, reactive, ref, watch, type Ref } from 'vue';
 	import type { CtxDispOpts, CtxMenuData, vDir } from './data';
 	import tabManager from './module/tabs.vue';
 	import Tree from './module/tree.vue';
 	import CtxMenu from './module/ctxmenu.vue';
-	import { APP_NAME, FILE_PROXY_SERVER, Global, TREE } from './utils';
+	import { APP_NAME, Global, TREE, getConfig, regConfig } from './utils';
 	import Opener from './module/opener.vue';
 	import Message from './module/message.vue';
 	import Chooser from './module/chooser.vue';
@@ -16,19 +16,20 @@
 		display: false,
 		x: 0,
 		y: 0
-	});
+	}),CONFIG = getConfig('__main__'),
+	layout_left = CONFIG['layout.left'] as Ref<number>,
+	layout_total = ref(document.documentElement.clientWidth),
+	layout_displayLeft = ref(true);
 
-	const tree_active = ref(false),
-		font = ref(18),
-		width = reactive({
-			width: document.documentElement.clientWidth,
-			left: Math.min(font.value * 18,document.documentElement.clientWidth * .35),
-		});
+	const tree_active = ref(false);
 
-	window.addEventListener('resize',() => width.width = document.documentElement.clientWidth);
+	window.addEventListener('resize',() => (
+		layout_total.value = document.documentElement.clientWidth,
+		layout_displayLeft.value = false
+	));
 	
-	document.documentElement.style.fontSize = font.value + 'px'
-	watch(font,n => document.documentElement.style.fontSize = n + 'px');
+	watch(CONFIG['layout.fontSize'], val => document.documentElement.style.fontSize = val + 'px');
+	document.documentElement.style.fontSize = CONFIG['layout.fontSize'].value + 'px';
 
 	Global('ui.ctxmenu').data = function(data:CtxDispOpts){
 		ctxconfig.x = data.pos_x;
@@ -38,11 +39,11 @@
 	}
 
 	function resize(e:PointerEvent){
-		const rawW = width.left;
+		const rawW = layout_left.value;
 		function rszHandler(ev:PointerEvent){
 			const size = rawW + ev.clientX - e.clientX;
-			if(size < font.value * 14) return;
-			else width.left = size;
+			if(size < CONFIG['layout.fontSize'].value * 14) return;
+			else layout_left.value = Math.floor(size);
 		}
 
 		document.addEventListener('pointermove',rszHandler);
@@ -54,8 +55,34 @@
 	}
 </script>
 
+<script lang="ts">
+	regConfig('__main__',[
+		"布局设置",
+		{
+			"type": "number",
+			"step": 1,
+			"default": Math.min(18 * 12,document.documentElement.clientWidth * .35),
+			"name": "文件栏大小",
+			"desc": "左侧文件栏绝对大小(px)",
+			"key": "layout.left"
+		},{
+			"type": "range",
+			"step": 1,
+			"min": 8,
+			"max": 30,
+			"default": 18,
+			"name": "缩放",
+			"key": "layout.fontSize"
+		}
+	])
+</script>
+
 <template>
-	<div class="left" :style="{ width: (width.left -2).toFixed(0) + 'px' }">
+	<!-- 左侧文件 -->
+	<div class="left" :style="{ 
+		width: layout_left -2 + 'px', 
+		left: layout_displayLeft ? '1rem' : '-200vw' 
+	}">
 		<div class="h">
 			<svg fill="currentColor" viewBox="0 0 16 16">
 				<path d="M4.158 12.025a.5.5 0 0 1 .316.633l-.5 1.5a.5.5 0 0 1-.948-.316l.5-1.5a.5.5 0 0 1 .632-.317zm6 0a.5.5 0 0 1 .316.633l-.5 1.5a.5.5 0 0 1-.948-.316l.5-1.5a.5.5 0 0 1 .632-.317zm-3.5 1.5a.5.5 0 0 1 .316.633l-.5 1.5a.5.5 0 0 1-.948-.316l.5-1.5a.5.5 0 0 1 .632-.317zm6 0a.5.5 0 0 1 .316.633l-.5 1.5a.5.5 0 1 1-.948-.316l.5-1.5a.5.5 0 0 1 .632-.317zm.747-8.498a5.001 5.001 0 0 0-9.499-1.004A3.5 3.5 0 1 0 3.5 11H13a3 3 0 0 0 .405-5.973zM8.5 2a4 4 0 0 1 3.976 3.555.5.5 0 0 0 .5.445H13a2 2 0 0 1 0 4H3.5a2.5 2.5 0 1 1 .605-4.926.5.5 0 0 0 .596-.329A4.002 4.002 0 0 1 8.5 2z"/>
@@ -66,25 +93,40 @@
 			<Tree :data="TREE" :active="tree_active" />
 		</div>
 	</div>
+	<!-- 移动端时左侧的背层 -->
+	<div class="left-overflow" :style="{
+		opacity: layout_displayLeft ? '1' : '0',
+		display: layout_displayLeft ? 'block' : 'none'
+	}" @click="layout_displayLeft = false"></div>
+	<!-- 调节大小 -->
 	<div class="resizer" @pointerdown="resize"></div>
-	<div class="right" :style="{ width: (width.width - width.left -4).toFixed(0) + 'px' }">
+	<!-- 右侧 -->
+	<div class="right" :style="{ width: layout_total - layout_left + 'px' }">
 		<tabManager ref="tabs" />
+		<!-- 右键 -->
+		<div class="ctx-mask-layer" v-show="ctxconfig.display" @click="ctxconfig.display = false;"></div>
+		<CtxMenu 
+			@blur="ctxconfig.display = false"
+			:data="ctxconfig.item" :display="ctxconfig.display"
+			:x="ctxconfig.x" :y="ctxconfig.y"
+		/>
+		<!-- 消息组件 -->
+		<Message />
+		<!-- 打开方式 -->
+		<Opener />
+		<!-- 文件选择 -->
+		<Chooser />
+		<!-- 模态框 -->
+		<Alert />
+		<!-- 显示选择栏 -->
+		<div class="mobile-tool">
+			<div @click="layout_displayLeft = !layout_displayLeft">
+				<svg viewBox="0 0 16 16">
+					<path fill-rule="evenodd" d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708z"/>
+				</svg>
+			</div>
+		</div>
 	</div>
-	<!-- 右键 -->
-	<div class="ctx-mask-layer" v-show="ctxconfig.display" @click="ctxconfig.display = false;"></div>
-	<CtxMenu 
-		@blur="ctxconfig.display = false"
-		:data="ctxconfig.item" :display="ctxconfig.display"
-		:x="ctxconfig.x" :y="ctxconfig.y"
-	/>
-	<!-- 消息组件 -->
-	<Message />
-	<!-- 打开方式 -->
-	<Opener />
-	<!-- 文件选择 -->
-	<Chooser />
-	<!-- 模态框 -->
-	<Alert />
 </template>
 
 <style lang="scss">
@@ -104,11 +146,11 @@
 			box-sizing: border-box;
 			padding: .25rem;
 			overflow: auto;
-			position: relative;
 			// display: inline-flex;
 			// flex-direction: column;
 			background-color: #faf8f8;
 			overflow: hidden;
+			transition: left .3s;
 
 			>.h {
 				text-align: center;
@@ -169,7 +211,9 @@
 
 		.ctx-mask-layer {
 			position: fixed;
-			inset: 0;
+			top: 0;
+			width: 100vw;
+			height: 100vh;
 			z-index: 100;
 		}
 	}
@@ -180,6 +224,7 @@
 			::-webkit-scrollbar {
 				display: block;
 				width: .2rem;
+				height: .2rem;
 				transform: all .2s;
 			}
 
@@ -197,9 +242,22 @@
 				transition: all .2s;
 			}
 
+			>.left{
+				position: relative !important;
+				left: 0 !important;
+			}
+
 			>.right {
 				position: relative;
 				overflow: hidden;
+			}
+
+			> .mobile-tool{
+				display: none;
+			}
+
+			> .left-overflow{
+				display: none !important;
 			}
 		}
 	}
@@ -209,26 +267,46 @@
 		body {
 			>.left {
 				position: fixed;
-				inset: 0;
-				margin: 1rem;
+				top: 1rem;
+				width: calc(100vw - 2rem) !important;
+				height: calc(100vh - 2rem);
 				border-radius: 0.8rem;
-				padding: 1rem;
+				// padding: 1rem;
 				z-index: 100;
-				display: none;
+			}
 
-				// 遮罩
-				&::after {
-					content: '';
-					position: fixed;
-					inset: 0;
-					background-color: rgba(0, 0, 0, 0.3);
-					z-index: -1;
-				}
+			// 遮罩
+			.left-overflow{
+				position: fixed;
+				top: 0;
+				width: 100vw;
+				height: 100vh;
+				background-color: rgba(0, 0, 0, 0.3);
+				z-index: 99;
+				transition: all .3s;
 			}
 
 			>.right {
 				position: fixed;
-				inset: 0;
+				width: 100% !important;
+			}
+
+			> .mobile-tool{
+				position: absolute;
+				bottom: 40%;
+				right: 0;
+				transform: translateY(-50%);
+
+				background-color: rgba(230, 222, 222, 0.6);
+				border-radius: .2rem 0 0 .2rem;
+
+				> *{
+					display: block;
+					padding: .25rem;
+					width: 1.2rem;
+					height: 1.2rem;
+					border-radius: .2rem;
+				}
 			}
 		}
 	}

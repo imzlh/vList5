@@ -1,10 +1,10 @@
 <script setup lang="ts">
-    import type { vFile } from '@/data';
+    import type { vSimpleFileOrDir } from '@/data';
     import { regSelf } from '@/opener';
     import { FS, Global, splitPath } from '@/utils';
     import Viewer from 'viewerjs';
     import 'viewerjs/src/index.css';
-    import { nextTick, onMounted, reactive, ref, watch } from 'vue';
+    import { nextTick, onMounted, ref, watch } from 'vue';
 
     const IMAGE = [
         "avif",
@@ -24,7 +24,7 @@
         elem = ref<HTMLDivElement>(),
         box = ref<HTMLDivElement>(),
         opts_ = defineProps(['option']),
-        file = opts_['option'] as vFile;
+        file = opts_['option'] as vSimpleFileOrDir;
 
     let viewer:undefined|Viewer;
 
@@ -41,10 +41,10 @@
         initFile(file);
     });
     
-    const images = ref<Array<vFile>>([]);
+    const images = ref<Array<vSimpleFileOrDir>>([]);
 
     let dir = '';
-    async function initFile(f:vFile){
+    async function initFile(f:vSimpleFileOrDir){
         if(!viewer || !elem.value) return; 
         const info = splitPath(f);
 
@@ -66,9 +66,12 @@
             });
         }else{
             // 请求URL
-            const temp:Array<vFile> = [];
-            (await FS.list(info.dir)).forEach(data => 
-                (data.type == 'file' && IMAGE.includes(splitPath(data)['ext'].toLowerCase())) 
+            const temp:Array<vSimpleFileOrDir> = [];
+            (await FS.list(info.dir,{
+                select: 'type',
+                type: 'file'
+            })).forEach(data => 
+                (IMAGE.includes(splitPath(data)['ext'].toLowerCase())) 
                     ? temp.push(data) : null
             );
             images.value = temp;

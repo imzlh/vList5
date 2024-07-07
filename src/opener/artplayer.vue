@@ -1,12 +1,14 @@
 <script setup lang="ts">
-    import type { MessageOpinion, vFile } from '@/data';
+    import type { MessageOpinion, vSimpleFileOrDir } from '@/data';
     import ArtPlayer from 'artplayer';
     import { onMounted, onUnmounted, ref } from 'vue';
     import artplayerPluginAss from 'artplayer-plugin-libass';
-    import { FS, Global, clipFName, splitPath } from '@/utils';
+    import { FS, Global, clipFName, getConfig, regConfig, splitPath } from '@/utils';
     import { regSelf } from '@/opener';
     import type { ComponentOption, Selector } from 'artplayer/types/component';
-import type { SettingOption } from 'artplayer/types/setting';
+    import type { SettingOption } from 'artplayer/types/setting';
+    
+    import F_FALLBACK from '/fallback.woff2';
 
     const element = ref<HTMLDivElement>();
     const props = defineProps({
@@ -14,13 +16,14 @@ import type { SettingOption } from 'artplayer/types/setting';
             "type": Object,
             "required": true
         }
-    }),file = props['option'] as vFile;
+    }),file = props['option'] as vSimpleFileOrDir,
+    ev = defineEmits(['show']);
 
     var art: ArtPlayer | undefined,
         plugASS:Record<string,any>;
 
-    const CONFIG = {
-        seek_time: 10,
+    const DC = getConfig('artplayer'),CONFIG = {
+        seek_time: DC['seek'],
         subtitle: [
             "ssa",
             "ass"
@@ -43,8 +46,8 @@ import type { SettingOption } from 'artplayer/types/setting';
         current: 0,
         loop: false,
         dir: '?',
-        subtitles: [] as Array<vFile>,
-        videos: [] as Array<vFile>,
+        subtitles: [] as Array<vSimpleFileOrDir>,
+        videos: [] as Array<vSimpleFileOrDir>,
         set(i:number){
             if(!art) return;
             if(!this.videos[i]) return console.error('Video#' + i + ' not found');
@@ -53,7 +56,7 @@ import type { SettingOption } from 'artplayer/types/setting';
             const file = this.videos[i];
             art.setting.update({
                 "selector": this.videos.map(item => ({
-                    "html": item.dispName || item.name,
+                    "html": item.name,
                     "url": item.url,
                     "name": item.name,
                     "default": file.name == item.name
@@ -91,15 +94,7 @@ import type { SettingOption } from 'artplayer/types/setting';
                         if(!art) return;
                         const selector = art.setting.find('subtitle').selector as Array<Item>;
                         Global('util.choose').call(this.dir)
-                            .then((items:Array<vFile>) => items.forEach(each => {
-                                if(each.size > 10 * 1024 * 1024) return Global('ui.message').call({
-                                    "type": "error",
-                                    "title": "Artplayer",
-                                    "content":{
-                                        "title": "无法打开" + clipFName(each,15),
-                                        "content": '文件太大，libass拒绝渲染'
-                                    }
-                                } satisfies MessageOpinion);
+                            .then((items:Array<vSimpleFileOrDir>) => items.forEach(each => {
                                 if(!['ass','ssa','vtt','srt'].includes(splitPath(each)['ext'].toLowerCase()))
                                     Global('ui.message').call({
                                         "type": "warn",
@@ -111,7 +106,7 @@ import type { SettingOption } from 'artplayer/types/setting';
                                     } satisfies MessageOpinion);
                                 this.subtitles.push(each);
                                 selector.push({
-                                    "html": each.dispName || each.name,
+                                    "html": each.name,
                                     "url": each.url,
                                     "name": each.name,
                                     "default": splitPath(file)['name'] == splitPath(each)['name'],
@@ -121,7 +116,7 @@ import type { SettingOption } from 'artplayer/types/setting';
                         return false;
                     }
                 } as any].concat(this.subtitles.map(item => ({
-                    "html": item.dispName || item.name,
+                    "html": item.name,
                     "url": item.url,
                     "name": item.name,
                     "default": splitPath(file)['name'] == splitPath(item)['name']
@@ -148,7 +143,7 @@ import type { SettingOption } from 'artplayer/types/setting';
             else
                 this.set(this.current -1);
         },
-        async play(file:vFile) {
+        async play(file:vSimpleFileOrDir) {
             if(!art) return;
 
             const dir = splitPath(file)['dir'];
@@ -165,7 +160,7 @@ import type { SettingOption } from 'artplayer/types/setting';
                 const list = await FS.list(dir || '/');
                 this.videos = [];this.subtitles = [];
                 let i = 0;
-                list.forEach(item => item.type == 'dir' ? null : (() => {
+                list.forEach(item => {
                     const info = splitPath(item);
                     // 是视频
                     if(CONFIG.video.includes(info.ext.toLowerCase())){
@@ -177,7 +172,7 @@ import type { SettingOption } from 'artplayer/types/setting';
                     }else if(CONFIG.subtitle.includes(info.ext.toLowerCase())){
                         this.subtitles.push(item);
                     }
-                })());
+                });
 
                 // 更新
                 this.dir = dir;
@@ -196,7 +191,10 @@ import type { SettingOption } from 'artplayer/types/setting';
     };
 
     // 注册自己
-    const reg = regSelf('ArtPlayer',(f) => control.play(f));
+    const reg = regSelf('ArtPlayer',(f) => {
+        control.play(f);
+        ev('show');
+    });
 
     onUnmounted(function(){
         art && art.destroy();
@@ -257,7 +255,7 @@ import type { SettingOption } from 'artplayer/types/setting';
                                     </svg>
                             </i>`,
                     tooltip: '快进 ' + CONFIG.seek_time + 's',
-                    click: () => art && (art.forward = CONFIG.seek_time)
+                    click: () => art && (art.forward = CONFIG.seek_time.value)
                 }, {
                     name: 'backward',
                     index: 8,
@@ -268,7 +266,7 @@ import type { SettingOption } from 'artplayer/types/setting';
                                 </svg>
                             </i>`,
                     tooltip: '快退 ' + CONFIG.seek_time + 's',
-                    click: () => art && (art.backward = CONFIG.seek_time)
+                    click: () => art && (art.backward = CONFIG.seek_time.value)
                 }, {
                     name: 'next',
                     index: 20,
@@ -335,7 +333,7 @@ import type { SettingOption } from 'artplayer/types/setting';
         plugASS = artplayerPluginAss({
             workerUrl: 'https://unpkg.com/libass-wasm@4.1.0/dist/js/subtitles-octopus-worker.js',
             wasmUrl: 'https://unpkg.com/libass-wasm@4.1.0/dist/js/subtitles-octopus-worker.wasm',
-            fallbackFont: '/fallback.woff2'
+            fallbackFont: F_FALLBACK
         })(art);
 
         // plugASS.init();
@@ -348,6 +346,19 @@ import type { SettingOption } from 'artplayer/types/setting';
 <template>
     <div class="art-container" ref="element" style="width: 100%;height: 100%;"></div>
 </template>
+
+<script lang="ts">
+    regConfig('aryplayer',[
+        {
+            "type": "number",
+            "name": "单次切换时长",
+            "default": 10,
+            "key": "seek",
+            "desc": "当快进/快退时更改的时长",
+            "step": 1
+        }
+    ])
+</script>
 
 <style lang="scss">
     // 修复ArtPlayer Bug

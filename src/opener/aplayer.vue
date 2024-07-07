@@ -1,15 +1,16 @@
 <script setup lang="ts">
-    import type { vFile } from '@/data';
+    import type { vSimpleFileOrDir } from '@/data';
     import { regSelf } from '@/opener';
-    import { FS, splitPath } from '@/utils';
+    import { FS, getConfig, regConfig, splitPath } from '@/utils';
     import APlayer, { addMusicPlugin } from 'aplayer-ts';
     import { onMounted, onUnmounted, ref } from 'vue';
 
     const dom = ref<HTMLElement>(),
         props = defineProps(['option']),
-        data = props['option'] as vFile;
+        data = props['option'] as vSimpleFileOrDir,
+        ev = defineEmits(['show']);
     var ap = APlayer() .use(addMusicPlugin),
-        list:Array<vFile & {lrc?:vFile,cover?:vFile}> = [],
+        list:Array<vSimpleFileOrDir & {lrc?:vSimpleFileOrDir,cover?:vSimpleFileOrDir}> = [],
         cur = -1;
 
     const IMAGE = [
@@ -19,9 +20,9 @@
         "png",
         "ico",
         "bmp"
-    ];
+    ],THEME = getConfig('aplayer')['theme'];
 
-    async function play(file:vFile){
+    async function play(file:vSimpleFileOrDir){
         // 找到ID
         for (let i = 0; i < list.length; i++)
             if(list[i].path == file.path)
@@ -30,10 +31,9 @@
         // 不在列表中
         const info = splitPath(file),
             dir = await FS.list(info['dir']);
-        let cover: undefined | vFile, lrc: undefined | vFile;
+        let cover: undefined | vSimpleFileOrDir, lrc: undefined | vSimpleFileOrDir;
         // 找到文件
         for (const file of dir) {
-            if (file.type == 'dir') continue;
             const inf = splitPath(file),
                 ext = inf.ext.toLowerCase(),
                 fullmatch = inf.name.toLowerCase() == info['name'];
@@ -62,7 +62,10 @@
         });
     }
 
-    const reg = regSelf('APlayer',play);
+    const reg = regSelf('APlayer',function(file){
+        play(file);
+        ev('show');
+    });
 
     onMounted(function(){
         ap.init({
@@ -70,7 +73,7 @@
             "audio": [],
             "autoplay": true,
             "listFolded": true,
-            "theme": "#3fcd82"
+            "theme": THEME.value
         });
         play(data);
     });
@@ -83,6 +86,18 @@
 
     </div>
 </template>
+
+<script lang="ts">
+    regConfig('aplayer',[
+        {
+            "name": "主题颜色",
+            "type": "text",
+            "key": "theme",
+            "default": "#3fcd82",
+            "desc": "默认的主题颜色，使用HEX"
+        }
+    ]);
+</script>
 
 <style lang="css">
     .aplayer {

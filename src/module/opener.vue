@@ -30,7 +30,7 @@
                 "
                 :selected="i == cfg.selected"
             >
-                <img :src="opener.icon || 'icon/app.webp'">
+                <img :src="opener.icon || '/icon/app.webp'">
                 <div>
                     <h4>{{ opener.name }}</h4>
                     <span >{{ opener.typeDesc }}</span>

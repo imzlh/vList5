@@ -21,7 +21,7 @@
     });
 
     async function switchTo(dir:string){
-        data.value = await FS.list(dir);
+        data.value = await FS.listall(dir);
         current.value = history.value.push(dir) -1;
     }
 
@@ -51,7 +51,7 @@
     }
 
     watch(current,() => history.value[current.value] && 
-        FS.list(history.value[current.value]).then(list => data.value = list)
+        FS.listall(history.value[current.value]).then(list => data.value = list)
     );
     watch(current, () => path.value = history.value[current.value] || '/');
 </script>

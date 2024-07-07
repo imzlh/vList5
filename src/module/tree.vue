@@ -1,7 +1,22 @@
 <script lang="ts">
-    import type { AlertOpts, CtxDispOpts, CtxMenuData, FileOrDir, vDir, vFile } from '@/data';
-    import { DEFAULT_FILE_ICON, FS, Global, getOpenerId, load, openFile, reloadTree, size2str, splitPath } from '@/utils';
+    import type { AlertOpts, CtxDispOpts, CtxMenuData, FileOrDir, MessageOpinion, vDir, vFile } from '@/data';
+    import { DEFAULT_FILE_ICON, FS, Global, getOpenerId, load, openFile, openSetting, reloadTree, size2str, splitPath } from '@/utils';
     import { ref, watch } from 'vue';
+    import Upload from './upload.vue';
+
+    import I_NEW from '/icon/new.webp';
+    import I_FOLDER from '/icon/folder.webp';
+    import I_TXT from '/icon/textfile.webp';
+    import I_UPLOAD from '/icon/transmit.webp';
+    import I_REFRESH from '/icon/refresh.webp';
+    import I_CUT from '/icon/cut.webp';
+    import I_COPY from '/icon/copy.webp';
+    import I_PASTE from '/icon/paste.webp';
+    import I_RENAME from '/icon/rename.webp';
+    import I_OPEN from "/icon/open.webp";
+    import I_OPENER from '/icon/opener.webp';
+
+    import I_SETTING from '/app/settings.webp';
 
     let marked = [] as Array<FileOrDir>;
     const markmap = ref<Array<string>>([]);
@@ -69,11 +84,11 @@
                 const item = [
                     {
                         "text": "创建",
-                        "icon": "icon/new.webp",
+                        "icon": I_NEW,
                         "child": [
                             {
                                 "text": "文件夹",
-                                "icon": "icon/folder.webp",
+                                "icon": I_FOLDER,
                                 handle: () => 
                                     Global('ui.alert').call({
                                         "type": "prompt",
@@ -86,7 +101,7 @@
                                     } satisfies AlertOpts)
                             },{
                                 "text": "文件",
-                                "icon": "icon/textfile.webp",
+                                "icon": I_TXT,
                                 handle: () => 
                                     Global('ui.alert').call({
                                         "type": "prompt",
@@ -100,20 +115,31 @@
                             }
                         ],
                     },{
+                        "text": "上传",
+                        "icon": I_UPLOAD,
+                        handle: () => {
+                            Global('ui.window.add').call({
+                                "content": Upload,
+                                "icon": I_UPLOAD,
+                                "name": "上传文件",
+                                "option": (this.data as vDir).path
+                            });
+                        },
+                    },{
                         "text": "刷新",
-                        "icon": "icon/refresh.webp",
+                        "icon": I_REFRESH,
                         handle: () => {
                             load(this.data as vDir)
                         },
                     },'---',{
                         "text": "剪切",
-                        "icon": "icon/cut.webp",
+                        "icon": I_CUT,
                         handle:() => {
                             FS.mark('move',marked);
                         },
                     }, {
                         "text": "复制",
-                        "icon": "icon/copy.webp",
+                        "icon": I_COPY,
                         handle: () => {
                             FS.mark('copy',marked);
                         },
@@ -123,7 +149,7 @@
                 if(marked.length > 0){
                     item.push({
                         "text": "粘贴",
-                        "icon": "icon/paste.webp",
+                        "icon": I_PASTE,
                         handle: () => {
                             FS.exec(this.data as vDir);
                         }
@@ -134,7 +160,19 @@
                     "text": "删除",
                     "icon": 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" fill="%23b7a6a6" viewBox="0 0 16 16"><path d="M6.5 1h3a.5.5 0 0 1 .5.5v1H6v-1a.5.5 0 0 1 .5-.5ZM11 2.5v-1A1.5 1.5 0 0 0 9.5 0h-3A1.5 1.5 0 0 0 5 1.5v1H2.506a.58.58 0 0 0-.01 0H1.5a.5.5 0 0 0 0 1h.538l.853 10.66A2 2 0 0 0 4.885 16h6.23a2 2 0 0 0 1.994-1.84l.853-10.66h.538a.5.5 0 0 0 0-1h-.995a.59.59 0 0 0-.01 0H11Zm1.958 1-.846 10.58a1 1 0 0 1-.997.92h-6.23a1 1 0 0 1-.997-.92L3.042 3.5h9.916Zm-7.487 1a.5.5 0 0 1 .528.47l.5 8.5a.5.5 0 0 1-.998.06L5 5.03a.5.5 0 0 1 .47-.53Zm5.058 0a.5.5 0 0 1 .47.53l-.5 8.5a.5.5 0 1 1-.998-.06l.5-8.5a.5.5 0 0 1 .528-.47ZM8 4.5a.5.5 0 0 1 .5.5v8.5a.5.5 0 0 1-1 0V5a.5.5 0 0 1 .5-.5Z"/></svg>',
                     handle: async () => {
-                        if( await FS.deleteAll(marked) === false) return;
+                        try{
+                            await FS.delete(marked.map(item => item.path))
+                        }catch(e){
+                            return Global('ui.message').call({
+                                'type': 'error',
+                                'content': {
+                                    'title': '删除失败',
+                                    'content': (e as Error).message
+                                },
+                                'title': '文件资源管理器',
+                                'timeout': 10
+                            } satisfies MessageOpinion)
+                        }
                         const refdir = [] as Array<string>;
                         for (const file of marked) {
                             const dir = splitPath(file)['dir'];
@@ -149,7 +187,7 @@
                 if(marked.length == 1){
                     item.push({
                         "text": "重命名",
-                        "icon": "icon/rename.webp",
+                        "icon": I_RENAME,
                         handle: () => {
                             Global('ui.alert').call({
                                 "type": "prompt",
@@ -181,17 +219,28 @@
                 if(marked.length == 1 && marked[0].type == 'file'){
                     item.push('---',{
                         "text": "打开",
-                        "icon": "icon/open.webp",
+                        "icon": I_OPEN,
                         handle: () => openFile(marked[0]),
                     },{
                         "text": "打开方式",
-                        "icon": "icon/opener.webp",
+                        "icon": I_OPENER,
                         handle() {
                             Global('opener.chooser.choose').call(marked[0])
                                 .then(opener => opener.open(marked[0]));
                         },
                     });
                 }
+
+                item.push(
+                    '---',
+                    {
+                        "text": "设置",
+                        "icon": I_SETTING,
+                        handle() {
+                            openSetting();
+                        },
+                    }
+                )
 
                 Global('ui.ctxmenu').call({
                     "pos_x": e.clientX,
@@ -206,9 +255,11 @@
 <template>
     <div class="vlist" :show="show" :active="active" v-if="topLevel" @contextmenu.prevent="ctxmenu">
 
-        <div class="parent" @dblclick.stop="openFile(data as vFile)"
-            @click="markup($event,data as any)" :selected="markmap.includes(data.path)"
-            :title="desc(data as any)">
+        <div class="parent"
+            @dblclick.stop="openFile(data as vFile)"
+            @click="markup($event,data as any)"
+            :title="desc(data as any)" :selected="markmap.includes(data.path)"
+        >
             <div :class="['btn-hide', { 'show': show }]" @click.stop="folder"></div>
             <img :src="data.icon" v-if="data.icon">
             <span>{{ data.dispName || data.name }}</span>
@@ -223,6 +274,7 @@
 
                 <div v-else :class="['item',child.type]" :title="desc(child)"
                     @click="markup($event,child)"
+                    @touchstart.stop="openFile(child as vFile)"
                     @dblclick.stop="openFile(child as vFile)"
                     :selected="markmap.includes(child.path)"
                 >
@@ -254,6 +306,7 @@
                 <div v-else :class="['item',child.type]" :title="desc(child)"
                     @click="markup($event,child)"
                     @dblclick.stop="openFile(child as vFile)"
+                    @touchstart.stop="openFile(child as vFile)"
                     :selected="markmap.includes(child.path)"
                 >
                     <img :src="child.icon || DEFAULT_FILE_ICON">

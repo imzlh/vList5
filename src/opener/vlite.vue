@@ -1,9 +1,9 @@
 <script setup lang="ts">
-    import type { vFile } from '@/data';
+    import type { vSimpleFileOrDir } from '@/data';
     import { regSelf } from '@/opener';
     import { FS, Global, splitPath } from '@/utils';
     import { Lrc, Runner, type Lyric } from 'lrc-kit';
-    import { onUnmounted, ref, shallowReactive, watch } from 'vue';
+    import { nextTick, onUnmounted, ref, shallowReactive, watch } from 'vue';
 
     interface Music {
         name: string,
@@ -16,7 +16,7 @@
     }
 
     const props = defineProps(['option']),
-        data = props['option'] as vFile,
+        data = props['option'] as vSimpleFileOrDir,
         config = shallowReactive({
             playlist: [] as Array<Music>,
             current: -1,
@@ -34,7 +34,8 @@
         } as Music), ui = shallowReactive({
             volume: false
         }), audio = new Audio(data.url),
-        lrc_elem = ref<Array<HTMLElement>>([]);
+        lrc_elem = ref<Array<HTMLElement>>([]),
+        ev = defineEmits(['show']);
 
     const CONFIG = {
         seek_time: 10,
@@ -68,7 +69,7 @@
     watch(() => config.current,function(n){
         if(config.playlist.length == 0) return;
         // 最后一个了
-        else if(n >= config.playlist.length) return config.current = 1;
+        else if(n >= config.playlist.length) return config.current = 0;
         // 第一个了
         else if(n < 0) return config.current = config.playlist.length -1;
         // 刷新播放状态
@@ -120,6 +121,7 @@
             if(res.info.ti) current.value.name = res.info.ti;
         
             // 开始滚动歌词
+            res.lyrics.sort((a,b) => a.timestamp - b.timestamp);
             config.lrc = res.lyrics;
             runner = new Runner(res);
         }
@@ -131,16 +133,17 @@
     function time2str(time:number){
         var min = Math.floor(time/60),
             sec = time%60;
-        return (min < 10 ? '0' + min : min) + ':' + (sec < 10 ? '0' + sec.toFixed() : sec.toFixed());
+        return (min < 10 ? '0' + min : min) + ':' + (sec < 10 ? '0' + Math.floor(sec) : sec.toFixed());
     }
-    audio.ontimeupdate = function(){
+    audio.ontimeupdate = async function(){
         if(runner){
             runner.timeUpdate(audio.currentTime);
             const now =  runner.curIndex();
             if(config.lrc_now != now){
                 config.lrc_now = now;
-                const self = lrc_elem.value[config.lrc_now],
-                    parent = self.parentElement as HTMLElement;
+                const self = lrc_elem.value[config.lrc_now];
+                if(!self) await new Promise(rs => nextTick(() => rs(null)));
+                const parent = self.parentElement as HTMLElement;
                 parent.scrollTop = self.offsetTop - parent.clientHeight /2 + self.clientHeight /2;
             }
         }
@@ -159,7 +162,12 @@
     audio.onended = function(){
         if(config.loop == 'all') config.current ++;
         else if(config.loop == 'one') audio.play();
-        else config.current = Math.floor(Math.random() * (config.playlist.length -1));
+        else while(true){
+            let nxt = Math.floor(Math.random() * (config.playlist.length -1));
+            if(config.current == nxt) continue;
+            config.current = nxt;
+            break;
+        }
     };
     audio.ondurationchange = () => config.total = time2str(audio.duration);
     audio.oncanplay = () => audio.play();
@@ -190,8 +198,16 @@
         }
     }
 
+    function switchMode(){
+        config.loop = {
+            'all': 'one',
+            'one': 'random',
+            'random': 'all'
+        }[config.loop] as 'one'|'random'|'all';
+    }
+
     let cur_dir = '';
-    async function play(file: vFile) {
+    async function play(file: vSimpleFileOrDir) {
         const dir = splitPath(file)['dir'];
         let id: number | undefined;
         if (cur_dir == dir) {
@@ -209,7 +225,7 @@
                 default_cover = [] as Array<string>;
             config.playlist = [];
             let i = 0;
-            list.forEach(item => item.type == 'dir' ? null : (() => {
+            list.forEach(item => {
                 const info = splitPath(item);
                 // 是音频
                 if (CONFIG.audio.includes(info.ext.toLowerCase())) {
@@ -232,7 +248,7 @@
                     else
                         covers[info.name] = item.url;
                 }
-            })());
+            });
 
             // 字幕&封面配对
             for (let i = 0; i < config.playlist.length; i++){
@@ -259,7 +275,10 @@
         });
     }
 
-    const cancel = regSelf('vLite',play);
+    const cancel = regSelf('vLite',(f) => {
+        play(f);
+        ev('show');
+    });
     onUnmounted(() => {audio.pause() ;cancel()});
 
     play(data);
@@ -318,7 +337,7 @@
                     </svg>
                 </div>
                 <!-- 循环模式 -->
-                <div size="small">
+                <div size="small" @click="switchMode">
                     <svg viewBox="0 0 100 100" v-show="config.loop == 'random'">
                         <line stroke-width="5" y2="22" x2="88" y1="21" x1="10" stroke="currentColor" />
                         <path d="m12,72l27,-0.1l24,-28l23,-0.25" stroke-width="5" stroke="currentColor" />
@@ -359,6 +378,26 @@
         > .left{
             display: flex;
             flex-direction: column;
+            box-sizing: border-box;
+
+            @media screen and (max-width: 30rem) {
+                position: absolute;
+                bottom: 0;
+                left: .5rem;
+                right: .5rem;
+                background-color: #58706d;
+                display: block;
+                max-width: none !important;
+                width: unset !important;
+
+                > .cover{
+                    display: none;
+                }
+
+                > .time{
+                    width: 100%;
+                }
+            }
             
             &[single=false]{
                 min-width: 25%;
@@ -545,6 +584,11 @@
             width: 50%;
             margin: 50% 0 50% 0;
             scroll-behavior: smooth;
+
+            @media screen and (max-width: 30rem) {
+                width: 100%;
+                padding: 0 1rem;
+            }
 
             &::-webkit-scrollbar{
                 display: none;
