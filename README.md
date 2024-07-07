@@ -1,16 +1,15 @@
 # vlist
 
 简单的文件管理方案<br>
-使用Vue构建，与MomentPHP集成
+使用Vue构建，与NJS集成
 
 ## 安装指南
 
-需要NodeJS和<a href="https://github.com/imzlh/moment">MomentPHP</a>
+需要NodeJS和<a href="https://github.com/imzlh/vlist-njs">NJS后端</a>
 
 ```sh
 npm install
 npm run build
-php fileman.php
 ```
 
 # 手册
