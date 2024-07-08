@@ -81,6 +81,9 @@
                 }
             },
             ctxmenu(e:MouseEvent){
+                let markedroot = false;
+                marked.forEach(item => item.path == '/' && (markedroot = true));
+
                 const item = [
                     {
                         "text": "创建",
@@ -131,7 +134,11 @@
                         handle: () => {
                             load(this.data as vDir)
                         },
-                    },'---',{
+                    },'---'
+                ] as Array<CtxMenuData>;
+
+                if(!markedroot)
+                    item.push({
                         "text": "剪切",
                         "icon": I_CUT,
                         handle:() => {
@@ -143,8 +150,7 @@
                         handle: () => {
                             FS.mark('copy',marked);
                         },
-                    }
-                ] as Array<CtxMenuData>;
+                    });
 
                 if(marked.length > 0){
                     item.push({
@@ -156,79 +162,82 @@
                     });
                 }
 
-                item.push({
-                    "text": "删除",
-                    "icon": 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" fill="%23b7a6a6" viewBox="0 0 16 16"><path d="M6.5 1h3a.5.5 0 0 1 .5.5v1H6v-1a.5.5 0 0 1 .5-.5ZM11 2.5v-1A1.5 1.5 0 0 0 9.5 0h-3A1.5 1.5 0 0 0 5 1.5v1H2.506a.58.58 0 0 0-.01 0H1.5a.5.5 0 0 0 0 1h.538l.853 10.66A2 2 0 0 0 4.885 16h6.23a2 2 0 0 0 1.994-1.84l.853-10.66h.538a.5.5 0 0 0 0-1h-.995a.59.59 0 0 0-.01 0H11Zm1.958 1-.846 10.58a1 1 0 0 1-.997.92h-6.23a1 1 0 0 1-.997-.92L3.042 3.5h9.916Zm-7.487 1a.5.5 0 0 1 .528.47l.5 8.5a.5.5 0 0 1-.998.06L5 5.03a.5.5 0 0 1 .47-.53Zm5.058 0a.5.5 0 0 1 .47.53l-.5 8.5a.5.5 0 1 1-.998-.06l.5-8.5a.5.5 0 0 1 .528-.47ZM8 4.5a.5.5 0 0 1 .5.5v8.5a.5.5 0 0 1-1 0V5a.5.5 0 0 1 .5-.5Z"/></svg>',
-                    handle: async () => {
-                        try{
-                            await FS.delete(marked.map(item => item.path))
-                        }catch(e){
-                            return Global('ui.message').call({
-                                'type': 'error',
-                                'content': {
-                                    'title': '删除失败',
-                                    'content': (e as Error).message
-                                },
-                                'title': '文件资源管理器',
-                                'timeout': 10
-                            } satisfies MessageOpinion)
-                        }
-                        const refdir = [] as Array<string>;
-                        for (const file of marked) {
-                            const dir = splitPath(file)['dir'];
-                            if(!refdir.includes(dir)) refdir.push(dir);
-                        }
-
-                        // 刷新
-                        reloadTree(refdir);
-                    }
-                });
-                
-                if(marked.length == 1){
+                if(!markedroot) {
                     item.push({
-                        "text": "重命名",
-                        "icon": I_RENAME,
-                        handle: () => {
-                            Global('ui.alert').call({
-                                "type": "prompt",
-                                "message": marked[0].dispName || marked[0].name,
-                                "title": "重命名此文件为:",
-                                callback(data) {
-                                    if(!data) return;
-                                    let dir = marked[0].path;
-                                    // 是文件夹
-                                    if(dir[dir.length-1] == '/')
-                                        dir = dir.substring(0,dir.length-1);
-                                    // 寻找斜杠
-                                    const pos = dir.lastIndexOf('/');
-                                    // 文件夹
-                                    dir = dir.substring(0,pos + 1);
-                                    // 目标
-                                    let newp = dir + data;
-                                    // 移动文件
-                                    FS.move(marked[0].path,newp)
-                                        // 重新加载文件夹
-                                        .then(() => reloadTree([dir]));
-                                },
-                            } satisfies AlertOpts)
-                        },
+                        "text": "删除",
+                        "icon": 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" fill="%23b7a6a6" viewBox="0 0 16 16"><path d="M6.5 1h3a.5.5 0 0 1 .5.5v1H6v-1a.5.5 0 0 1 .5-.5ZM11 2.5v-1A1.5 1.5 0 0 0 9.5 0h-3A1.5 1.5 0 0 0 5 1.5v1H2.506a.58.58 0 0 0-.01 0H1.5a.5.5 0 0 0 0 1h.538l.853 10.66A2 2 0 0 0 4.885 16h6.23a2 2 0 0 0 1.994-1.84l.853-10.66h.538a.5.5 0 0 0 0-1h-.995a.59.59 0 0 0-.01 0H11Zm1.958 1-.846 10.58a1 1 0 0 1-.997.92h-6.23a1 1 0 0 1-.997-.92L3.042 3.5h9.916Zm-7.487 1a.5.5 0 0 1 .528.47l.5 8.5a.5.5 0 0 1-.998.06L5 5.03a.5.5 0 0 1 .47-.53Zm5.058 0a.5.5 0 0 1 .47.53l-.5 8.5a.5.5 0 1 1-.998-.06l.5-8.5a.5.5 0 0 1 .528-.47ZM8 4.5a.5.5 0 0 1 .5.5v8.5a.5.5 0 0 1-1 0V5a.5.5 0 0 1 .5-.5Z"/></svg>',
+                        handle: async () => {
+                            try{
+                                await FS.delete(marked.map(item => item.path))
+                            }catch(e){
+                                return Global('ui.message').call({
+                                    'type': 'error',
+                                    'content': {
+                                        'title': '删除失败',
+                                        'content': (e as Error).message
+                                    },
+                                    'title': '文件资源管理器',
+                                    'timeout': 10
+                                } satisfies MessageOpinion)
+                            }
+                            const refdir = [] as Array<string>;
+                            for (const file of marked) if(file.type == 'file'){
+                                const dir = splitPath(file)['dir'];
+                                if(!refdir.includes(dir)) refdir.push(dir);
+                            }else{
+                                const slash = file.path.lastIndexOf('/',file.path.length -2);
+                                refdir.push(file.path.substring(0,slash +1));
+                            }
+                            // 刷新
+                            reloadTree(refdir);
+                        }
                     });
-                }
+                    
+                    if(marked.length == 1){
+                        item.push({
+                            "text": "重命名",
+                            "icon": I_RENAME,
+                            handle: () => {
+                                Global('ui.alert').call({
+                                    "type": "prompt",
+                                    "message": marked[0].dispName || marked[0].name,
+                                    "title": "重命名此文件为:",
+                                    callback(data) {
+                                        if(!data) return;
+                                        let dir = marked[0].path;
+                                        // 是文件夹
+                                        if(dir[dir.length-1] == '/')
+                                            dir = dir.substring(0,dir.length-1);
+                                        // 寻找斜杠
+                                        const pos = dir.lastIndexOf('/');
+                                        // 文件夹
+                                        dir = dir.substring(0,pos + 1);
+                                        // 目标
+                                        let newp = dir + data;
+                                        // 移动文件
+                                        FS.move(marked[0].path,newp)
+                                            // 重新加载文件夹
+                                            .then(() => reloadTree([dir]));
+                                    },
+                                } satisfies AlertOpts)
+                            },
+                        });
+                    }
 
-                
-                if(marked.length == 1 && marked[0].type == 'file'){
-                    item.push('---',{
-                        "text": "打开",
-                        "icon": I_OPEN,
-                        handle: () => openFile(marked[0]),
-                    },{
-                        "text": "打开方式",
-                        "icon": I_OPENER,
-                        handle() {
-                            Global('opener.chooser.choose').call(marked[0])
-                                .then(opener => opener.open(marked[0]));
-                        },
-                    });
+                    if(marked.length == 1 && marked[0].type == 'file'){
+                        item.push('---',{
+                            "text": "打开",
+                            "icon": I_OPEN,
+                            handle: () => openFile(marked[0]),
+                        },{
+                            "text": "打开方式",
+                            "icon": I_OPENER,
+                            handle() {
+                                Global('opener.chooser.choose').call(marked[0])
+                                    .then(opener => opener.open(marked[0]));
+                            },
+                        });
+                    }
                 }
 
                 item.push(

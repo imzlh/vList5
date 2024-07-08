@@ -223,7 +223,8 @@ export const OPENER:Array<OpenerOption> = [
             "opus",
             "mka",
             "m4a",
-            "ogg"
+            "ogg",
+            "cue"
         ],
         open(file) {
             Global('ui.window.add').call({

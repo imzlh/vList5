@@ -276,22 +276,25 @@ export const FS = {
     touch(files:Array<string>|string, mode?: number){
         if(mode && mode > 0o7777)
             throw new Error('Mode Error');
+        files = typeof files == 'string' ? [files] : files;
         return this.__request('touch', { 
-            files: typeof files == 'string' ? [files] : files,
+            files,
             mode
         });
     },
 
     copy(from:Array<string>|string,to:string){
+        from = typeof from == 'string' ? [from] : from;
         return this.__request('copy', {
-            from: typeof from == 'string' ? [from] : from,
+            from,
             to
         });
     },
 
     move(from:Array<string>|string,to:string){
+        from = typeof from == 'string' ? [from] : from;
         return this.__request('copy', {
-            from: typeof from == 'string' ? [from] : from,
+            from,
             to
         });
     },
@@ -314,7 +317,7 @@ export const FS = {
                 'Content-Type': 'application/json'
             },
             "body": JSON.stringify({
-                from: JSON.stringify(this.marked.map(item => item.path)),
+                from: this.marked.map(item => item.path),
                 to: dest.path
             })
         });

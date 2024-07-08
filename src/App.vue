@@ -130,6 +130,8 @@
 </template>
 
 <style lang="scss">
+	@import './public/font.scss';
+
 	body {
 		margin: 0;
 		overflow: hidden;
