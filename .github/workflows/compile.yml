@@ -34,7 +34,8 @@ jobs:
       with:
         repo_token: ${{ secrets.GITHUB_TOKEN }}
         file: release.tgz
-        asset_name: Latest
+        release_name: 'latest'
+        asset_name: vlist5_latest.tgz
         tag: ${{ github.ref }}
         overwrite: true
         body: "这是已经打包完成的版本，解压后开箱即用"
