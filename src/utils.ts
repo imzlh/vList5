@@ -8,11 +8,12 @@ import I_DIR from '/icon/dir.webp';
 import I_SETTING from '/app/settings.webp';
 import I_DESKTOP from '/icon/desktop.webp';
 
-export const APP_API = 'http://192.168.1.1:81/@api/';
 export const APP_NAME = 'izCloud';
 export const DEFAULT_FILE_ICON = I_File;
 export const DEFAULT_DIR_ICON = I_DIR;
-export const FILE_PROXY_SERVER = 'http://192.168.1.1:81/';
+
+export const APP_API = import.meta.env.DEV ? 'http://192.168.1.1:81/@api/' : '/@api/';
+export const FILE_PROXY_SERVER = import.meta.env.DEV ? 'http://192.168.1.1:81/' : '';
 
 const pool = {};
 

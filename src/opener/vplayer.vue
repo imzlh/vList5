@@ -28,7 +28,7 @@
             // 总计时长
             timetotal: '-:-',
             // 当前videoID
-            current: 0,
+            current: -1,
             // 是否循环播放
             loop: false,
             // 播放列表
@@ -122,7 +122,7 @@
     watch(() => config.current,function(n){
         if(!video.value) return;
         // 最后一个了
-        if(n >= config.playlist.length) return config.current = 1;
+        if(n >= config.playlist.length) return config.current = 0;
         // 第一个了
         else if(n < 0) return config.current = config.playlist.length -1;
         // 刷新播放状态
@@ -261,7 +261,8 @@
                 config.playing ? video.value.pause() : video.value.play()
             else mouse();
 
-            this.moved.lastClick = now;
+            this.moved.lastClick = now,
+            config.action = '';
         }
     }
 
@@ -415,7 +416,7 @@
         @pointermove="mouse" @click="mouse"
         @keydown="keyev"
     >
-        <div class="video"
+        <div class="video" :width="config.vid_state"
             @touchstart.stop.prevent="touch.start" @touchmove.stop.prevent="touch.move" @touchend.stop.prevent="touch.end"
         >
             <video ref="video">
@@ -643,6 +644,36 @@
             display: inline-block;
             max-width: 100%;max-height: 100%;
             width: auto !important;height: auto !important;
+
+            // 'auto' | 'width' | 'height' | 'full'
+            &[width=width]{
+                width: 100% !important;
+                height: auto !important;
+                max-height: unset !important;
+
+                > video{
+                    object-fit: contain;
+                }
+            }
+
+            &[width=height]{
+                max-width: auto !important;
+                width: auto !important;
+                height: 100% !important;
+
+                > video{
+                    object-fit: cover
+                }
+            }
+
+            &[width=full]{
+                width: 100% !important;
+                height: 100% !important;
+
+                > video{
+                    object-fit: fill;
+                }
+            }
        
             > *{
                 pointer-events: none;
@@ -652,7 +683,6 @@
             > video{
                 position: static;
                 width: 100%;height: 100%;
-                min-width: 30rem;
             }
         }
 

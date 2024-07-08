@@ -21,6 +21,14 @@
     let marked = [] as Array<FileOrDir>;
     const markmap = ref<Array<string>>([]);
 
+    let touch = {
+        x: 0,
+        y: 0,
+        mx: 0,
+        my: 0,
+        time: 0
+    }
+
     export default {
         name: 'tree',
         props: {
@@ -52,6 +60,24 @@
             };
         },
         methods: {
+            touch_start(ev:TouchEvent){
+                touch = {
+                    x: ev.touches[0].clientX, 
+                    y: ev.touches[0].clientY,
+                    mx: ev.touches[0].clientX,
+                    my: ev.touches[0].clientY,
+                    time: new Date().getTime()
+                };
+            },
+            touch_move(ev: TouchEvent){
+                touch.mx = ev.touches[0].clientX,
+                touch.my = ev.touches[0].clientY;
+            },
+            touch_end(){
+                return Math.abs(touch.mx - touch.x) < 10
+                    && Math.abs(touch.my - touch.y) < 10
+                    && new Date().getTime() - touch.time <= 600;
+            },
             desc(data:FileOrDir){
                 var tmp = data.dispName || data.name;
                 if(data.ctime > 0) tmp += '\n创建日期: ' + (new Date(data.ctime).toDateString());
@@ -283,7 +309,8 @@
 
                 <div v-else :class="['item',child.type]" :title="desc(child)"
                     @click="markup($event,child)"
-                    @touchstart.stop="openFile(child as vFile)"
+                    @touchstart="touch_start" @touchmove="touch_move"
+                    @touchend.stop="touch_end() && openFile(child as vFile)"
                     @dblclick.stop="openFile(child as vFile)"
                     :selected="markmap.includes(child.path)"
                 >
@@ -315,7 +342,8 @@
                 <div v-else :class="['item',child.type]" :title="desc(child)"
                     @click="markup($event,child)"
                     @dblclick.stop="openFile(child as vFile)"
-                    @touchstart.stop="openFile(child as vFile)"
+                    @touchstart="touch_start" @touchmove="touch_move"
+                    @touchend.stop="touch_end() && openFile(child as vFile)"
                     :selected="markmap.includes(child.path)"
                 >
                     <img :src="child.icon || DEFAULT_FILE_ICON">

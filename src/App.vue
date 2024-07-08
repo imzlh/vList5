@@ -252,10 +252,10 @@
 			>.right {
 				position: relative;
 				overflow: hidden;
-			}
 
-			> .mobile-tool{
-				display: none;
+				> .mobile-tool{
+					display: none;
+				}
 			}
 
 			> .left-overflow{
@@ -291,23 +291,22 @@
 			>.right {
 				position: fixed;
 				width: 100% !important;
-			}
+				> .mobile-tool{
+					position: absolute;
+					bottom: 40%;
+					right: 0;
+					transform: translateY(-50%);
 
-			> .mobile-tool{
-				position: absolute;
-				bottom: 40%;
-				right: 0;
-				transform: translateY(-50%);
+					background-color: rgba(230, 222, 222, 0.6);
+					border-radius: .2rem 0 0 .2rem;
 
-				background-color: rgba(230, 222, 222, 0.6);
-				border-radius: .2rem 0 0 .2rem;
-
-				> *{
-					display: block;
-					padding: .25rem;
-					width: 1.2rem;
-					height: 1.2rem;
-					border-radius: .2rem;
+					> *{
+						display: block;
+						padding: .25rem;
+						width: 1.2rem;
+						height: 1.2rem;
+						border-radius: .2rem;
+					}
 				}
 			}
 		}

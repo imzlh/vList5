@@ -493,9 +493,13 @@
                 display: block;
                 max-width: none !important;
                 width: unset !important;
+                z-index: 0;
 
                 > .cover{
-                    display: none;
+                    position: fixed;
+                    inset: 0;
+                    z-index: -1;
+                    filter: brightness(0.6);
                 }
 
                 > .time{
@@ -703,8 +707,12 @@
             scroll-behavior: smooth;
 
             @media screen and (max-width: 30rem) {
-                width: 100%;
-                padding: 0 1rem;
+                width: unset;height: unset;
+                z-index: 0;
+                position: fixed;
+                margin: 0;
+                top: 0;left: .75rem;
+                right: .75rem;bottom: 7rem;
             }
 
             &::-webkit-scrollbar{

@@ -127,8 +127,8 @@
         border-radius: .25rem;
         overflow: hidden;
         
-        width: 60vw;
-        height: 60vh;
+        width: 100vw;
+        height: 80vh;
         max-width: 35rem;
         max-height: 25rem;
         background-color: #f3f3f3;
