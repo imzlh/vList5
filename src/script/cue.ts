@@ -173,8 +173,6 @@ function parseParam(param: string):Array<string>{
     return res;
 }
 
-
-
 export interface CueItem{
     file: string,
     start: number,
@@ -184,7 +182,7 @@ export interface CueItem{
 }
 
 function cueTree(nodes: Array<Node>){
-    let album = '';
+    let album = '',performer = '';
     const tracks = [] as Array<CueItem>;
 
     for (const item of nodes) {
@@ -193,6 +191,10 @@ function cueTree(nodes: Array<Node>){
         // 专辑名称
         if(tagName == 'title')
             album = item.param[0];
+
+        // 谱曲者名称
+        if(tagName == 'performer')
+            performer = item.param[0];
 
         // 新文件
         else if(tagName == 'file'){
@@ -209,7 +211,7 @@ function cueTree(nodes: Array<Node>){
                     file: item.param[0],
                     start: 0,
                     title: '',
-                    performer: '',
+                    performer,
                     album
                 } satisfies CueItem;
                 tracks.push(trackItem);

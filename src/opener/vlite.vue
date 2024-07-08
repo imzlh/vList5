@@ -799,8 +799,10 @@
                     line-height: 1.2rem;
 
                     > span{
-                        font-size: .9rem;
-                        opacity: .6
+                        font-size: .8rem;
+                        line-height: 1.2rem;
+                        opacity: .6;
+                        float: right;
                     }
                 }
 

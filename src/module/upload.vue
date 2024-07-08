@@ -1,5 +1,5 @@
 <script setup lang="ts">
-    import { DEFAULT_FILE_ICON, FS } from '@/utils';
+    import { DEFAULT_FILE_ICON, FS, reloadTree } from '@/utils';
     import { reactive, ref } from 'vue';
 
     import I_MEDIA from '/file/media.webp';
@@ -49,7 +49,7 @@
 
             // 开始上传
             FS.write(dir + file.name,file,prog => eque[id].progress = prog.loaded / prog.total * 100)
-                .then(() => eque[id].status = S_SUCCESS)
+                .then(() => {eque[id].status = S_SUCCESS, eque[id].progress = 100, reloadTree([dir])})
                 .catch(() => eque[id].status = S_ERROR);
         }
     }
