@@ -6,6 +6,7 @@ import Setting from "./module/setting.vue";
 import I_File from '/icon/file.webp';
 import I_DIR from '/icon/dir.webp';
 import I_SETTING from '/app/settings.webp';
+import I_DESKTOP from '/icon/desktop.webp';
 
 export const APP_API = 'http://192.168.1.1:81/@api/';
 export const APP_NAME = 'izCloud';
@@ -355,6 +356,7 @@ export const TREE = reactive<vDir>({
     "name": "/",
     "dispName": "此服务器",
     "url": FILE_PROXY_SERVER,
+    "icon": I_DESKTOP,
     "path": "/"
 });
 

@@ -62,8 +62,8 @@
     }
 
     .sys-alert {
-        position: absolute;
-        top: 1rem;
+        position: fixed;
+        top: 2rem;
         left: 0;
         right: 0;
         margin: auto;
@@ -71,28 +71,28 @@
         max-width: 23rem;
         z-index: 120;
         box-sizing: border-box;
-        box-shadow: .35rem .15rem 1rem .25rem rgba(198, 193, 193, 0.87);
-        border-radius: .35rem;
-        border-width: .1rem;
-        border-color: #969696;
-        background-color: rgba(255, 255, 255, 0.8);
+        border: solid .05rem #e7e7e7;
+        border-radius: 0.35rem;
+        border-width: 0.1rem;
+        background-color: white;
         overflow: hidden;
-        transition: all .2s;
-        animation: fadein .5s;
+        transition: all 0.2s;
+        animation: fadein 0.5s;
 
         &:hover {
             background-color: white;
         }
 
         .basic {
-            padding: 1rem;
+            padding: 1.25rem 1.5rem;
             font-size: .85rem;
 
             h3 {
                 margin: 0;
                 color: #353333;
-                font-weight: 500;
-                font-size: 1rem;
+                font-size: 1.1rem;
+                margin-bottom: .8rem;
+                font-weight: 400;
             }
 
             span {
@@ -115,12 +115,13 @@
         }
 
         .btns {
-            background-color: rgb(247 247 247);
+            background-color: rgb(249 249 249);
             @include ui_btn-group();
+            padding: 0.75rem 1rem;
 
             button {
                 background-color: rgb(139 191 234);
-                padding: .35rem 1rem;
+                padding: 0.5rem 1.25rem;
                 margin: 0 .25rem;
                 font-size: .8rem;
                 flex-shrink: 0;

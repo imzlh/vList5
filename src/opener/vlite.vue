@@ -42,6 +42,8 @@
         lrc_elem = ref<Array<HTMLElement>>([]),
         ev = defineEmits(['show']);
 
+    audio.preload = 'none';
+
     const CONFIG = {
         seek_time: 10,
         cover: [
@@ -84,8 +86,10 @@
         CFG.progress = 0;
         
         // 音频设置
-        if(current.value.path != CFG.playlist[n].path)
+        if(current.value.path != CFG.playlist[n].path){
             audio.src = CFG.playlist[n].url;
+            audio.load();
+        }
         current.value = CFG.playlist[n];
         
         // cue设置

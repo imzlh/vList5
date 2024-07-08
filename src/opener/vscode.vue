@@ -462,18 +462,21 @@
     window.MonacoEnvironment = {
         "baseUrl": CFG['importURL'].value,
         "getWorker": async (id, label) => {
-            let url = `${CFG['importURL'].value}/basic-languages/${label}/${label}.contribution.js`;
-            if(label == 'editorWorkerService') url = `${CFG['importURL'].value}/base/common/worker/simpleWorker.js`;
-            
+            // https://cdn.jsdelivr.net/npm/monaco-editor@0.50.0/esm/vs/language/typescript/ts.worker.js
+            const url = ({
+                'json'      : '/language/json/json.worker.js',
+                'css'       : '/language/css/css.worker.js',
+                'html'      : '/language/html/html.worker.js',
+                'typescript': '/language/typescript/ts.worker.js',
+                'javascript': '/language/typescript/ts.worker.js'
+            })[label] || '/base/common/worker/simpleWorker.js'
+
             const res = URL.createObjectURL(await (await fetch(url)).blob());
             return new Worker(res,{
                 "name": label + 'language worker(vlist)',
                 "type": "module"
             });
         },
-        "getWorkerUrl": (id, label) => label == 'editorWorkerService'
-            ? `${CFG['importURL'].value}/base/common/worker/simpleWorker.js`
-            : `${CFG['importURL'].value}/basic-languages/${label}/${label}.contribution.js`
     }
 </script>
 
