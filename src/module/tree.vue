@@ -1,5 +1,5 @@
 <script lang="ts">
-    import type { AlertOpts, CtxDispOpts, CtxMenuData, FileOrDir, MessageOpinion, vDir, vFile } from '@/data';
+    import type { AlertOpts, CtxDispOpts, CtxMenuData, FileOrDir, MessageOpinion, vDir, vFile } from '@/env';
     import { DEFAULT_FILE_ICON, FS, Global, getOpenerId, load, openFile, openSetting, reloadTree, size2str, splitPath } from '@/utils';
     import { ref, watch } from 'vue';
     import Upload from './upload.vue';

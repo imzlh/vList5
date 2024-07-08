@@ -1,5 +1,5 @@
 <script setup lang="ts">
-    import type { vSimpleFileOrDir } from '@/data';
+    import type { vSimpleFileOrDir } from '@/env';
     import { regSelf } from '@/opener';
     import parseCue from '@/script/cue';
     import { FILE_PROXY_SERVER, FS, Global, splitPath } from '@/utils';
@@ -145,7 +145,8 @@
                     "content":{
                         "title": "获取歌词失败",
                         "content": "解析失败或网络错误"
-                    }
+                    },
+                    "timeout": 5
                 })
             }
             
@@ -203,7 +204,8 @@
         "content":{
             "title": "音频播放失败",
             "content": "网络错误或格式不受支持"
-        }
+        },
+        "timeout": 5
     });
     audio.onended = function(){
         CFG.playing = false;
@@ -305,8 +307,7 @@
                     // 获取音轨数据
                     const xhr = await fetch(item.url);
                     if(!xhr.ok) throw new Error('HTTP not ok');
-                    const buf = new Uint8Array(await xhr.arrayBuffer()),
-                        cue = parseCue(buf);
+                    const cue = parseCue(await xhr.text());
                     
                     // 载入
                     if (file.name == item.name)
@@ -347,7 +348,8 @@
             "content": {
                 "title": "找不到文件",
                 "content": "文件可能被移动、删除等，请尝试刷新网页"
-            }
+            },
+            "timeout": 5
         });
     }
 

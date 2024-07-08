@@ -1,5 +1,5 @@
 <script lang="ts">
-    import type { MenuItem } from '@/data';
+    import type { MenuItem } from '@/env';
     import { ref, watch, nextTick } from 'vue';
 
     const active = ref(-1);

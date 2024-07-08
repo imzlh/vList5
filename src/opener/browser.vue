@@ -1,5 +1,5 @@
 <script setup lang="ts">
-    import { type vFile } from '@/data';
+    import type { vFile } from '@/env';
 
     const props = defineProps(['option']),
         file = props['option'] as vFile;

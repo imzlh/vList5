@@ -1,5 +1,5 @@
 <script setup lang="ts">
-    import type { CtxDispOpts, vSimpleFileOrDir } from '@/data';
+    import type { CtxDispOpts, vSimpleFileOrDir } from '@/env';
     import { regSelf } from '@/opener';
     import { FS, Global, splitPath } from '@/utils';
     import { onMounted, onUnmounted, reactive, ref } from 'vue';
@@ -50,7 +50,8 @@
                 "content":{
                     "title": "找不到文件",
                     "content": "文件可能被移动、删除等，请尝试刷新网页"
-                }
+                },
+                "timeout": 5
             })
         }else{
             // 请求URL
@@ -68,7 +69,8 @@
                 "content":{
                     "title": "找不到文件",
                     "content": "文件可能被移动、删除等，请尝试刷新网页"
-                }
+                },
+                "timeout": 5
             });
             else cfg.id = id;
         }
@@ -141,14 +143,16 @@
                             "content": {
                                 "title": "复制图片失败",
                                 "content": "获取图像失败(-1)"
-                            }
+                            },
+                            "timeout": 5
                         }, E_CLIPBOARD = {
                             "type": "error",
                             "title": "Imager",
                             "content": {
                                 "title": "复制图片失败",
                                 "content": "无法访问剪贴板，请检查浏览器版本和权限"
-                            }
+                            },
+                            "timeout": 5
                         };
 
                         // 设置Image
@@ -186,7 +190,8 @@
                                 "content":{
                                     "title": "复制图片链接失败",
                                     "content": "无法访问剪贴板，请检查浏览器版本和权限"
-                                }
+                                },
+                                "timeout": 5
                             });
                             console.error(e);
                         }

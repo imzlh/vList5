@@ -1,5 +1,5 @@
 <script setup lang="ts">
-    import type { MessageOpinion, vSimpleFileOrDir } from '@/data';
+    import type { MessageOpinion, vSimpleFileOrDir } from '@/env';
     import ArtPlayer from 'artplayer';
     import { onMounted, onUnmounted, ref } from 'vue';
     import artplayerPluginAss from 'artplayer-plugin-libass';
@@ -102,7 +102,8 @@
                                         "content":{
                                             "title": "可疑文件: " + clipFName(file,15),
                                             "content": "这个文件不是标准后缀，可能会无法渲染"
-                                        }
+                                        },
+                                        "timeout": 5
                                     } satisfies MessageOpinion);
                                 this.subtitles.push(each);
                                 selector.push({
@@ -185,7 +186,8 @@
                 "content":{
                     "title": "找不到文件",
                     "content": "文件可能被移动、删除等，请尝试刷新网页"
-                }
+                },
+                "timeout": 5
             } satisfies MessageOpinion);
         }
     };

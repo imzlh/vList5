@@ -1,6 +1,6 @@
 <script setup lang="ts">
 	import { onMounted, reactive, ref, watch, type Ref } from 'vue';
-	import type { CtxDispOpts, CtxMenuData, vDir } from './data';
+	import type { CtxDispOpts, CtxMenuData } from './env';
 	import tabManager from './module/tabs.vue';
 	import Tree from './module/tree.vue';
 	import CtxMenu from './module/ctxmenu.vue';

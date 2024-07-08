@@ -1,117 +1,92 @@
 <script setup lang="ts">
-    import type { MessageOpinion, vFile } from '@/data';
+    import type { MessageOpinion, vFile } from '@/env';
     import { FS, Global, getConfig, regConfig, splitPath } from '@/utils';
-    import { VueMonacoEditor, loader } from '@guolao/vue-monaco-editor';
-    import { ref } from 'vue';
-    import * as monacoEditor from 'monaco-editor/esm/vs/editor/editor.api';
-
-    loader.config({
-        paths: {
-            // 使用bootCDN CDN
-            vs: 'https://cdn.bootcdn.net/ajax/libs/monaco-editor/0.49.0/min/vs/'
-        },
-    })
+    import { onMounted, onUnmounted, ref, watch } from 'vue';
 
     // VSCode不可复用
 
     const MAP = {
-        bat: ['bat'],
-        cpp: ['cpp'],
-        csharp: ['cs'],
-        css: ['css'],
-        dart: ['dart'],
-        dockerfile: ['docker'],
-        go: ['go'],
-        html: ['htm','html','xhtml'],
-        ini: ['ini'],
-        java: ['java'],
-        javascript: ['js','jsx'],
-        less: ['less'],
-        lua: ['lua'],
-        markdown: ['md'],
-        'objective-c': ['co'],
-        perl: ['perl'],
-        php: ['php'],
-        powershell: ['ps','ps1'],
-        python: ['py'],
-        r: ['r'],
-        ruby: ['rb'],
-        rust: ['rs'],
-        scss: ['scss'],
-        shell: ['sh'],
-        sql: ['sql'],
-        typescript: ['ts','tsx'],
-        xml: ['xml'],
-        yaml: ['yaml']
-    } as Record<string,Array<string>>,
-    value = ref(''),
-    opts = defineProps(['option']),
-    file = opts['option'] as vFile;
+            bat: ['bat'],
+            cpp: ['cpp'],
+            csharp: ['cs'],
+            css: ['css'],
+            dart: ['dart'],
+            dockerfile: ['docker'],
+            go: ['go'],
+            html: ['htm','html','xhtml'],
+            ini: ['ini'],
+            java: ['java'],
+            javascript: ['js','jsx'],
+            less: ['less'],
+            lua: ['lua'],
+            markdown: ['md'],
+            'objective-c': ['co'],
+            perl: ['perl'],
+            php: ['php'],
+            powershell: ['ps','ps1'],
+            python: ['py'],
+            r: ['r'],
+            ruby: ['rb'],
+            rust: ['rs'],
+            scss: ['scss'],
+            shell: ['sh'],
+            sql: ['sql'],
+            typescript: ['ts','tsx'],
+            xml: ['xml'],
+            yaml: ['yaml']
+        } as Record<string,Array<string>>,
+        opts = defineProps(['option']),
+        file = opts['option'] as vFile,
+        element = ref<HTMLDivElement>(),
+        loading = ref(false),
+        SETTING = {
+            accessibilityPageSize: 10,
+            accessibilitySupport: 'on',
+            autoClosingBrackets: 'always',
+            autoClosingDelete: 'always',
+            autoClosingOvertype: 'always',
+            autoClosingQuotes: 'always',
+            bracketPairColorization: {
+                enabled: CFG['bracketPairColorization'].value,
+            },
+            automaticLayout: true,
+            codeLens: true,
+            colorDecorators: CFG['colorDecorators'].value != 'off',
+            colorDecoratorsActivatedOn: CFG['colorDecorators'].value == 'off' ? undefined : CFG['colorDecorators'].value,
+            contextmenu: true,
+            autoSurround: 'languageDefined',
+            copyWithSyntaxHighlighting: true,
+            cursorSmoothCaretAnimation: CFG['cursorSmoothCaretAnimation'].value ? 'on' : 'off',
+            cursorSurroundingLines: 0,
+            cursorSurroundingLinesStyle: 'all',
+            glyphMargin: true,
+            largeFileOptimizations: CFG['maxTokenizationLineLength'].value != 0,
+            lightbulb: {
+                enabled: CFG['lightbulb'].value
+            },
+            lineHeight: (CFG['codeLensFontSize'].value as number) * (CFG['lineHeight'].value as number),
+            padding: {
+                top: 40,
+                bottom: 40
+            },
+            minimap: {
+                enabled: CFG['minimap'].value
+            },
+            folding: true,
+            links: false,
+            overviewRulerBorder: false,
+            renderLineHighlight: 'gutter',
+            roundedSelection: false, 
+            scrollBeyondLastLine: true,
+            readOnly: false,
+        } as Record<string,any>;
 
-    const CFG = getConfig('vscode'),OPT = {
-        acceptSuggestionOnCommitCharacter: CFG['acceptSuggestionOnCommitCharacter'].value,
-        acceptSuggestionOnEnter: CFG['acceptSuggestionOnEnter'].value,
-        accessibilityPageSize: 10,
-        accessibilitySupport: 'on',
-        autoClosingBrackets: 'always',
-        autoClosingDelete: 'always',
-        autoClosingOvertype: 'always',
-        autoClosingQuotes: 'always',
-        autoIndent: CFG['autoIndent'].value,
-        bracketPairColorization: {
-            enabled: CFG['bracketPairColorization'].value,
-        },
-        automaticLayout: true,
-        codeLens: true,
-        codeLensFontSize: CFG['codeLensFontSize'].value,
-        colorDecorators: CFG['colorDecorators'].value != 'off',
-        colorDecoratorsActivatedOn: CFG['colorDecorators'].value == 'off' ? undefined : CFG['colorDecorators'].value,
-        contextmenu: true,
-        columnSelection: CFG['columnSelection'].value,
-        autoSurround: 'languageDefined',
-        copyWithSyntaxHighlighting: true,
-        cursorBlinking: CFG['cursorBlinking'].value,
-        cursorSmoothCaretAnimation: CFG['cursorSmoothCaretAnimation'].value ? 'on' : 'off',
-        cursorStyle: CFG['cursorStyle'].value,
-        cursorSurroundingLines: 0,
-        cursorSurroundingLinesStyle: 'all',
-        cursorWidth: CFG['cursorWidth'].value,
-        dragAndDrop: CFG['dragAndDrop'].value,
-        defaultColorDecorators: CFG['defaultColorDecorators'].value,
-        definitionLinkOpensInPeek: CFG['definitionLinkOpensInPeek'].value,
-        linkedEditing: CFG['definitionLinkOpensInPeek'].value,
-        detectIndentation: CFG['detectIndentation'].value,
-        emptySelectionClipboard: CFG['emptySelectionClipboard'].value,
-        fastScrollSensitivity: CFG['fastScrollSensitivity'].value,
-        fontFamily: CFG['fontFamily'].value,
-        fontWeight: CFG['fontWeight'].value,
-        formatOnPaste: CFG['formatOnPaste'].value,
-        glyphMargin: true,
-        insertSpaces: CFG['insertSpaces'].value,
-        largeFileOptimizations: CFG['maxTokenizationLineLength'].value != 0,
-        maxTokenizationLineLength: CFG['maxTokenizationLineLength'].value,
-        matchBrackets: CFG['matchBrackets'].value,
-        lightbulb: {
-            enabled: CFG['lightbulb'].value
-        },
-        lineHeight: (CFG['codeLensFontSize'].value as number) * (CFG['lineHeight'].value as number),
-        padding: {
-            top: 40,
-            bottom: 40
-        },
-        minimap: {
-            enabled: CFG['minimap'].value
-        },
-        folding: true,
-        links: false,
-        overviewRulerBorder: false,
-        renderLineHighlight: 'gutter',
-        roundedSelection: false, 
-        scrollBeyondLastLine: true,
-        readOnly: false,
-        theme: CFG['theme'].value,
-    } satisfies monacoEditor.editor.IStandaloneEditorConstructionOptions;
+    // 合并配置
+    for (const key in CFG)
+        if(!(key in SETTING))
+            SETTING[key] = CFG[key];
 
+    // 类型判断
     let lang = 'plaintext';
     for (const langs in MAP)
         if(MAP[langs].includes(splitPath(file)['ext'].toLowerCase())){
@@ -119,15 +94,19 @@
             break;
         }
     
-    fetch(file.url)
-        .then(res => res.text())
-        .then(txt => value.value = txt);
+    // 初始化
+    onMounted(async () => {
+        // 初始化coder
+        const coder = monaco.editor.create(element.value as HTMLElement,SETTING);
 
-    function initEditor(coder:monacoEditor.editor.IStandaloneCodeEditor) {
-        coder.addCommand(monacoEditor.KeyCode.F5,function(){
+        // 定义销毁事件
+        onUnmounted(() => coder.dispose());
+
+        // 添加命令
+        coder.addCommand(monaco.KeyCode.F5,function(){
             fetch(file.url)
                 .then(res => res.text())
-                .then(txt => value.value = txt);
+                .then(txt => coder.setValue(txt));
         });
         coder.addAction({
             "id": "api.fs.save",
@@ -144,7 +123,8 @@
                     "content":{
                         "title": "保存成功",
                         "content": "文件已经写入远程"
-                    }
+                    },
+                    "timeout": 3
                 }));
             }
         });
@@ -153,18 +133,45 @@
             "label": "vList: 刷新",
             "contextMenuOrder": 1,
             "keybindings": [
-                monacoEditor.KeyCode.F5
+                monaco.KeyCode.F5
             ],
             run() {
                 fetch(file.url)
                     .then(res => res.text())
-                    .then(txt => value.value = txt);
+                    .then(txt => coder.setValue(txt));
             },
-        })
-    }
+        });
+
+        
+
+        // 获取内容
+        try{
+            const xhr = await fetch(file.url);
+            if(!xhr.ok || parseInt(xhr.headers.get('Content-Length') || '0') >= 2 * 1024 * 1024)
+                throw 1;
+            coder.setValue(await xhr.text());
+        }catch{
+            return Global('ui.message').call({
+                "type": "error",
+                "title": "文件资源管理器",
+                "content":{
+                    "title": '无法读取文件夹',
+                    "content": '网络错误'
+                },
+                "timeout": 5
+            } satisfies MessageOpinion);
+        }
+    });
 </script>
 
+<template>
+    <div class="tab-loading" v-if="loading"></div>
+    <div class="vscode-main" v-else ref="element"></div>
+</template>
+
 <script lang="ts">
+    import * as monaco from 'monaco-editor';
+
     regConfig('vscode',[
         {
             "type": "number",
@@ -435,25 +442,43 @@
             "min": 1,
             "max": 2,
             "step": .01
+        },'加载选项',{
+            "key": "importURL",
+            "type": "text",
+            "default": "https://cdn.jsdelivr.net/npm/monaco-editor@0.50.0/esm/vs",
+            "name": "CDN地址",
+            "desc": "在CDN加载VSCode将极大加快加载速度\n请不要携带随尾斜杠"
         }
-    ])
+    ]);
+
+    // 监听变化
+    const CFG = getConfig('vscode');
+    watch(
+        CFG['theme'],
+        res => monaco.editor.setTheme(res)
+    );
+    
+    // 设置monaco
+    window.MonacoEnvironment = {
+        "baseUrl": CFG['importURL'].value,
+        "getWorker": async (id, label) => {
+            let url = `${CFG['importURL'].value}/basic-languages/${label}/${label}.contribution.js`;
+            if(label == 'editorWorkerService') url = `${CFG['importURL'].value}/base/common/worker/simpleWorker.js`;
+            
+            const res = URL.createObjectURL(await (await fetch(url)).blob());
+            return new Worker(res,{
+                "name": label + 'language worker(vlist)',
+                "type": "module"
+            });
+        },
+        "getWorkerUrl": (id, label) => label == 'editorWorkerService'
+            ? `${CFG['importURL'].value}/base/common/worker/simpleWorker.js`
+            : `${CFG['importURL'].value}/basic-languages/${label}/${label}.contribution.js`
+    }
 </script>
 
-<template>
-    <VueMonacoEditor theme="vs" :value="value" :language="lang" :options="OPT"
-        @mount="initEditor"
-    >
-        <div class="tab-loading"></div>
-    </VueMonacoEditor>
-</template>
-
 <style lang="scss">
-    @keyframes rotation {
-        0% {
-            transform: rotate(0deg);
-        }
-        100% {
-            transform: rotate(360deg);
-        }
+    .vscode-main{
+        height: 100%
     }
 </style>

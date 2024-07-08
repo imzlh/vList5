@@ -1,5 +1,5 @@
 <script setup lang="ts">
-    import type { SettingItem, SettingObject } from '@/data';
+    import type { SettingItem, SettingObject } from '@/env';
     import { reactive, ref, shallowRef } from 'vue';
 
     const props = defineProps(['option']),
@@ -31,7 +31,7 @@
                         <span v-if="item.desc">{{ item.desc }}</span>
                     </div>
 
-                    <input v-if="item.type == 'text'" class="right input" type="text">
+                    <input v-if="item.type == 'text'" v-model="item.value.value" class="right input" type="text">
 
                     <div v-else-if="item.type == 'number'" class="right numinput">
                         <div class="minus" @click="item.value.value -= item.step"></div>
@@ -74,6 +74,7 @@
         box-sizing: border-box;
         background-color: rgb(239, 244, 249);
         overflow-y: auto;
+        overflow-x: hidden;
         user-select: none;
 
         .nav {

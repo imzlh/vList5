@@ -1,5 +1,5 @@
-import { markRaw, reactive, ref, shallowReactive, type Ref } from "vue";
-import type { FileOrDir, ListPredirect, MessageOpinion, OpenerOption, SettingItem, SettingItemFactory, SettingObject, TabWindow, vDir, vFile, vSimpleFileOrDir } from "./data";
+import { markRaw, reactive, ref, type Ref } from "vue";
+import type { FileOrDir, ListPredirect, MessageOpinion, OpenerOption, SettingItem, SettingItemFactory, SettingObject, vDir, vFile, vSimpleFileOrDir } from "./env";
 import { OPENER } from "./opener";
 import Setting from "./module/setting.vue";
 
@@ -100,7 +100,8 @@ export async function load(parent:vDir){
             "content":{
                 "title": '无法读取文件夹',
                 "content": '网络错误'
-            }
+            },
+            "timeout": 5
         } satisfies MessageOpinion);
     }
     if(!f.ok) return Global('ui.message').call({
@@ -109,7 +110,8 @@ export async function load(parent:vDir){
         "content":{
             "title": '无法读取文件夹',
             "content": await f.text() || '未知错误'
-        }
+        },
+        "timeout": 5
     } satisfies MessageOpinion);
     // 排序
     const data:Array<vFile|vDir> = await f.json();
@@ -195,7 +197,8 @@ export async function openFile(file:FileOrDir){
             "content":{
                 "title": "无法打开" + clipFName(file,15),
                 "content": e instanceof Error ? e.message : e?.toString()
-            }
+            },
+            "timeout": 5
         } satisfies MessageOpinion);
         console.log(e);
     }
@@ -331,7 +334,8 @@ export const FS = {
                         'move': '剪切'
                     }[this.action] + '文件失败',
                     "content": await f.text()
-                }
+                },
+                "timeout": 5
             } satisfies MessageOpinion);
             return false;
         }

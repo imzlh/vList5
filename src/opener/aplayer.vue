@@ -1,5 +1,5 @@
 <script setup lang="ts">
-    import type { vSimpleFileOrDir } from '@/data';
+    import type { vSimpleFileOrDir } from '@/env';
     import { regSelf } from '@/opener';
     import { FS, getConfig, regConfig, splitPath } from '@/utils';
     import APlayer, { addMusicPlugin } from 'aplayer-ts';

@@ -8,15 +8,6 @@ interface Node{
 
 export class ParseError extends Error{};
 
-const CUE_HEADER = [0xEF, 0xBB, 0xBF];
-
-function unCue(buf: Uint8Array){
-    for (let i = 0; i < CUE_HEADER.length; i++)
-        if(buf[i] != CUE_HEADER[i])
-            throw new Error('Not a CUE file(BOM Missing)');
-    return new TextDecoder().decode(buf.subarray(CUE_HEADER.length));
-}
-
 function analysis(string: string, ignoreLowerTag: Array<string> = []):Array<Node>{
     let current: Node = {
             tag: 'root',
@@ -231,15 +222,8 @@ function cueTree(nodes: Array<Node>){
     return tracks;
 }
 
-export default function parseCue(cue:Uint8Array){
-    let res;
-    try{
-        res = unCue(cue);
-    }catch(e){
-        console.error(e);
-        res = new TextDecoder().decode(cue);
-    }
-    return cueTree(analysis(res ,[
+export default function parseCue(cue:string){
+    return cueTree(analysis(cue ,[
         'rem'
     ]));
 }

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-    import type { MessageOpinion, vSimpleFileOrDir } from '@/data';
+    import type { MessageOpinion, vSimpleFileOrDir } from '@/env';
     import { regSelf } from '@/opener';
     import { FS, Global, clipFName, splitPath } from '@/utils';
     import ASS from 'assjs';
@@ -307,7 +307,8 @@
                             "content": {
                                 "title": "可疑文件: " + clipFName(file, 15),
                                 "content": "这个文件不是标准后缀，我们无法得知字幕类型"
-                            }
+                            },
+                            "timeout": 5
                         } satisfies MessageOpinion);
                     // 推入列表
                     config.playlist[subfor].subtitle.push({
@@ -372,11 +373,12 @@
             if (id !== undefined) config.current = id;
             else Global('ui.message').call({
                 "type": "error",
-                "title": "ArtPlayer",
+                "title": "vPlayer",
                 "content": {
                     "title": "找不到文件",
                     "content": "文件可能被移动、删除等，请尝试刷新网页"
-                }
+                },
+                "timeout": 5
             } satisfies MessageOpinion);
         },
         shoot(){

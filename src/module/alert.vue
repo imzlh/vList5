@@ -1,6 +1,6 @@
 <script setup lang="ts">
-    import type { AlertOpts } from '@/data';
     import { Global } from '@/utils';
+    import type { AlertOpts } from '@/env';
     import { ref } from 'vue';
 
     const item = ref<AlertOpts>(),

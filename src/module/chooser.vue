@@ -1,5 +1,5 @@
 <script setup lang="ts">
-    import type { FileOrDir } from '@/data';
+    import type { FileOrDir } from '@/env';
     import { FS, Global } from '@/utils';
     import { ref, shallowRef, watch } from 'vue';
     import List from './list.vue';

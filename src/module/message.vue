@@ -1,5 +1,5 @@
 <script setup lang="ts">
-    import type { MessageOpinion } from '@/data';
+    import type { MessageOpinion } from '@/env';
     import { Global } from '@/utils';
     import { nextTick, reactive } from 'vue';
 

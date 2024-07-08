@@ -11,13 +11,13 @@
     "type-check": "vue-tsc --build --force"
   },
   "dependencies": {
-    "@guolao/vue-monaco-editor": "^1.5.1",
     "@petamoriken/float16": "^3.8.7",
     "aplayer-ts": "^2.4.5",
     "artplayer": "^5.1.5",
     "artplayer-plugin-libass": "^1.0.0",
     "assjs": "^0.1.0",
     "lrc-kit": "^1.1.1",
+    "monaco-editor": "^0.50.0",
     "sass": "^1.77.4",
     "viewerjs": "^1.11.6",
     "vue": "^3.4.21"

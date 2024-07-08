@@ -1,5 +1,5 @@
 <script setup lang="ts">
-    import type { FileOrDir } from '@/data';
+    import type { FileOrDir } from '@/env';
 import { DEFAULT_DIR_ICON, DEFAULT_FILE_ICON } from '@/utils';
     import { computed, ref, shallowReactive, toRaw, watch } from 'vue';
 

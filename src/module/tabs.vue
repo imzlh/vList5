@@ -1,5 +1,5 @@
 <script setup lang="ts">
-	import type { CtxDispOpts, CtxMenuData, TabWindow } from '@/data';
+	import type { CtxDispOpts, CtxMenuData, TabWindow } from '@/env';
 	import { Global } from '@/utils';
 	import { ref, watch, defineProps, type Ref, reactive, toRaw } from 'vue';
 	import I_OFF from "/icon/off.webp";

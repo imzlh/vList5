@@ -1,5 +1,5 @@
 <script setup lang="ts">
-    import type { OpenerOption, vFile } from '@/data';
+    import type { OpenerOption, vFile } from '@/env';
     import { Global, splitPath } from '@/utils';
     import { reactive, watch } from 'vue';
     import { OPENER } from '@/opener';

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-    import type { MessageOpinion, vFile } from '@/data';
+    import type { MessageOpinion, vFile } from '@/env';
     import { Global, getConfig, regConfig } from '@/utils';
     import { Float16Array } from '@petamoriken/float16';
     import { ref, watch } from 'vue';
@@ -56,7 +56,8 @@
             "content":{
                 "title": '获取内容失败',
                 "content": (e as Error).message
-            }
+            },
+            "timeout": 5
         } satisfies MessageOpinion);
         console.error(e);
     }
