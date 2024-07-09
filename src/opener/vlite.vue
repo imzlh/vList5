@@ -82,7 +82,7 @@
         else if(n < 0) return CFG.currentID = CFG.playlist.length -1;
         // 还是那个
         if(cur == n) {
-            if(CFG.playlist[n].start) audio.currentTime = CFG.playlist[n].start;
+            if(CFG.playlist[n].start) audio.currentTime = CFG.playlist[n].start as number;
             return audio.play();
         }
         
