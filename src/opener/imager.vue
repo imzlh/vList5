@@ -26,7 +26,8 @@
         "jpg", "jpeg", "jxl",
         "png",
         "ico",
-        "bmp"
+        "bmp",
+        "svg"
     ],
     WHEEL_BEHAVIOR_SCALE = false;
 

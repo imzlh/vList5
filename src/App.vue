@@ -16,7 +16,7 @@
 		display: false,
 		x: 0,
 		y: 0
-	}),CONFIG = getConfig('__main__'),
+	}),CONFIG = getConfig('基础'),
 	layout_left = CONFIG['layout.left'] as Ref<number>,
 	layout_total = ref(document.documentElement.clientWidth),
 	layout_displayLeft = ref(true);
@@ -56,7 +56,7 @@
 </script>
 
 <script lang="ts">
-	regConfig('__main__',[
+	regConfig('基础',[
 		"布局设置",
 		{
 			"type": "number",
@@ -104,7 +104,8 @@
 	<div class="right" :style="{ width: layout_total - layout_left + 'px' }">
 		<tabManager ref="tabs" />
 		<!-- 右键 -->
-		<div class="ctx-mask-layer" v-show="ctxconfig.display" @click="ctxconfig.display = false;"></div>
+		<div class="ctx-mask-layer" v-show="ctxconfig.display" 
+			@click="ctxconfig.display = false;" @contextmenu.prevent="ctxconfig.display = false"></div>
 		<CtxMenu 
 			@blur="ctxconfig.display = false"
 			:data="ctxconfig.item" :display="ctxconfig.display"
@@ -135,13 +136,20 @@
 	body {
 		margin: 0;
 		overflow: hidden;
+		
+		//  兼容移动端100svh
+		position: fixed;
+		top: 0;
+		left: 0;
+		right: 0;
+		bottom: 0;
 
 		>.left,
 		>.resizer,
 		>.right {
 			display: inline-block;
 			box-sizing: border-box;
-			height: 100vh;
+			height: 100%;
 		}
 
 		>.left {
@@ -214,6 +222,7 @@
 		.ctx-mask-layer {
 			position: fixed;
 			top: 0;
+			left: 0;
 			width: 100vw;
 			height: 100vh;
 			z-index: 100;
@@ -289,7 +298,7 @@
 			}
 
 			>.right {
-				position: fixed;
+				position: absolute;
 				width: 100% !important;
 				> .mobile-tool{
 					position: absolute;

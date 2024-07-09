@@ -1,6 +1,6 @@
 <script lang="ts">
     import type { AlertOpts, CtxDispOpts, CtxMenuData, FileOrDir, MessageOpinion, vDir, vFile } from '@/env';
-    import { DEFAULT_FILE_ICON, FS, Global, getOpenerId, load, openFile, openSetting, reloadTree, size2str, splitPath } from '@/utils';
+    import { DEFAULT_FILE_ICON, FS, Global, loadTree, openFile, openSetting, reloadTree, size2str, splitPath } from '@/utils';
     import { ref, watch } from 'vue';
     import Upload from './upload.vue';
 
@@ -53,7 +53,7 @@
             return {
                 show,
                 locked,
-                load,
+                loadTree,
                 DEFAULT_FILE_ICON,
                 openFile,
                 markmap
@@ -73,10 +73,17 @@
                 touch.mx = ev.touches[0].clientX,
                 touch.my = ev.touches[0].clientY;
             },
-            touch_end(){
-                return Math.abs(touch.mx - touch.x) < 10
-                    && Math.abs(touch.my - touch.y) < 10
-                    && new Date().getTime() - touch.time <= 600;
+            touch_end(file: vFile, el: TouchEvent){
+                if(Math.abs(touch.mx - touch.x) > 10 || Math.abs(touch.my - touch.y) > 10) return;
+                el.preventDefault();
+
+                marked = [file];
+
+                if(new Date().getTime() - touch.time <= 600) openFile(file);
+                else this.ctxmenu(new MouseEvent('contextmenu', {
+                    "clientX": touch.mx,
+                    "clientY": touch.my
+                }))
             },
             desc(data:FileOrDir){
                 var tmp = data.dispName || data.name;
@@ -101,7 +108,7 @@
                 if(this.locked) this.show = true
                 else if(this.data.child) this.show = !this.show;
                 else{
-                    load(this.data as any)
+                    loadTree(this.data as any)
                         .then(() => this.locked = false);
                     this.locked = true;this.show = true;
                 }
@@ -126,7 +133,7 @@
                                         callback: (data) => 
                                             // 创建文件夹
                                             FS.mkdir((this.data as vFile).path + data)
-                                                .then(() => load(this.data as vDir)),
+                                                .then(() => loadTree(this.data as vDir)),
                                     } satisfies AlertOpts)
                             },{
                                 "text": "文件",
@@ -139,7 +146,7 @@
                                         callback: (data) => 
                                             // 创建文件夹
                                             FS.touch((this.data as vFile).path + data)
-                                                .then(() => load(this.data as vDir)),
+                                                .then(() => loadTree(this.data as vDir)),
                                     } satisfies AlertOpts)
                             }
                         ],
@@ -158,7 +165,7 @@
                         "text": "刷新",
                         "icon": I_REFRESH,
                         handle: () => {
-                            load(this.data as vDir)
+                            loadTree(this.data as vDir)
                         },
                     },'---'
                 ] as Array<CtxMenuData>;
@@ -310,7 +317,7 @@
                 <div v-else :class="['item',child.type]" :title="desc(child)"
                     @click="markup($event,child)"
                     @touchstart="touch_start" @touchmove="touch_move"
-                    @touchend.stop="touch_end() && openFile(child as vFile)"
+                    @touchend.stop="touch_end(child as vFile, $event)"
                     @dblclick.stop="openFile(child as vFile)"
                     :selected="markmap.includes(child.path)"
                 >
@@ -343,7 +350,7 @@
                     @click="markup($event,child)"
                     @dblclick.stop="openFile(child as vFile)"
                     @touchstart="touch_start" @touchmove="touch_move"
-                    @touchend.stop="touch_end() && openFile(child as vFile)"
+                    @touchend.stop="touch_end(child as vFile, $event)"
                     :selected="markmap.includes(child.path)"
                 >
                     <img :src="child.icon || DEFAULT_FILE_ICON">
@@ -377,7 +384,7 @@
     }
 
     .child{
-        padding-left: 1rem;
+        padding-left: .75rem;
     }
 
     .parent,

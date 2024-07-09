@@ -67,7 +67,8 @@ export const OPENER:Array<OpenerOption> = [
             "jpg", "jpeg", "jxl",
             "png",
             "ico",
-            "bmp"
+            "bmp",
+            "svg"
         ],
         async open(file) {
             Global('ui.window.add').call({

@@ -73,13 +73,21 @@
     );
 
     // 曲目
-    watch(() => CFG.currentID,function(n,o){
-        if(CFG.playlist.length == 0 || n == o) return;
+    let cur = -1;
+    watch(() => CFG.currentID,n => {
+        if(CFG.playlist.length == 0) return;
         // 最后一个了
         else if(n >= CFG.playlist.length) return CFG.currentID = 0;
         // 第一个了
         else if(n < 0) return CFG.currentID = CFG.playlist.length -1;
+        // 还是那个
+        if(cur == n) {
+            if(CFG.playlist[n].start) audio.currentTime = CFG.playlist[n].start;
+            return audio.play();
+        }
+        
         // 刷新播放状态
+        cur = n;
         CFG.playing = false;
         CFG.totalTime = '-:-';
         CFG.currentTime = '0:00';
@@ -198,7 +206,9 @@
                 : audio.currentTime - current.value.start
         );
         // 更新状态
-        CFG.progress = (audio.currentTime - (current.value.start as number)) / (CFG.cue_until - (current.value.start as number));
+        CFG.progress = current.value.start == undefined
+            ? audio.currentTime / audio.duration
+            : (audio.currentTime - (current.value.start as number)) / (CFG.cue_until - (current.value.start as number));
         CFG.playing = true;
     }
     audio.onvolumechange = () => CFG.volume = audio.volume;

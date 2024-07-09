@@ -1,6 +1,6 @@
 <script setup lang="ts">
     import type { vFile } from '@/env';
-import { size2str } from '@/utils';
+    import { size2str } from '@/utils';
     import { onUnmounted } from 'vue';
 
     const opts = defineProps(['option']),
