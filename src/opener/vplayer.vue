@@ -1,13 +1,16 @@
 <script setup lang="ts">
     import type { MessageOpinion, vSimpleFileOrDir } from '@/env';
     import { regSelf } from '@/opener';
-    import { FS, Global, clipFName, splitPath } from '@/utils';
+    import { FS, Global, clipFName, regConfig, splitPath } from '@/utils';
     import ASS from 'assjs';
     import { onMounted, onUnmounted, shallowReactive, shallowRef, watch } from 'vue';
+    // import { extract } from '../../vendor/mkvtool';
+    // import type { mkvFile } from 'vendor/mkvtool';
 
     interface subOption {
         name: string,
-        url: string,
+        url?: string,
+        text?: string,
         sub_type: 'ass' | 'vtt'
     }
 
@@ -15,6 +18,8 @@
         vid_name: string,
         subtitle: Array<subOption>
     }
+
+    const MKV_EXTRACT = ['mkv','webm'];
 
     const opts_ = defineProps(['option']),
         file = opts_['option'] as vSimpleFileOrDir,
@@ -60,7 +65,7 @@
         ev = defineEmits(['show']);
 
     // 信息栏监听器
-    let alert_timer = false as false|number;
+    let alert_timer = false as any;
     watch(() => config.alert,function(){
         if(config.alert == '') return;
         if(alert_timer !== false) clearTimeout(alert_timer);
@@ -68,7 +73,7 @@
     },{ immediate: true });
 
     // 鼠标监听
-    let mouse_timer:undefined|number;
+    let mouse_timer: any;
     function mouse(){
         if(mouse_timer !== undefined) clearTimeout(mouse_timer);
         mouse_timer = setTimeout(() => config.active = false,5000);
@@ -98,21 +103,25 @@
 
     // 字幕监听
     let ass:ASS|undefined;
-    function load_sub(sub:string,then: (ass:ASS) => any){
-        const xhr = new XMLHttpRequest();
-        xhr.open('GET',sub);
-        xhr.send();
-        xhr.onload = () => then(ass = new ASS(xhr.responseText,video.value as HTMLVideoElement));
-        xhr.onerror = () => config.alert = '加载字幕失败';
+    function load_sub(sub: subOption,then: (ass:ASS) => any){
+        if(sub.url){
+            const xhr = new XMLHttpRequest();
+            xhr.open('GET',sub.url);
+            xhr.send();
+            xhr.onload = () => then(ass = new ASS(xhr.responseText,video.value as HTMLVideoElement));
+            xhr.onerror = () => config.alert = '加载字幕失败';
+        }else{
+            ass = new ASS(sub.text as string ,video.value as HTMLVideoElement)
+        }
     }
     watch(() => config.subtitle[config.sub_current],function(val:subOption){
         if(val.sub_type == 'vtt') return;
         if(ass) ass.destroy();
-        if(config.disp_sub) load_sub(val.url,() => config.alert = '字幕加载成功');
+        if(config.disp_sub) load_sub(val,() => config.alert = '字幕加载成功');
     });
     watch(() => config.disp_sub,function(val){
         if(!config.subtitle[config.sub_current] || config.subtitle[config.sub_current].sub_type == 'vtt') return;
-        if(!ass) load_sub(config.subtitle[config.sub_current].url,
+        if(!ass) load_sub(config.subtitle[config.sub_current],
             ass => val ? ass.show() : ass.hide()
         );
         else val ? ass.show() : ass.hide();
@@ -323,7 +332,12 @@
                     }
                 }));
         },
+        temp_url: null as null|string,
         async play(file: vSimpleFileOrDir) {
+            //  清理URL
+            if(this.temp_url)
+                URL.revokeObjectURL(this.temp_url),this.temp_url = null;
+
             const dir = splitPath(file)['dir'];
             let id: number | undefined;
             if (this.dir == dir) {
@@ -371,8 +385,34 @@
                 this.dir = dir;
             }
 
-            if (id !== undefined) config.current = id;
-            else Global('ui.message').call({
+            if (id !== undefined){
+                config.current = id;
+                // --------------- WARNING -------------------
+                // 以下代码实现了mkv内解压字幕，但是实在是太慢且消耗带宽，建议注释掉
+                // -------------------------------------------
+                // if(MKV_EXTRACT.includes(splitPath(config.playlist[id]).ext)){
+                //     const sub = await extract(config.playlist[id].url) as Array<mkvFile>;
+
+                //     function merge(arr:Array<Uint8Array>){
+                //         let require = 0;
+                //         arr.forEach(item => require += item.length);
+                //         const mem = new Uint8Array(require);
+                //         let fill = 0;
+                //         arr.forEach(item => mem.set(item, fill += item.length));
+                //         return new TextDecoder().decode(mem);
+                //     }
+
+                //     config.subtitle.push(...sub
+                //         .map(item => ({
+                //             'name': '<mkv>' + item.type,
+                //             'sub_type': item.type == 'ass' ? 'ass' : 'vtt',
+                //             'url': URL.createObjectURL(new Blob([item.data],{
+                //                 type: 'text/plain'
+                //             }))
+                //         } satisfies subOption))
+                //     );
+                // }
+            }else Global('ui.message').call({
                 "type": "error",
                 "title": "vPlayer",
                 "content": {

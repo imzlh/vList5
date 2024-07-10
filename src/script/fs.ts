@@ -27,7 +27,7 @@ export const FS = {
                 'Content-Type': 'application/json'
             },
         });
-        if(xhr.status == 403) throw new PermissionDeniedError();
+        if(xhr.status == 403) throw new PermissionDeniedError(await xhr.text());
         else if(xhr.status == 400) throw new SyntaxError(await xhr.text());
         else if(xhr.status == 401) throw new LoginError(await xhr.text());
         else if(xhr.status != 200) throw new Error(await xhr.text());
@@ -133,7 +133,7 @@ export const FS = {
 
     move(from:Array<string>|string,to:string){
         from = typeof from == 'string' ? [from] : from;
-        return this.__request('copy', {
+        return this.__request('move', {
             from,
             to
         });

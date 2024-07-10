@@ -67,3 +67,5 @@ export * from './script/fs';
 export * from './script/openfile';
 export * from './script/tree';
 export * from './script/config';
+
+import "./script/tools";

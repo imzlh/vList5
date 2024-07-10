@@ -1,7 +1,7 @@
 <script lang="ts">
     import type { AlertOpts, CtxDispOpts, CtxMenuData, FileOrDir, MessageOpinion, vDir, vFile } from '@/env';
     import { DEFAULT_FILE_ICON, FS, Global, loadTree, openFile, openSetting, reloadTree, size2str, splitPath } from '@/utils';
-    import { ref, watch } from 'vue';
+    import { ref, toRaw, watch } from 'vue';
     import Upload from './upload.vue';
 
     import I_NEW from '/icon/new.webp';
@@ -16,10 +16,25 @@
     import I_OPEN from "/icon/open.webp";
     import I_OPENER from '/icon/opener.webp';
 
-    import I_SETTING from '/app/settings.webp';
-
     let marked = [] as Array<FileOrDir>;
-    const markmap = ref<Array<string>>([]);
+    export const markmap = ref<Array<string>>([]);
+
+    interface DisplayCondition{
+        single: boolean,
+        sort: 'file' | 'dir' | 'all',
+        filter?: (file: FileOrDir[]) => boolean
+    }
+
+    const ADDITION = [] as Array<[(input: FileOrDir[]) => CtxMenuData, DisplayCondition]>;
+    const DRAG_TOKEN = Math.floor(Math.random() * 100000000).toString(36);
+
+    /**
+     * 注册一个子集菜单
+     * @param item 目录内容
+     * @param cdt 显示此目录的条件
+     */
+    export const register = (item: (input: FileOrDir[]) => CtxMenuData, cdt: DisplayCondition) => 
+        ADDITION.push([item, cdt]);
 
     let touch = {
         x: 0,
@@ -50,6 +65,9 @@
         setup: function (prop) {
             const show = ref<boolean>(prop.data.show || false),
                 locked = ref(false);
+
+            watch(() => (prop.data as vDir).child,(n,r) => r == undefined && (show.value = true));
+            
             return {
                 show,
                 locked,
@@ -84,6 +102,56 @@
                     "clientX": touch.mx,
                     "clientY": touch.my
                 }))
+            },
+            drag_start(e: DragEvent, fd: FileOrDir){
+                if(!e.dataTransfer) return e.preventDefault();
+
+                e.dataTransfer.setData('application/json', JSON.stringify(toRaw(fd)));
+                e.dataTransfer.setData('text/plain', DRAG_TOKEN);
+                e.dataTransfer.dropEffect = 'move';
+                
+                if(fd.icon){
+                    const image = new Image(60, 60);
+                    image.src = fd.icon;
+                    e.dataTransfer.setDragImage(image, 10, 10);
+                }
+            },
+            drag_alert(e: DragEvent, fd: vDir){
+                if(!e.dataTransfer) return;
+                
+                // 加载事件
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'move';
+                (e.currentTarget as HTMLElement).classList.add('moving');
+            },
+            drag_onto(e: DragEvent, to_fd: vDir){
+                if(!e.dataTransfer) return;
+                
+                // 加载事件
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'move';
+                (e.currentTarget as HTMLElement).classList.remove('moving');
+
+                // 只有满足vlist文件的才可以被拖拽
+                if(e.dataTransfer.getData('text/plain') != DRAG_TOKEN) return;
+
+                const from_fd:FileOrDir = JSON.parse(e.dataTransfer.getData('application/json'));
+                if(from_fd.path == to_fd.path) return;
+
+                FS.move(from_fd.path, to_fd.path)
+                    .then(() => reloadTree([
+                        from_fd.type == 'dir' ? from_fd.path : splitPath(from_fd)['dir'],
+                        to_fd.path
+                    ]))
+                    .catch(e => Global('ui.message').call({
+                        "title": "资源管理器",
+                        "content": {
+                            "title": "移动错误",
+                            "content": e instanceof Error ? e.message : new String(e).toString()
+                        },
+                        "type": "error",
+                        "timeout": 10
+                    } satisfies MessageOpinion));
             },
             desc(data:FileOrDir){
                 var tmp = data.dispName || data.name;
@@ -273,15 +341,16 @@
                     }
                 }
 
-                item.push(
+                if(ADDITION.length > 0) item.push(
                     '---',
-                    {
-                        "text": "设置",
-                        "icon": I_SETTING,
-                        handle() {
-                            openSetting();
-                        },
-                    }
+                    ...ADDITION.filter(item => {
+                        if(item[1].single && marked.length != 1) return false;
+                        if(item[1].sort != 'all') for (const fd of marked)
+                            if(fd.type != item[1].sort) return false;
+                        if(item[1].filter && !item[1].filter(marked))
+                            return false;
+                        return true;
+                    }).map(item => item[0](marked))
                 )
 
                 Global('ui.ctxmenu').call({
@@ -298,8 +367,11 @@
     <div class="vlist" :show="show" :active="active" v-if="topLevel" @contextmenu.prevent="ctxmenu">
 
         <div class="parent"
-            @dblclick.stop="openFile(data as vFile)"
+            @dblclick.stop="loadTree(data as vDir)"
             @click="markup($event,data as any)"
+            @dragstart.stop="drag_start($event, data as vDir)" :draggable="(data as vDir).path != '/'"
+            @drop="drag_onto($event, data as vDir)" @dragover="drag_alert($event, data as vDir)"
+            @dragleave="($event.currentTarget as HTMLElement).classList.remove('moving')"
             :title="desc(data as any)" :selected="markmap.includes(data.path)"
         >
             <div :class="['btn-hide', { 'show': show }]" @click.stop="folder"></div>
@@ -319,6 +391,7 @@
                     @touchstart="touch_start" @touchmove="touch_move"
                     @touchend.stop="touch_end(child as vFile, $event)"
                     @dblclick.stop="openFile(child as vFile)"
+                    @dragstart.stop="drag_start($event, child)" draggable="true"
                     :selected="markmap.includes(child.path)"
                 >
                     <img :src="child.icon || DEFAULT_FILE_ICON">
@@ -329,10 +402,12 @@
         </div>
     </div>
 
-
     <template  v-else >
-        <div class="parent" @dblclick.stop="openFile(data as vFile)"
+        <div class="parent" @dblclick.stop="loadTree(data as vDir)"
             @click="markup($event,data as any)" :selected="markmap.includes(data.path)"
+            @dragstart.stop="drag_start($event, data as vFile)" :draggable="(data as vDir).path != '/'"
+            @drop="drag_onto($event, data as vDir)" @dragover="drag_alert($event, data as vDir)"
+            @dragleave="($event.currentTarget as HTMLElement).classList.remove('moving')"
             :title="desc(data as any)">
             <div :class="['btn-hide', { 'show': show }]" @click.stop="folder"></div>
             <img :src="data.icon" v-if="data.icon">
@@ -350,6 +425,7 @@
                     @click="markup($event,child)"
                     @dblclick.stop="openFile(child as vFile)"
                     @touchstart="touch_start" @touchmove="touch_move"
+                    @dragstart.stop="drag_start($event, child)" draggable="true"
                     @touchend.stop="touch_end(child as vFile, $event)"
                     :selected="markmap.includes(child.path)"
                 >
@@ -366,6 +442,11 @@
 .vlist {
     display: block;
     margin: .5rem 0;
+    pointer-events: all;
+
+    img, span{
+        pointer-events: none;
+    }
 
     &[show=false]>div:not(.parent) {
         display: none;
@@ -398,6 +479,11 @@
         overflow: hidden;
 
         outline: none;
+
+        &.moving{
+            background-color: rgb(217, 246, 233);
+            border-color: rgb(68, 222, 152);
+        }
 
         &.file{
             padding-left: .95rem;

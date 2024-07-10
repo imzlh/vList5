@@ -11,21 +11,22 @@
     "type-check": "vue-tsc --build --force"
   },
   "dependencies": {
+    "@muyajs/core": "^0.0.32",
     "@petamoriken/float16": "^3.8.7",
     "aplayer-ts": "^2.4.5",
     "artplayer": "^5.1.5",
     "artplayer-plugin-libass": "^1.0.0",
     "assjs": "^0.1.0",
+    "buffer": "^6.0.3",
+    "ebml": "^3.0.0",
     "lrc-kit": "^1.1.1",
     "monaco-editor": "^0.50.0",
     "sass": "^1.77.4",
-    "vditor": "^3.10.4",
     "viewerjs": "^1.11.6",
     "vue": "^3.4.21"
   },
   "devDependencies": {
-    "@tsconfig/node20": "^20.1.4",
-    "@types/node": "^20.12.5",
+    "@types/ebml": "^3.0.5",
     "@vitejs/plugin-vue": "^5.0.4",
     "@vue/tsconfig": "^0.5.1",
     "npm-run-all2": "^6.1.2",

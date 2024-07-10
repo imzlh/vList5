@@ -150,7 +150,7 @@ export default [
             'icns',
         ],
     },
-    { name: 'javascript', fileExtensions: ['esx', 'mjs'] },
+    { name: 'javascript', fileExtensions: ['esx', 'mjs', 'js'] },
     { name: 'react', fileExtensions: ['jsx'] },
     { name: 'react_ts', fileExtensions: ['tsx'] },
     {
@@ -241,6 +241,9 @@ export default [
     {
         name: 'typescript-def',
         fileExtensions: ['d.ts', 'd.cts', 'd.mts'],
+    },{
+        name: 'typescript',
+        fileExtensions: ['ts']
     },
     { name: 'markojs', fileExtensions: ['marko'] },
     {

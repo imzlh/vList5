@@ -11,15 +11,39 @@
             return {active};
         },
         mounted() {
-            watch(() => this.$props['display'],val => {
-                if(!val) return this.active = -1;
-                this.$el.style.transform = '';
-                // 超出长度
+            watch(() => this.$props.display ,val => {
+
+                // 非关闭模式
+                if(!val)
+                    return this.$el.style.display = 'none';
+                const el = this.$el as HTMLElement;
+
+                // 清空样式
+                el.style.transform = '',
+                el.style.bottom = 'auto',
+                el.style.right = 'auto',
+                el.style.top = this.$props.y + 'px',
+                el.style.left = this.$props.x + 'px',
+                el.style.display = 'block';
+
+                // 等待渲染，判断是否超出长度
                 nextTick(() => {
-                    if(this.$props.x + this.$el.offsetWidth > document.documentElement.clientWidth)
-                        this.$el.style.transform += 'translateX(-100%)';
-                    if(this.$props.y + this.$el.offsetHeight > document.documentElement.clientHeight)
-                        this.$el.style.transform += 'translateY(-100%)';
+                    
+                    const pos = el.getBoundingClientRect(),
+                        sc_w = document.documentElement.clientWidth,
+                        sc_h = document.documentElement.clientHeight;
+
+                    // 超出底部
+                    if(pos.bottom > sc_h)
+                        if(pos.height > sc_h)
+                            el.style.top = el.style.bottom = '0';
+                        else
+                            el.style.bottom = '0',el.style.top = sc_h - pos.height + 'px';
+                    
+                    // 超出宽度
+                    if(pos.right > sc_w)
+                        el.style.left = sc_w - pos.width + 'px',
+                        el.style.right = '0';
                 });
             });
         },
@@ -55,12 +79,7 @@
     }
 </script>
 <template>
-    <div class="ctx-menu" :style="{
-        display: display ? 'block' : 'none',
-        position: 'fixed',
-        left: x + 'px',
-        top: y + 'px'
-    }">
+    <div class="ctx-menu">
         <template v-for="(item,i) in (data as Array<MenuItem>)">
             <span v-if="typeof item == 'string'"></span>
             <div tabindex="-1" v-else-if="item.text"
@@ -80,8 +99,9 @@
 
                 <ctxTree 
                     v-if="item.child" :data="item.child" :x="0" :y="0"
-                    class="child"  :display="active == i" @click.stop
+                    class="child" :display="active == i" @click.stop
                     @blur="active = -1;$emit('blur')"
+                    style="position: absolute;"
                 ></ctxTree>
             </div>
             <ul v-else>
@@ -96,10 +116,12 @@
     @import '../public/button.scss';
 
     .ctx-menu{
+        display: none;
         @include ui_menu();
         font-size: .85rem;
         z-index: 120;
         user-select: none;
+        position: fixed;
 
         > ul{
             list-style: none;

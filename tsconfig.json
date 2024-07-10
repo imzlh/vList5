@@ -1,11 +1,18 @@
 {
   "files": [],
-  "references": [
-    {
-      "path": "./tsconfig.node.json"
-    },
-    {
-      "path": "./tsconfig.app.json"
+  "extends": "@vue/tsconfig/tsconfig.dom.json",
+  "include": ["src/env.d.ts", "src/*/*.vue", "src/*.vue", "src/*/*.ts", "src/*.ts", "vendor/*.ts", "config.ts", "src/opener/markdown.vue", "vendor/mkvtool.js", "vendor/mkvsub.ts"],
+  "exclude": ["src/**/__tests__/*"],
+  "compilerOptions": {
+    "composite": true,
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
+    "allowSyntheticDefaultImports": true,
+    "target": "ES2022",
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"],
+      "/*": ["./public/*", "./*"]
     }
-  ]
+  }
 }
+

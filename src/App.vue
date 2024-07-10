@@ -41,6 +41,7 @@
 	function resize(e:PointerEvent){
 		const rawW = layout_left.value;
 		function rszHandler(ev:PointerEvent){
+			ev.preventDefault();
 			const size = rawW + ev.clientX - e.clientX;
 			if(size < CONFIG['layout.fontSize'].value * 14) return;
 			else layout_left.value = Math.floor(size);
@@ -99,7 +100,7 @@
 		display: layout_displayLeft ? 'block' : 'none'
 	}" @click="layout_displayLeft = false"></div>
 	<!-- 调节大小 -->
-	<div class="resizer" @pointerdown="resize"></div>
+	<div class="resizer" @pointerdown.prevent="resize"></div>
 	<!-- 右侧 -->
 	<div class="right" :style="{ width: layout_total - layout_left + 'px' }">
 		<tabManager ref="tabs" />
@@ -136,6 +137,7 @@
 	body {
 		margin: 0;
 		overflow: hidden;
+		font-family: 'Open Sans','Clear Sans','Helvetica Neue','Helvetica','Arial','sans-serif';
 		
 		//  兼容移动端100svh
 		position: fixed;
