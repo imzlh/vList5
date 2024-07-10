@@ -367,7 +367,7 @@
     <div class="vlist" :show="show" :active="active" v-if="topLevel" @contextmenu.prevent="ctxmenu">
 
         <div class="parent"
-            @dblclick.stop="loadTree(data as vDir)"
+            @dblclick.stop="folder()"
             @click="markup($event,data as any)"
             @dragstart.stop="drag_start($event, data as vDir)" :draggable="(data as vDir).path != '/'"
             @drop="drag_onto($event, data as vDir)" @dragover="drag_alert($event, data as vDir)"
@@ -403,7 +403,7 @@
     </div>
 
     <template  v-else >
-        <div class="parent" @dblclick.stop="loadTree(data as vDir)"
+        <div class="parent" @dblclick.stop="folder"
             @click="markup($event,data as any)" :selected="markmap.includes(data.path)"
             @dragstart.stop="drag_start($event, data as vFile)" :draggable="(data as vDir).path != '/'"
             @drop="drag_onto($event, data as vDir)" @dragover="drag_alert($event, data as vDir)"

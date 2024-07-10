@@ -620,6 +620,9 @@
                         <div @click.stop="config.vid_rate = 2" :active="config.vid_rate == 2">
                             <span>2x</span>
                         </div>
+                        <div @click.stop="config.vid_rate = 3" :active="config.vid_rate == 3">
+                            <span>3x</span>
+                        </div>
                     </div>
                 </div>
                 <!--拍摄-->
