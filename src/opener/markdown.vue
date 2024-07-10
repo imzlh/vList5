@@ -67,7 +67,6 @@
             "math": true,
             "tabSize": 4
         })).init();
-        globalThis.m = muya;
     });
 
     function save(){
