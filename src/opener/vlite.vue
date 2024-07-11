@@ -287,7 +287,10 @@
                 }
         } else {
             // 更新列表
-            const list = await FS.list(dir || '/'),
+            const list = await FS.list(dir || '/', {
+                    "select": "type",
+                    "type": "file"
+                }),
                 lrcs = {} as Record<string,string>,
                 covers = {} as Record<string,string>,
                 default_cover = [] as Array<string>;

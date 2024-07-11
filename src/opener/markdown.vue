@@ -1,6 +1,7 @@
 <script lang="ts" setup>
-    import type { AlertOpts, MessageOpinion, vFile } from '@/env';
-    import { FS, Global } from '@/utils';
+    import type { AlertOpts, MessageOpinion, vDir, vFile } from '@/env';
+import Upload from '@/module/upload.vue';
+    import { FILE_PROXY_SERVER, FS, Global, splitPath } from '@/utils';
     import {
         CodeBlockLanguageSelector,
         EmojiSelector,
@@ -41,12 +42,14 @@
         CFG = reactive({
             search: false,
             replace: false,
+            upload: false,
             search_res: 0,
             search_index: 0,
             search_text: '',
             replace_text: ''
         }),
-        el = defineEmits(['hide', 'show', 'close']);
+        el = defineEmits(['hide', 'show', 'close']),
+        div = splitPath(input).dir;
 
     let muya: undefined | Muya;
 
@@ -191,6 +194,20 @@
         }
     };
 
+    function plug(file: string){
+        if(!muya?.editor.activeContentBlock) return;
+        muya.focus();
+        const data = muya.editor.activeContentBlock.text,
+            cur = muya.editor.activeContentBlock.getCursor(),
+            fname = splitPath({path: file}).fname;
+        if(cur) muya.editor.activeContentBlock.text = 
+            data.substring(0, cur.start.offset) +
+            `[ ${data.substring(cur.start.offset, cur.end.offset +1) || fname} ](${FILE_PROXY_SERVER + file} "${fname}")` +
+            data.substring(cur.end.offset +1);
+        else muya.editor.activeContentBlock.text = 
+            `[ ${data || fname} ](${FILE_PROXY_SERVER + file} "${fname}")`;
+    }
+
     onUnmounted(() => muya && muya.destroy());
 </script>
 
@@ -274,11 +291,16 @@
                 </svg>
             </div>
             <!-- 添加 -->
-            <div>
+            <div @click="CFG.upload = !CFG.upload" :active="CFG.upload">
                 <svg fill="currentColor" viewBox="0 0 16 16">
                     <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
                     <path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z"/>
                 </svg>
+
+                <Upload :option="div" class="after" :active="CFG.upload" @click.stop
+                    @create="plug" @select="plug"
+                />
+                <!-- <div @click.stop class="after" :active="CFG.upload"></div> -->
             </div>
         </div>
     </div>
@@ -372,7 +394,7 @@
             padding: .3rem;
             border-radius: .2rem;
 
-            &:hover {
+            &:hover, &[active=true] {
                 background-color: rgb(229 229 229);
             }
 
@@ -396,7 +418,7 @@
             left: 50%;
             transform: translateX(-50%);
             margin: auto;
-            z-index: 100;
+            z-index: 6;
 
             > span{
                 margin: 0 .1rem;
@@ -407,6 +429,29 @@
 
             > div{
                 @include btn_div();
+                position: relative;
+
+                > div.after{
+                    position: absolute;
+                    left: 50%;
+                    bottom: 100%;
+                    transform: translate(-50%, -1rem) scale(0);
+                    opacity: 0;
+                    padding: 1rem;
+                    border-radius: .35rem;
+                    background-color: #f0f0f0;
+                    border: solid .1rem #d4d4d4;
+                    transition: opacity .2s;
+                    z-index: 10;
+
+                    min-width: 12rem;
+                    min-height: 12rem;
+
+                    &[active=true]{
+                        transform: translate(-50%, -1rem) scale(1);
+                        opacity: 1;
+                    }
+                }
             }
         }
 
@@ -480,3 +525,7 @@
         }
     }
 </style>
+
+<script lang="ts">
+    
+</script>

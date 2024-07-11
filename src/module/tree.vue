@@ -1,6 +1,6 @@
 <script lang="ts">
     import type { AlertOpts, CtxDispOpts, CtxMenuData, FileOrDir, MessageOpinion, vDir, vFile } from '@/env';
-    import { DEFAULT_FILE_ICON, FS, Global, loadTree, openFile, openSetting, reloadTree, size2str, splitPath } from '@/utils';
+    import { APP_API, DEFAULT_FILE_ICON, FS, Global, loadTree, openFile, openSetting, reloadTree, size2str, splitPath } from '@/utils';
     import { ref, toRaw, watch } from 'vue';
     import Upload from './upload.vue';
 
@@ -25,8 +25,52 @@
         filter?: (file: FileOrDir[]) => boolean
     }
 
+    type file_action = 'move'|'copy';
+
     const ADDITION = [] as Array<[(input: FileOrDir[]) => CtxMenuData, DisplayCondition]>;
     const DRAG_TOKEN = Math.floor(Math.random() * 100000000).toString(36);
+
+    const FACTION = {
+        marked: [] as Array<FileOrDir>,
+        action: 'copy' as file_action,
+        async exec(dest: vDir):Promise<boolean|number>{
+            // 异步获取
+            const f = await fetch(APP_API + '?action=' + this.action, {
+                "method": "POST",
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                "body": JSON.stringify({
+                    from: this.marked.map(item => item.path),
+                    to: dest.path
+                })
+            });
+            if(!f.ok){
+                Global('ui.message').call({
+                    "type": "error",
+                    "title": "文件资源管理器",
+                    "content":{
+                        "title": {
+                            'copy': '复制',
+                            'move': '剪切'
+                        }[this.action] + '文件失败',
+                        "content": await f.text()
+                    },
+                    "timeout": 5
+                } satisfies MessageOpinion);
+                return false;
+            }else{
+                reloadTree([dest.path]);
+            }
+            return true;
+        },
+
+        mark(action:file_action,file:Array<FileOrDir>){
+            this.marked = file;
+            this.action = action;
+            console.log(file);
+        }
+    }
 
     /**
      * 注册一个子集菜单
@@ -242,23 +286,42 @@
                     item.push({
                         "text": "剪切",
                         "icon": I_CUT,
-                        handle:() => {
-                            FS.mark('move',marked);
-                        },
+                        handle:() =>
+                            FACTION.mark('move',marked)
                     }, {
                         "text": "复制",
                         "icon": I_COPY,
-                        handle: () => {
-                            FS.mark('copy',marked);
-                        },
+                        handle: () =>
+                            FACTION.mark('copy',marked)
                     });
 
-                if(marked.length > 0){
+                if(marked.length == 1){
                     item.push({
                         "text": "粘贴",
                         "icon": I_PASTE,
-                        handle: () => {
-                            FS.exec(this.data as vDir);
+                        handle: async () => {
+                            const dir = marked[0].type == 'dir'
+                                ? marked[0]
+                                : this.data as vDir;
+
+                            // 覆盖提示
+                            try{
+                                if(!dir.child)
+                                    await loadTree(dir);
+                                if(!dir.child) dir.child = [];
+                                const mark = FACTION.marked.map(item => item.name),
+                                    over = dir.child.filter(item => mark.includes(item.name));
+                                if(over.length > 0)
+                                    await new Promise((rs, rj) => Global('ui.alert').call({
+                                        "type": "confirm",
+                                        "title": "覆盖或合并提示",
+                                        "message": "这些文件将会被合并/覆盖\n\n" + 
+                                            over.map(item => item.name + '\t' + (item.type == 'dir' ? '文件夹' : size2str(item.size))),
+                                        "callback": rs
+                                    } satisfies AlertOpts));
+                            }catch{}    
+
+                            FACTION.exec(dir);
                         }
                     });
                 }
@@ -364,8 +427,9 @@
 </script>
 
 <template>
-    <div class="vlist" :show="show" :active="active" v-if="topLevel" @contextmenu.prevent="ctxmenu">
-
+    <div class="vlist" :show="show" :active="active" v-if="topLevel"
+        @contextmenu.stop.prevent="ctxmenu"
+    >
         <div class="parent"
             @dblclick.stop="folder()"
             @click="markup($event,data as any)"

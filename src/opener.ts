@@ -275,5 +275,5 @@ export function regSelf(name:string,open:(file:vFile) => any){
             return () => OPENER[i].open = raw;
         }
     
-    console.trace('ERROR: '+ name +' not found');
+    throw new TypeError('ERROR: '+ name +' not found');
 }

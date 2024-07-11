@@ -20,13 +20,13 @@
 
     const prop = defineProps(['option']),
         dir = prop['option'] as string,
-        ev = defineEmits(['show','hide','close']),
         eque = reactive([] as Array<UploadItem>),
         mouse = reactive({
             'x': 0,
             'y': 0,
             'show': false
-        });
+        }),
+        event = defineEmits(['show', 'hide', 'close', 'select', 'upload', 'create']);
 
     const drag = {
         start(e:DragEvent){
@@ -46,10 +46,16 @@
                     "status": S_PROGRESS,
                     "progress": 0
                 }) -1;
+            event('upload', file);
 
             // 开始上传
             FS.write(dir + file.name,file,prog => eque[id].progress = prog.loaded / prog.total * 100)
-                .then(() => {eque[id].status = S_SUCCESS, eque[id].progress = 100, reloadTree([dir])})
+                .then(() => {
+                    eque[id].status = S_SUCCESS, 
+                    eque[id].progress = 100, 
+                    reloadTree([dir]),
+                    event('create', dir +  file.name)
+                })
                 .catch(() => eque[id].status = S_ERROR);
         }
     }
@@ -69,7 +75,7 @@
 <template>
     <div class="upload-wrapper" @dragover.prevent="drag.start" @drop.prevent="drag.end" @dragleave="mouse.show = false">
         <div class="container">
-            <div v-for="item in eque">
+            <div v-for="item in eque" @click="event('select', dir + '/' + item.name)">
                 <img :src="getIcon(item.name)" :alt="item.mime">
                 <span class="name">{{ item.name }}</span>
                 <div :style="{
@@ -179,6 +185,8 @@
 
             position: fixed;
             pointer-events: none;
+
+            z-index: 20;
 
             > svg{
                 display: block;

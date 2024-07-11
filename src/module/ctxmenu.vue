@@ -15,11 +15,10 @@
 
                 // 非关闭模式
                 if(!val)
-                    return this.$el.style.display = 'none';
+                    return this.$el.style.display = 'none', active.value = -1;
                 const el = this.$el as HTMLElement;
 
                 // 清空样式
-                el.style.transform = '',
                 el.style.bottom = 'auto',
                 el.style.right = 'auto',
                 el.style.top = this.$props.y + 'px',
@@ -98,10 +97,10 @@
                 </span>
 
                 <ctxTree 
-                    v-if="item.child" :data="item.child" :x="0" :y="0"
+                    v-if="item.child" :data="item.child" :x="10" :y="0"
                     class="child" :display="active == i" @click.stop
                     @blur="active = -1;$emit('blur')"
-                    style="position: absolute;"
+                    style="position: absolute;transform: translateX(100%)"
                 ></ctxTree>
             </div>
             <ul v-else>

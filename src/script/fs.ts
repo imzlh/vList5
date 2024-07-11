@@ -2,14 +2,10 @@ import type { FileOrDir, ListPredirect, MessageOpinion, vDir, vFile, vSimpleFile
 import { APP_API, DEFAULT_DIR_ICON, FILE_PROXY_SERVER, Global } from "@/utils";
 import { getIcon } from "./icon";
 
-type file_action = 'move'|'copy';
-
 export class PermissionDeniedError extends Error{}
 export class LoginError extends Error{}
 
 export const FS = {
-    marked: [] as Array<FileOrDir>,
-    action: 'copy' as file_action,
 
     /**
      * 请求后端
@@ -46,7 +42,7 @@ export const FS = {
      * @returns 列表
      */
     async list(path:string, predirect: ListPredirect | {} = {}){
-        path = (predirect as any).path = path[path.length -1] == '/' ? path : path + '/';
+        (predirect as any).path = path[path.length -1] == '/' ? path : path + '/';
         return (await this.__request('list',predirect,true) as Array<string>)
             .map((item) => ({
                 name: item,
@@ -139,50 +135,19 @@ export const FS = {
         });
     },
 
-    write(file:string,content: Blob,progress?:(this: XMLHttpRequest, ev: ProgressEvent<EventTarget>) => any):Promise<ProgressEvent<EventTarget>>{
+    write(file:string,content: Blob,progress?:(this: XMLHttpRequest, ev: ProgressEvent<EventTarget>) => any):Promise<string>{
         return new Promise((rs,rj) => {
             const xhr = new XMLHttpRequest();
             xhr.open('POST',APP_API + '?action=upload&path=' + encodeURIComponent(file));
             xhr.onprogress = progress || null;
-            xhr.onerror = rj,xhr.onload = rs;
+            xhr.onreadystatechange = ev => xhr.readyState == xhr.DONE && (
+                Math.floor(xhr.status / 100) == 2
+                ? rs(xhr.responseText)
+                : rj(new Error('Status ' + xhr.status + ': ' + xhr.responseText))
+            );
+            xhr.onerror = () => rj(new Error('Network Error'));
             xhr.send(content);
         });
-    },
-
-    async exec(dest: vDir):Promise<boolean|number>{
-        // 异步获取
-        const f = await fetch(APP_API + '?action=' + this.action, {
-            "method": "POST",
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            "body": JSON.stringify({
-                from: this.marked.map(item => item.path),
-                to: dest.path
-            })
-        });
-        if(!f.ok){
-            Global('ui.message').call({
-                "type": "error",
-                "title": "文件资源管理器",
-                "content":{
-                    "title": {
-                        'copy': '复制',
-                        'move': '剪切'
-                    }[this.action] + '文件失败',
-                    "content": await f.text()
-                },
-                "timeout": 5
-            } satisfies MessageOpinion);
-            return false;
-        }
-        return true;
-    },
-
-    mark(action:file_action,file:Array<FileOrDir>){
-        this.marked = file;
-        this.action = action;
-        console.log(file);
     }
 }
 

@@ -93,11 +93,36 @@
             }
 
             >.body {
-                @import '../public/leveldefine.scss';
                 display: flex;
                 align-items: center;
                 gap: 1rem;
                 padding: .5rem 1rem 1rem 1rem;
+                
+                &[data-level]{
+                    position: relative;
+
+                    &::before{
+                        content: '';
+
+                        background-image: url('/icon/question.webp');
+                        background-repeat: no-repeat;
+                        background-size: cover;
+                        width: 3rem;
+                        height: 3rem;
+                    }
+
+                }
+                &[data-level=info]::before{
+                    background-image: url('/icon/info.webp');
+                }
+
+                &[data-level=warn]::before{
+                    background-image: url('/icon/warning.webp');
+                }
+
+                &[data-level=error]::before{
+                    background-image: url('/icon/error.webp');
+                }
 
                 &::before{
                     flex-shrink: 0;
@@ -123,6 +148,7 @@
 
         >div {
             transition: all 0.2s;
+            white-space: pre-wrap;
 
             &:not([data-active]) {
                 transform: translateX(120%);

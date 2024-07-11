@@ -23,7 +23,7 @@
 
     const opts_ = defineProps(['option']),
         file = opts_['option'] as vSimpleFileOrDir,
-        config = shallowReactive({
+        CFG = shallowReactive({
             // 信息条
             alert: '',
             // 当前播放百分比
@@ -66,37 +66,37 @@
 
     // 信息栏监听器
     let alert_timer = false as any;
-    watch(() => config.alert,function(){
-        if(config.alert == '') return;
+    watch(() => CFG.alert,function(){
+        if(CFG.alert == '') return;
         if(alert_timer !== false) clearTimeout(alert_timer);
-        alert_timer = setTimeout(() => config.alert = '',5000);
+        alert_timer = setTimeout(() => CFG.alert = '',5000);
     },{ immediate: true });
 
     // 鼠标监听
     let mouse_timer: any;
     function mouse(){
         if(mouse_timer !== undefined) clearTimeout(mouse_timer);
-        mouse_timer = setTimeout(() => config.active = false,5000);
-        config.active = true;
+        mouse_timer = setTimeout(() => CFG.active = false,5000);
+        CFG.active = true;
     }
 
     // 声音大小
     watch(
-        () => config.volume, 
-        n => video.value && (video.value.volume = n,config.alert = '声音大小: ' + n * 100 + '%'),
+        () => CFG.volume, 
+        n => video.value && (video.value.volume = n,CFG.alert = '声音大小: ' + n * 100 + '%'),
         { immediate: true }
     );
 
     // 倍速
     watch(
-        () => config.vid_rate, 
-        n => video.value && (video.value.playbackRate = n,config.alert = '倍速播放: ' + n + 'x'),
+        () => CFG.vid_rate, 
+        n => video.value && (video.value.playbackRate = n,CFG.alert = '倍速播放: ' + n + 'x'),
         { immediate: true }
     );
 
     // 全屏监听
     watch(
-        () => config.fullscreen,
+        () => CFG.fullscreen,
         n => container.value && (n ? container.value.requestFullscreen() : document.exitFullscreen()),
         { immediate: true }
     );
@@ -109,42 +109,42 @@
             xhr.open('GET',sub.url);
             xhr.send();
             xhr.onload = () => then(ass = new ASS(xhr.responseText,video.value as HTMLVideoElement));
-            xhr.onerror = () => config.alert = '加载字幕失败';
+            xhr.onerror = () => CFG.alert = '加载字幕失败';
         }else{
             ass = new ASS(sub.text as string ,video.value as HTMLVideoElement)
         }
     }
-    watch(() => config.subtitle[config.sub_current],function(val:subOption){
+    watch(() => CFG.subtitle[CFG.sub_current],function(val:subOption){
         if(val.sub_type == 'vtt') return;
         if(ass) ass.destroy();
-        if(config.disp_sub) load_sub(val,() => config.alert = '字幕加载成功');
+        if(CFG.disp_sub) load_sub(val,() => CFG.alert = '字幕加载成功');
     });
-    watch(() => config.disp_sub,function(val){
-        if(!config.subtitle[config.sub_current] || config.subtitle[config.sub_current].sub_type == 'vtt') return;
-        if(!ass) load_sub(config.subtitle[config.sub_current],
+    watch(() => CFG.disp_sub,function(val){
+        if(!CFG.subtitle[CFG.sub_current] || CFG.subtitle[CFG.sub_current].sub_type == 'vtt') return;
+        if(!ass) load_sub(CFG.subtitle[CFG.sub_current],
             ass => val ? ass.show() : ass.hide()
         );
         else val ? ass.show() : ass.hide();
     });
 
     // 曲目
-    watch(() => config.current,function(n){
+    watch(() => CFG.current,function(n){
         if(!video.value) return;
         // 最后一个了
-        if(n >= config.playlist.length) return config.current = 0;
+        if(n >= CFG.playlist.length) return CFG.current = 0;
         // 第一个了
-        else if(n < 0) return config.current = config.playlist.length -1;
+        else if(n < 0) return CFG.current = CFG.playlist.length -1;
         // 刷新播放状态
-        config.playing = false;
-        config.timetotal = '-:-';
-        config.time = '0:00';
-        config.timeprog = 0;
+        CFG.playing = false;
+        CFG.timetotal = '-:-';
+        CFG.time = '0:00';
+        CFG.timeprog = 0;
         // 字幕设置
-        config.subtitle = config.playlist[config.current].subtitle;
-        if(config.subtitle.length > 0) config.sub_current = 0;
-        else config.sub_current = -1;
+        CFG.subtitle = CFG.playlist[CFG.current].subtitle;
+        if(CFG.subtitle.length > 0) CFG.sub_current = 0;
+        else CFG.sub_current = -1;
         // 视频设置
-        video.value.src = config.playlist[config.current].url;
+        video.value.src = CFG.playlist[CFG.current].url;
     },{ immediate: true });
 
     onMounted(function(){
@@ -152,7 +152,7 @@
         const vid = video.value;
         vid.crossOrigin = 'anonymous';
 
-        container.value.onfullscreenchange = () => config.fullscreen = document.fullscreenElement == container.value;
+        container.value.onfullscreenchange = () => CFG.fullscreen = document.fullscreenElement == container.value;
 
         function time2str(time:number){
             var min = Math.floor(time/60),
@@ -160,22 +160,22 @@
             return (min < 10 ? '0' + min : min) + ':' + (sec < 10 ? '0' + sec.toFixed() : sec.toFixed());
         }
 
-        vid.onpause = () => config.playing = false;
-        vid.onplay = () => config.playing = true;
+        vid.onpause = () => CFG.playing = false;
+        vid.onplay = () => CFG.playing = true;
         vid.ontimeupdate = () => (
-            config.timeprog = vid.currentTime / vid.duration,
-            config.time = time2str(vid.currentTime)
+            CFG.timeprog = vid.currentTime / vid.duration,
+            CFG.time = time2str(vid.currentTime)
         );
-        vid.onvolumechange = () => config.volume = vid.volume;
-        vid.onerror = () => config.alert = '视频加载失败';
-        vid.onended = () => config.loop ? config.current ++ : vid.play();
-        vid.ondurationchange = () => config.timetotal = time2str(vid.duration);
+        vid.onvolumechange = () => CFG.volume = vid.volume;
+        vid.onerror = () => CFG.alert = '视频加载失败';
+        vid.onended = () => CFG.loop ? CFG.current ++ : vid.play();
+        vid.ondurationchange = () => CFG.timetotal = time2str(vid.duration);
         vid.onprogress = function(){
             cached.value = [];
             for (let i = 0; i < vid.buffered.length; i++)
                 cached.value.push([vid.buffered.start(i) / vid.duration,vid.buffered.end(i) / vid.duration]);
         }
-        vid.oncanplay = () => vid.play();
+        vid.oncanplay = () => vid.playbackRate = CFG.vid_rate, vid.play();
     });
 
     function keyev(kbd:KeyboardEvent){
@@ -191,11 +191,11 @@
             break;
 
             case 'ArrowUp':
-                config.volume = config.volume < .1 ? 0 : config.volume - .1;
+                CFG.volume = CFG.volume < .1 ? 0 : CFG.volume - .1;
             break;
 
             case 'ArrowDown':
-                config.volume = config.volume > .9 ? 1 : config.volume + .1;
+                CFG.volume = CFG.volume > .9 ? 1 : CFG.volume + .1;
             break;
 
             case ' ':
@@ -228,21 +228,21 @@
             // 进度调节
             if(Math.abs(this.moved.xmoved) > Math.abs(this.moved.ymoved) 
                 && Math.abs(this.moved.xmoved) > 10
-            )   config.action = (this.moved.xmoved > 0 ? '快进 ' : '快退 ') + Math.abs(this.moved.xmoved).toFixed() + ' 秒';
+            )   CFG.action = (this.moved.xmoved > 0 ? '快进 ' : '快退 ') + Math.abs(this.moved.xmoved).toFixed() + ' 秒';
 
             // 声音调节
             else if(Math.abs(this.moved.ymoved) > 10)
-                config.action = '声音 ' + (
-                    config.volume * 100 - this.moved.ymoved > 100
+                CFG.action = '声音 ' + (
+                    CFG.volume * 100 - this.moved.ymoved > 100
                     ? 100
                     : (
-                        config.volume * 100 - this.moved.ymoved < 0
+                        CFG.volume * 100 - this.moved.ymoved < 0
                         ? 0
-                        : (config.volume * 100 - this.moved.ymoved).toFixed()
+                        : (CFG.volume * 100 - this.moved.ymoved).toFixed()
                     )
                 ) + '%';
 
-            else config.action = '';
+            else CFG.action = '';
         },
         end(e:TouchEvent){
             this.moved.started = false;
@@ -257,21 +257,21 @@
             // 声音调节
             else if(Math.abs(this.moved.ymoved) > 10)
                 video.value.volume = 
-                    config.volume * 100 - this.moved.ymoved > 100
+                    CFG.volume * 100 - this.moved.ymoved > 100
                     ? 1
                     : (
-                        config.volume * 100 - this.moved.ymoved < 0
+                        CFG.volume * 100 - this.moved.ymoved < 0
                         ? 0
-                        : Math.floor(config.volume - this.moved.ymoved / 100)
+                        : Math.floor(CFG.volume - this.moved.ymoved / 100)
                     );
             
             // 唤起菜单
             else if(now - this.moved.lastClick < 500)
-                config.playing ? video.value.pause() : video.value.play()
+                CFG.playing ? video.value.pause() : video.value.play()
             else mouse();
 
             this.moved.lastClick = now,
-            config.action = '';
+            CFG.action = '';
         }
     }
 
@@ -293,8 +293,8 @@
     const CTRL = {
         dir: '?',
         pick_sub() {
-            const subnow = config.subtitle.map(each => each.name),
-                subfor = config.current;
+            const subnow = CFG.subtitle.map(each => each.name),
+                subfor = CFG.current;
             Global('util.choose').call(this.dir)
                 .then((items: Array<vSimpleFileOrDir>) => items.forEach(each => {
                     // 已经包含
@@ -321,14 +321,14 @@
                             "timeout": 5
                         } satisfies MessageOpinion);
                     // 推入列表
-                    config.playlist[subfor].subtitle.push({
+                    CFG.playlist[subfor].subtitle.push({
                         name: info.name,
                         sub_type: info.ext == 'vtt' ? 'vtt' : 'ass',
                         url: each.url
                     });
                     // 设置为当前字幕
-                    if (subfor == config.current) {
-                        config.sub_current = config.subtitle.push() - 1;
+                    if (subfor == CFG.current) {
+                        CFG.sub_current = CFG.subtitle.push() - 1;
                     }
                 }));
         },
@@ -342,8 +342,8 @@
             let id: number | undefined;
             if (this.dir == dir) {
                 // 找到ID
-                for (let i = 0; i < config.playlist.length; i++)
-                    if (config.playlist[i].name == file.name) {
+                for (let i = 0; i < CFG.playlist.length; i++)
+                    if (CFG.playlist[i].name == file.name) {
                         id = i;
                         break;
                     }
@@ -351,7 +351,7 @@
                 // 更新列表
                 const list = await FS.list(dir || '/'),
                     subs = {} as Record<string, Array<subOption>>;
-                config.playlist = []; config.subtitle = [];
+                CFG.playlist = []; CFG.subtitle = [];
                 let i = 0;
                 list.forEach(item => {
                     const info = splitPath(item);
@@ -361,7 +361,7 @@
                             id = i;
                         // 转换
                         (item as videoOption).vid_name = info.name;
-                        config.playlist.push(item as videoOption);
+                        CFG.playlist.push(item as videoOption);
                         i++;
                         // 是字幕
                     } else if (CONFIG.subtitle.includes(info.ext.toLowerCase())) {
@@ -375,18 +375,18 @@
                 });
 
                 // 字幕配对
-                for (let i = 0; i < config.playlist.length; i++)
-                    if (config.playlist[i].vid_name in subs)
-                        config.playlist[i].subtitle = subs[config.playlist[i].vid_name];
+                for (let i = 0; i < CFG.playlist.length; i++)
+                    if (CFG.playlist[i].vid_name in subs)
+                        CFG.playlist[i].subtitle = subs[CFG.playlist[i].vid_name];
                     else
-                        config.playlist[i].subtitle = [];
+                        CFG.playlist[i].subtitle = [];
 
                 // 更新
                 this.dir = dir;
             }
 
             if (id !== undefined){
-                config.current = id;
+                CFG.current = id;
                 // --------------- WARNING -------------------
                 // 以下代码实现了mkv内解压字幕，但是实在是太慢且消耗带宽，建议注释掉
                 // -------------------------------------------
@@ -435,7 +435,7 @@
                 if(win) win.onbeforeunload = () =>
                     URL.revokeObjectURL(url);    // 销毁链接
             },"image/webp");
-            config.alert = '截图完成';
+            CFG.alert = '截图完成';
         }
     };
 
@@ -451,34 +451,34 @@
 </script>
 
 <template>
-    <div class="vpf_container" :active="config.active"  tabindex="-1"
-        @dblclick="config.playing ? video?.pause() : video?.play()" ref="container"
+    <div class="vpf_container" :active="CFG.active"  tabindex="-1"
+        @dblclick="CFG.playing ? video?.pause() : video?.play()" ref="container"
         @pointermove="mouse" @click="mouse"
         @keydown="keyev"
     >
-        <div class="video" :width="config.vid_state"
+        <div class="video" :width="CFG.vid_state"
             @touchstart.stop.prevent="touch.start" @touchmove.stop.prevent="touch.move" @touchend.stop.prevent="touch.end"
         >
             <video ref="video">
-                <track :default="config.disp_sub" v-if="config.subtitle[config.sub_current] && config.subtitle[config.sub_current].sub_type == 'vtt'"
-                    kind="subtitle" lang="zh" :src="config.subtitle[config.sub_current].url">
+                <track :default="CFG.disp_sub" v-if="CFG.subtitle[CFG.sub_current] && CFG.subtitle[CFG.sub_current].sub_type == 'vtt'"
+                    kind="subtitle" lang="zh" :src="CFG.subtitle[CFG.sub_current].url">
             </video>
         </div>
         <!-- 顶部 -->
-        <div class="top" v-if="config.playlist[config.current]">
-            {{ config.playlist[config.current].name }}
+        <div class="top" v-if="CFG.playlist[CFG.current]">
+            {{ CFG.playlist[CFG.current].name }}
         </div>
         <!--信息条-->
-        <div class="alert" :active="config.alert != ''">
-            {{ config.alert }}
+        <div class="alert" :active="CFG.alert != ''">
+            {{ CFG.alert }}
         </div>
         <!-- 操作条 -->
-        <div class="action-modal" v-show="config.action != ''">{{ config.action }}</div>
+        <div class="action-modal" v-show="CFG.action != ''">{{ CFG.action }}</div>
         <!-- 底部 -->
         <div class="bottom" @dblclick.stop>
             <div class="time">
-                <span>{{ config.time }}</span>
-                <span class="total">{{ config.timetotal }}</span>
+                <span>{{ CFG.time }}</span>
+                <span class="total">{{ CFG.timetotal }}</span>
             </div>
             <div class="progress" 
                 @click.stop="video && (video.currentTime = ($event.offsetX / ($event.currentTarget as HTMLElement).clientWidth * video.duration))"
@@ -487,30 +487,30 @@
                     left: cache[0] * 100 + '%',
                     width: (cache[1] - cache[0]) * 100 + '%'
                 }" class="cache"></div>
-                <div class="prog" :style="{ width: config.timeprog * 100 + '%' }"></div>
+                <div class="prog" :style="{ width: CFG.timeprog * 100 + '%' }"></div>
             </div>
             <div class="btns">
                 <!--上一个-->
-                <div @click.stop="config.current--">
+                <div @click.stop="CFG.current--">
                     <svg viewBox="0 0 16 16">
                         <path
                             d="M4 4a.5.5 0 0 1 1 0v3.248l6.267-3.636c.54-.313 1.232.066 1.232.696v7.384c0 .63-.692 1.01-1.232.697L5 8.753V12a.5.5 0 0 1-1 0V4z" />
                     </svg>
                 </div>
                 <!--播放/暂停-->
-                <div style="transform:scale(1.4);" @click.stop="config.playing ? video?.pause() : video?.play()">
-                    <svg viewBox="0 0 16 16" v-show="!config.playing">
+                <div style="transform:scale(1.4);" @click.stop="CFG.playing ? video?.pause() : video?.play()">
+                    <svg viewBox="0 0 16 16" v-show="!CFG.playing">
                         <path
                             d="m11.596 8.697-6.363 3.692c-.54.313-1.233-.066-1.233-.697V4.308c0-.63.692-1.01 1.233-.696l6.363 3.692a.802.802 0 0 1 0 1.393z" />
                     </svg>
-                    <svg viewBox="0 0 16 16" v-show="config.playing">
+                    <svg viewBox="0 0 16 16" v-show="CFG.playing">
                         <path
                             d="M5.5 3.5A1.5 1.5 0 0 1 7 5v6a1.5 1.5 0 0 1-3 0V5a1.5 1.5 0 0 1 1.5-1.5zm5 0A1.5 1.5 0 0 1 12 5v6a1.5 1.5 0 0 1-3 0V5a1.5 1.5 0 0 1 1.5-1.5z" />
                     </svg>
 
                 </div>
                 <!--下一个-->
-                <div @click.stop="config.current++">
+                <div @click.stop="CFG.current++">
                     <svg viewBox="0 0 16 16">
                         <path
                             d="M12.5 4a.5.5 0 0 0-1 0v3.248L5.233 3.612C4.693 3.3 4 3.678 4 4.308v7.384c0 .63.692 1.01 1.233.697L11.5 8.753V12a.5.5 0 0 0 1 0V4z" />
@@ -523,16 +523,16 @@
                             d="M9 4a.5.5 0 0 0-.812-.39L5.825 5.5H3.5A.5.5 0 0 0 3 6v4a.5.5 0 0 0 .5.5h2.325l2.363 1.89A.5.5 0 0 0 9 12V4zm3.025 4a4.486 4.486 0 0 1-1.318 3.182L10 10.475A3.489 3.489 0 0 0 11.025 8 3.49 3.49 0 0 0 10 5.525l.707-.707A4.486 4.486 0 0 1 12.025 8z" />
                     </svg>
                     <div class="dialog" left style="padding:.5rem 1rem;">
-                        <input type="range" min="0" max="1" step="0.01" v-model="config.volume" class="func_volume" style="width:100%;">
+                        <input type="range" min="0" max="1" step="0.01" v-model="CFG.volume" class="func_volume" style="width:100%;">
                     </div>
                 </div>
                 <!--全屏-->
-                <div right @click.stop="config.fullscreen = !config.fullscreen">
-                    <svg viewBox="0 0 16 16" v-show="!config.fullscreen">
+                <div right @click.stop="CFG.fullscreen = !CFG.fullscreen">
+                    <svg viewBox="0 0 16 16" v-show="!CFG.fullscreen">
                         <path
                             d="M1.5 1a.5.5 0 0 0-.5.5v4a.5.5 0 0 1-1 0v-4A1.5 1.5 0 0 1 1.5 0h4a.5.5 0 0 1 0 1h-4zM10 .5a.5.5 0 0 1 .5-.5h4A1.5 1.5 0 0 1 16 1.5v4a.5.5 0 0 1-1 0v-4a.5.5 0 0 0-.5-.5h-4a.5.5 0 0 1-.5-.5zM.5 10a.5.5 0 0 1 .5.5v4a.5.5 0 0 0 .5.5h4a.5.5 0 0 1 0 1h-4A1.5 1.5 0 0 1 0 14.5v-4a.5.5 0 0 1 .5-.5zm15 0a.5.5 0 0 1 .5.5v4a1.5 1.5 0 0 1-1.5 1.5h-4a.5.5 0 0 1 0-1h4a.5.5 0 0 0 .5-.5v-4a.5.5 0 0 1 .5-.5z" />
                     </svg>
-                    <svg viewBox="0 0 16 16" v-show="config.fullscreen">
+                    <svg viewBox="0 0 16 16" v-show="CFG.fullscreen">
                         <path
                             d="M5.5 0a.5.5 0 0 1 .5.5v4A1.5 1.5 0 0 1 4.5 6h-4a.5.5 0 0 1 0-1h4a.5.5 0 0 0 .5-.5v-4a.5.5 0 0 1 .5-.5zm5 0a.5.5 0 0 1 .5.5v4a.5.5 0 0 0 .5.5h4a.5.5 0 0 1 0 1h-4A1.5 1.5 0 0 1 10 4.5v-4a.5.5 0 0 1 .5-.5zM0 10.5a.5.5 0 0 1 .5-.5h4A1.5 1.5 0 0 1 6 11.5v4a.5.5 0 0 1-1 0v-4a.5.5 0 0 0-.5-.5h-4a.5.5 0 0 1-.5-.5zm10 1a1.5 1.5 0 0 1 1.5-1.5h4a.5.5 0 0 1 0 1h-4a.5.5 0 0 0-.5.5v4a.5.5 0 0 1-1 0v-4z" />
                     </svg>
@@ -546,20 +546,20 @@
                             d="M2 4.5a.5.5 0 0 1 .5-.5h3a.5.5 0 0 1 0 1H3v2.5a.5.5 0 0 1-1 0v-3zm12 7a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1 0-1H13V8.5a.5.5 0 0 1 1 0v3z" />
                     </svg>
                     <div class="dialog selector">
-                        <div :active="config.vid_state == 'auto'"
-                            @click.stop="config.vid_state = 'auto'; config.alert = '视频大小:正常';">
+                        <div :active="CFG.vid_state == 'auto'"
+                            @click.stop="CFG.vid_state = 'auto'; CFG.alert = '视频大小:正常';">
                             <span>正常大小(不拉伸)</span>
                         </div>
-                        <div :active="config.vid_state == 'width'"
-                            @click.stop="config.vid_state = 'width'; config.alert = '视频大小:长度为100%';">
+                        <div :active="CFG.vid_state == 'width'"
+                            @click.stop="CFG.vid_state = 'width'; CFG.alert = '视频大小:长度为100%';">
                             <span>长度优先(拉伸)</span>
                         </div>
-                        <div :active="config.vid_state == 'height'"
-                            @click.stop="config.vid_state = 'height'; config.alert = '视频大小:宽度为100%';">
+                        <div :active="CFG.vid_state == 'height'"
+                            @click.stop="CFG.vid_state = 'height'; CFG.alert = '视频大小:宽度为100%';">
                             <span>宽度优先(拉伸)</span>
                         </div>
-                        <div :active="config.vid_state == 'full'"
-                            @click.stop="config.vid_state = 'full'; config.alert = '视频大小:强制拉伸';">
+                        <div :active="CFG.vid_state == 'full'"
+                            @click.stop="CFG.vid_state = 'full'; CFG.alert = '视频大小:强制拉伸';">
                             <span>铺满屏幕(拉伸)</span>
                         </div>
                     </div>
@@ -578,8 +578,8 @@
                             </svg>
                             <span>添加字幕轨</span>
                         </div>
-                        <div class="check" :active="config.loop" @click.stop="config.loop = !config.loop">
-                            <svg viewBox="0 0 16 16" v-show="!config.loop">
+                        <div class="check" :active="CFG.loop" @click.stop="CFG.loop = !CFG.loop">
+                            <svg viewBox="0 0 16 16" v-show="!CFG.loop">
                                 <path
                                     d="M11.534 7h3.932a.25.25 0 0 1 .192.41l-1.966 2.36a.25.25 0 0 1-.384 0l-1.966-2.36a.25.25 0 0 1 .192-.41zm-11 2h3.932a.25.25 0 0 0 .192-.41L2.692 6.23a.25.25 0 0 0-.384 0L.342 8.59A.25.25 0 0 0 .534 9z" />
                                 <path fill-rule="evenodd"
@@ -587,7 +587,7 @@
                             </svg>
                             <span>此视频循环</span>
                         </div>
-                        <div class="check" :active="config.disp_sub" @click.stop="config.disp_sub = !config.disp_sub">
+                        <div class="check" :active="CFG.disp_sub" @click.stop="CFG.disp_sub = !CFG.disp_sub">
                             <svg viewBox="0 0 16 16">
                                 <path d="M0 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v2h2a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-2H2a2 2 0 0 1-2-2V2zm5 10v2a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V6a1 1 0 0 0-1-1h-2v5a2 2 0 0 1-2 2H5z"/>
                             </svg>
@@ -605,22 +605,22 @@
                             d="M7.5 3a.5.5 0 0 1 .5.5v5.21l3.248 1.856a.5.5 0 0 1-.496.868l-3.5-2A.5.5 0 0 1 7 9V3.5a.5.5 0 0 1 .5-.5z" />
                     </svg>
                     <div class="dialog selector func_speed">
-                        <div @click.stop="config.vid_rate = 0.75" :active="config.vid_rate == 0.75">
+                        <div @click.stop="CFG.vid_rate = 0.75" :active="CFG.vid_rate == 0.75">
                             <span>0.75x</span>
                         </div>
-                        <div @click.stop="config.vid_rate = 1" :active="config.vid_rate == 1">
+                        <div @click.stop="CFG.vid_rate = 1" :active="CFG.vid_rate == 1">
                             <span>1x</span>
                         </div>
-                        <div @click.stop="config.vid_rate = 1.25" :active="config.vid_rate == 1.25">
+                        <div @click.stop="CFG.vid_rate = 1.25" :active="CFG.vid_rate == 1.25">
                             <span>1.25x</span>
                         </div>
-                        <div @click.stop="config.vid_rate = 1.5" :active="config.vid_rate == 1.5">
+                        <div @click.stop="CFG.vid_rate = 1.5" :active="CFG.vid_rate == 1.5">
                             <span>1.5x</span>
                         </div>
-                        <div @click.stop="config.vid_rate = 2" :active="config.vid_rate == 2">
+                        <div @click.stop="CFG.vid_rate = 2" :active="CFG.vid_rate == 2">
                             <span>2x</span>
                         </div>
-                        <div @click.stop="config.vid_rate = 3" :active="config.vid_rate == 3">
+                        <div @click.stop="CFG.vid_rate = 3" :active="CFG.vid_rate == 3">
                             <span>3x</span>
                         </div>
                     </div>
@@ -642,8 +642,8 @@
                             d="M4 5.5a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 0 1h-7a.5.5 0 0 1-.5-.5zM4 8a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 0 1h-7A.5.5 0 0 1 4 8zm0 2.5a.5.5 0 0 1 .5-.5h4a.5.5 0 0 1 0 1h-4a.5.5 0 0 1-.5-.5z" />
                     </svg>
                     <div class="dialog selector">
-                        <div v-for="(sub, i) in config.subtitle" :active="config.sub_current == i"
-                            @click.stop="config.sub_current = i"
+                        <div v-for="(sub, i) in CFG.subtitle" :active="CFG.sub_current == i"
+                            @click.stop="CFG.sub_current = i"
                         >
                             <span>{{ sub.name }}</span>
                         </div>
@@ -656,8 +656,8 @@
                             d="M2.5 12a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5zm0-4a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5zm0-4a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5z" />
                     </svg>
                     <div class="dialog selector">
-                        <div v-for="(sub, i) in config.playlist" :active="config.current == i"
-                            @click.stop="config.current = i"
+                        <div v-for="(sub, i) in CFG.playlist" :active="CFG.current == i"
+                            @click.stop="CFG.current = i"
                         >
                             <span>{{ sub.name }}</span>
                         </div>
@@ -840,7 +840,7 @@
                 > div.cache{
                     position: absolute;
                     background-color: rgb(238, 235, 235);
-                    
+                    pointer-events: none;
                 }
             }
 

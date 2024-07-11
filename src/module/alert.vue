@@ -100,6 +100,7 @@
                 display: block;
                 color: #8e8888;
                 word-break: break-all;
+                white-space: pre-wrap;
             }
 
             input {
