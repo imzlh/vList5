@@ -1,11 +1,12 @@
 <script setup lang="ts">
-    import { DEFAULT_FILE_ICON, FS, reloadTree } from '@/utils';
+    import { DEFAULT_FILE_ICON, FS, Global, reloadTree } from '@/utils';
     import { reactive, ref } from 'vue';
 
     import I_MEDIA from '/file/media.webp';
     import I_TEXT from '/file/text.webp';
     import I_IMAGE from '/file/image.webp';
     import I_3D from '/file/3d.webp';
+import type { AlertOpts } from '@/env';
 
     const S_ERROR = 0,
         S_SUCCESS = 1,
@@ -28,35 +29,52 @@
         }),
         event = defineEmits(['show', 'hide', 'close', 'select', 'upload', 'create']);
 
+    let files = await FS.list(dir);
     const drag = {
         start(e:DragEvent){
             mouse.show = true;
             mouse.x = e.clientX,
             mouse.y = e.clientY;
         },
-        end(e:DragEvent){
-            if(!e.dataTransfer?.files[0]) return;
+        async end(e:DragEvent){
+            if(!e.dataTransfer?.files.length) return;
             mouse.show = false;
 
-            // 添加队列
-            const file = e.dataTransfer.files[0],
-                id = eque.push({
+            for(const file of e.dataTransfer.files){
+                // 添加队列
+                const id = eque.push({
                     "mime": file.type,
                     "name": file.name,
                     "status": S_PROGRESS,
                     "progress": 0
                 }) -1;
-            event('upload', file);
+                event('upload', file);
 
-            // 开始上传
-            FS.write(dir + file.name,file,prog => eque[id].progress = prog.loaded / prog.total * 100)
-                .then(() => {
-                    eque[id].status = S_SUCCESS, 
-                    eque[id].progress = 100, 
-                    reloadTree([dir]),
-                    event('create', dir +  file.name)
-                })
-                .catch(() => eque[id].status = S_ERROR);
+                // 寻找重复
+                let fname = file.name;
+                for (let i = 0; i < files.length; i++)
+                    if (files[i].name == file.name) {
+                        fname = await new Promise(rs => Global('ui.alert').call({
+                            "type": "prompt",
+                            "title": "上传提示",
+                            "message": `您选中的文件 ${file.name} 已经存在\n建议更改名称，或按下"确定"覆盖`,
+                            "callback": rs as any
+                        } satisfies AlertOpts));
+                        break;
+                    }
+                fname = fname == '' ? file.name : fname;
+
+                // 开始上传
+                FS.write(dir + fname,file,prog => eque[id].progress = prog.loaded / prog.total * 100)
+                    .then(() => {
+                        eque[id].status = S_SUCCESS, 
+                        eque[id].progress = 100, 
+                        reloadTree([dir]),
+                        event('create', dir +  fname)
+                    })
+                    .catch(() => eque[id].status = S_ERROR);
+            }
+            files = await FS.list(dir);
         }
     }
 

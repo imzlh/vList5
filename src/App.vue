@@ -90,7 +90,7 @@
 			</svg>
 			{{ APP_NAME }}
 		</div>
-		<div class="files" tabindex="-1" @focus="tree_active = true" @blur="tree_active = false">
+		<div class="files vlist" tabindex="-1" @contextmenu.prevent @focus="tree_active = true" @blur="tree_active = false">
 			<Tree :data="TREE" :active="tree_active" />
 		</div>
 	</div>

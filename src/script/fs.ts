@@ -65,6 +65,16 @@ export const FS = {
     },
 
     /**
+     * 重命名文件
+     * 与`FS.move()`不同的是, `rename()`是一对一的，而`move()`是多个复制到一个文件夹中的
+     * 对于批量复制到一个地方`move()`更简便且节省带宽
+     * @param fileList 文件列表，键值对应 `源文件:目标文件`
+     */
+    rename(fileList: Record<string,string>):Promise<void>{
+        return this.__request('rename', fileList, false);
+    },
+
+    /**
      * 排序
      */
     sort<T extends { name: string, type?: string }>(input: Array<T>):Array<T>{
@@ -138,14 +148,18 @@ export const FS = {
     write(file:string,content: Blob,progress?:(this: XMLHttpRequest, ev: ProgressEvent<EventTarget>) => any):Promise<string>{
         return new Promise((rs,rj) => {
             const xhr = new XMLHttpRequest();
-            xhr.open('POST',APP_API + '?action=upload&path=' + encodeURIComponent(file));
-            xhr.onprogress = progress || null;
-            xhr.onreadystatechange = ev => xhr.readyState == xhr.DONE && (
+            xhr.timeout = 60000;
+            
+            if(progress) xhr.addEventListener('progress', progress);
+            xhr.addEventListener('load', () => 
                 Math.floor(xhr.status / 100) == 2
                 ? rs(xhr.responseText)
                 : rj(new Error('Status ' + xhr.status + ': ' + xhr.responseText))
             );
-            xhr.onerror = () => rj(new Error('Network Error'));
+            xhr.addEventListener('error', () => rj(new Error('Network Error')));
+            xhr.addEventListener('timeout', rj);
+
+            xhr.open('POST',APP_API + '?action=upload&path=' + encodeURIComponent(file));
             xhr.send(content);
         });
     }

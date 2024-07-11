@@ -1,7 +1,7 @@
 <script lang="ts">
-    import type { AlertOpts, CtxDispOpts, CtxMenuData, FileOrDir, MessageOpinion, vDir, vFile } from '@/env';
-    import { APP_API, DEFAULT_FILE_ICON, FS, Global, loadTree, openFile, openSetting, reloadTree, size2str, splitPath } from '@/utils';
-    import { ref, toRaw, watch } from 'vue';
+    import type { AlertOpts, CtxDispOpts, CtxMenuData, MessageOpinion, vDir, vFile } from '@/env';
+    import { APP_API, DEFAULT_FILE_ICON, FILE_PROXY_SERVER, FS, Global, loadTree, openFile, reloadTree, size2str, splitPath } from '@/utils';
+    import { onMounted, reactive, ref, toRaw, watch, type PropType } from 'vue';
     import Upload from './upload.vue';
 
     import I_NEW from '/icon/new.webp';
@@ -15,25 +15,41 @@
     import I_RENAME from '/icon/rename.webp';
     import I_OPEN from "/icon/open.webp";
     import I_OPENER from '/icon/opener.webp';
+    import { getIcon } from '@/script/icon';
 
-    let marked = [] as Array<FileOrDir>;
+    let marked = [] as Array<iMixed>;
     export const markmap = ref<Array<string>>([]);
 
     interface DisplayCondition{
         single: boolean,
         sort: 'file' | 'dir' | 'all',
-        filter?: (file: FileOrDir[]) => boolean
+        filter?: (file: iMixed[]) => boolean
     }
 
     type file_action = 'move'|'copy';
 
-    const ADDITION = [] as Array<[(input: FileOrDir[]) => CtxMenuData, DisplayCondition]>;
+    interface iFile extends vFile{
+        rename?: boolean,
+        status?: number,
+        show?: boolean
+    }
+
+    interface iDir extends vDir{
+        rename?: boolean,
+        show?: boolean,
+        locked?: boolean
+        status?: number
+    }
+
+    type iMixed = iFile | iDir; 
+
+    const ADDITION = [] as Array<[(input: iMixed[]) => CtxMenuData, DisplayCondition]>;
     const DRAG_TOKEN = Math.floor(Math.random() * 100000000).toString(36);
 
     const FACTION = {
-        marked: [] as Array<FileOrDir>,
+        marked: [] as Array<iMixed>,
         action: 'copy' as file_action,
-        async exec(dest: vDir):Promise<boolean|number>{
+        async exec(dest: iDir):Promise<boolean|number>{
             // 异步获取
             const f = await fetch(APP_API + '?action=' + this.action, {
                 "method": "POST",
@@ -65,7 +81,7 @@
             return true;
         },
 
-        mark(action:file_action,file:Array<FileOrDir>){
+        mark(action:file_action,file:Array<iMixed>){
             this.marked = file;
             this.action = action;
             console.log(file);
@@ -77,7 +93,7 @@
      * @param item 目录内容
      * @param cdt 显示此目录的条件
      */
-    export const register = (item: (input: FileOrDir[]) => CtxMenuData, cdt: DisplayCondition) => 
+    export const register = (item: (input: iMixed[]) => CtxMenuData, cdt: DisplayCondition) => 
         ADDITION.push([item, cdt]);
 
     let touch = {
@@ -93,12 +109,7 @@
         props: {
             data: {
                 required: true,
-                type: Object
-            },
-            topLevel: {
-                required: false,
-                type: Boolean,
-                default: true
+                type: Object as PropType<iDir>
             },
             active: {
                 required: false,
@@ -107,19 +118,21 @@
             }
         },
         setup: function (prop) {
-            const show = ref<boolean>(prop.data.show || false),
-                locked = ref(false);
-
-            watch(() => (prop.data as vDir).child,(n,r) => r == undefined && (show.value = true));
+            watch(() => prop.data.child,(n,r) => r == undefined && (prop.data.show = true));
             
             return {
-                show,
-                locked,
                 loadTree,
                 DEFAULT_FILE_ICON,
                 openFile,
                 markmap
             };
+        },
+        directives: {
+            focus: {
+                mounted(el: HTMLInputElement){
+                    el.select() ;el.focus();
+                }
+            }
         },
         methods: {
             touch_start(ev:TouchEvent){
@@ -135,19 +148,19 @@
                 touch.mx = ev.touches[0].clientX,
                 touch.my = ev.touches[0].clientY;
             },
-            touch_end(file: vFile, el: TouchEvent){
+            touch_end(file: iFile, el: TouchEvent){
                 if(Math.abs(touch.mx - touch.x) > 10 || Math.abs(touch.my - touch.y) > 10) return;
                 el.preventDefault();
 
                 marked = [file];
 
                 if(new Date().getTime() - touch.time <= 600) openFile(file);
-                else this.ctxmenu(new MouseEvent('contextmenu', {
+                else this.ctxmenu(file, new MouseEvent('contextmenu', {
                     "clientX": touch.mx,
                     "clientY": touch.my
                 }))
             },
-            drag_start(e: DragEvent, fd: FileOrDir){
+            drag_start(e: DragEvent, fd: iMixed){
                 if(!e.dataTransfer) return e.preventDefault();
 
                 e.dataTransfer.setData('application/json', JSON.stringify(toRaw(fd)));
@@ -160,7 +173,7 @@
                     e.dataTransfer.setDragImage(image, 10, 10);
                 }
             },
-            drag_alert(e: DragEvent, fd: vDir){
+            drag_alert(e: DragEvent, fd: iDir){
                 if(!e.dataTransfer) return;
                 
                 // 加载事件
@@ -168,7 +181,7 @@
                 e.dataTransfer.dropEffect = 'move';
                 (e.currentTarget as HTMLElement).classList.add('moving');
             },
-            drag_onto(e: DragEvent, to_fd: vDir){
+            async drag_onto(e: DragEvent, to_fd: iDir){
                 if(!e.dataTransfer) return;
                 
                 // 加载事件
@@ -176,10 +189,73 @@
                 e.dataTransfer.dropEffect = 'move';
                 (e.currentTarget as HTMLElement).classList.remove('moving');
 
+                // 文件上传
+                if(e.dataTransfer.files.length > 0) for(const file of e.dataTransfer.files){
+                    // 推入文件
+                    const new_file = reactive({
+                        "ctime": Date.now(),
+                        "icon": getIcon(file.name, true),
+                        "name": file.name,
+                        "path": to_fd.path + file.name,
+                        "size": file.size,
+                        "type": 'file',
+                        "url": FILE_PROXY_SERVER + to_fd.path + file.name,
+                        "status": 1
+                    } as iFile);
+                    if(!to_fd.child) await loadTree(to_fd);
+                    
+                    // 寻找重复
+                    for (let i = 0; i < (to_fd.child as Array<iMixed>).length; i++) {
+                        const element = (to_fd.child as Array<iMixed>)[i];
+                        if (element.name == new_file.name) {
+                            const text = await new Promise(rs => Global('ui.alert').call({
+                                "type": "prompt",
+                                "title": "上传提示",
+                                "message": `您选中的文件 ${file.name} 已经存在\n建议更改名称，或按下"确定"覆盖`,
+                                "callback": rs
+                            } satisfies AlertOpts));
+                            // 覆盖
+                            if(!text || text == element.name)
+                                if(element.type == 'dir')
+                                    Global('ui.message').call({
+                                        "title": "资源管理器",
+                                        "content": {
+                                            "title": "上传错误",
+                                            "content": "前提条件错误：目标是一个文件夹"
+                                        },
+                                        "type": "error",
+                                        "timeout": 10
+                                    } satisfies MessageOpinion)
+                                else
+                                    (to_fd.child as Array<iMixed>).splice(i, 1);
+                            break;
+                        }
+                    }
+                    const id = (to_fd.child as Array<iMixed>).push(new_file) -1;
+                    try{
+                        await FS.write(new_file.path, file, prog =>
+                            new_file.status = prog.loaded / prog.total * 100
+                        );
+                        new_file.status = undefined;
+                    }catch(e){
+                        Global('ui.message').call({
+                            "title": "资源管理器",
+                            "content": {
+                                "title": "上传错误",
+                                "content": e instanceof Error ? e.message : new String(e).toString()
+                            },
+                            "type": "error",
+                            "timeout": 10
+                        } satisfies MessageOpinion);
+                        (to_fd.child as Array<iMixed>).splice(id, 1);
+                    }
+                    return;
+                }else
+
                 // 只有满足vlist文件的才可以被拖拽
                 if(e.dataTransfer.getData('text/plain') != DRAG_TOKEN) return;
 
-                const from_fd:FileOrDir = JSON.parse(e.dataTransfer.getData('application/json'));
+                const from_fd:iMixed = JSON.parse(e.dataTransfer.getData('application/json'));
                 if(from_fd.path == to_fd.path) return;
 
                 FS.move(from_fd.path, to_fd.path)
@@ -197,7 +273,7 @@
                         "timeout": 10
                     } satisfies MessageOpinion));
             },
-            desc(data:FileOrDir){
+            desc(data:iMixed){
                 var tmp = data.dispName || data.name;
                 if(data.ctime > 0) tmp += '\n创建日期: ' + (new Date(data.ctime).toDateString());
                 if(data.type == 'dir') tmp += '\n类型: 文件夹';
@@ -207,7 +283,7 @@
                 }
                 return tmp;
             },
-            markup(ev:MouseEvent,self:FileOrDir){
+            markup(ev:MouseEvent,self:iMixed){
                 if(ev.shiftKey){
                     marked.push(self);
                     markmap.value.push(self.path);
@@ -217,17 +293,31 @@
                 }
             },
             folder(){
-                if(this.locked) this.show = true
-                else if(this.data.child) this.show = !this.show;
+                if(this.data.locked) this.data.show = true
+                else if(this.data.child) this.data.show = !this.data.show;
                 else{
                     loadTree(this.data as any)
-                        .then(() => this.locked = false);
-                    this.locked = true;this.show = true;
+                        .then(() => this.data.locked = false);
+                    this.data.locked = this.data.show = true;
                 }
             },
-            ctxmenu(e:MouseEvent){
-                let markedroot = false;
-                marked.forEach(item => item.path == '/' && (markedroot = true));
+            rename(file: iMixed, val: string){
+                FS.rename({
+                    [file.path]: val
+                }).then(() => (
+                    file.name = val,file.rename = false
+                )).catch((e: Error) => (Global('ui.message').call({
+                    'type': 'error',
+                    'content': {
+                        'title': '删除失败',
+                        'content': e.message
+                    },
+                    'title': '文件资源管理器',
+                    'timeout': 10
+                } satisfies MessageOpinion), file.rename = false));
+            },
+            ctxmenu(fd: iMixed, e:MouseEvent){
+                const dir = fd.type == 'dir' ? fd : this.data;
 
                 const item = [
                     {
@@ -244,8 +334,8 @@
                                         "message": "请输入文件夹名称",
                                         callback: (data) => 
                                             // 创建文件夹
-                                            FS.mkdir((this.data as vFile).path + data)
-                                                .then(() => loadTree(this.data as vDir)),
+                                            FS.mkdir(dir.path + data)
+                                                .then(() => loadTree(this.data)),
                                     } satisfies AlertOpts)
                             },{
                                 "text": "文件",
@@ -257,8 +347,8 @@
                                         "message": "请输入文件名称",
                                         callback: (data) => 
                                             // 创建文件夹
-                                            FS.touch((this.data as vFile).path + data)
-                                                .then(() => loadTree(this.data as vDir)),
+                                            FS.touch(dir.path + data)
+                                                .then(() => loadTree(this.data)),
                                     } satisfies AlertOpts)
                             }
                         ],
@@ -270,30 +360,29 @@
                                 "content": Upload,
                                 "icon": I_UPLOAD,
                                 "name": "上传文件",
-                                "option": (this.data as vDir).path
+                                "option": dir.path
                             });
                         },
                     },{
                         "text": "刷新",
                         "icon": I_REFRESH,
                         handle: () => {
-                            loadTree(this.data as vDir)
+                            loadTree(this.data)
                         },
                     },'---'
                 ] as Array<CtxMenuData>;
 
-                if(!markedroot)
-                    item.push({
-                        "text": "剪切",
-                        "icon": I_CUT,
-                        handle:() =>
-                            FACTION.mark('move',marked)
-                    }, {
-                        "text": "复制",
-                        "icon": I_COPY,
-                        handle: () =>
-                            FACTION.mark('copy',marked)
-                    });
+                item.push({
+                    "text": "剪切",
+                    "icon": I_CUT,
+                    handle:() =>
+                        FACTION.mark('move',marked)
+                }, {
+                    "text": "复制",
+                    "icon": I_COPY,
+                    handle: () =>
+                        FACTION.mark('copy',marked)
+                });
 
                 if(marked.length == 1){
                     item.push({
@@ -302,7 +391,7 @@
                         handle: async () => {
                             const dir = marked[0].type == 'dir'
                                 ? marked[0]
-                                : this.data as vDir;
+                                : this.data;
 
                             // 覆盖提示
                             try{
@@ -326,82 +415,57 @@
                     });
                 }
 
-                if(!markedroot) {
-                    item.push({
-                        "text": "删除",
-                        "icon": 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" fill="%23b7a6a6" viewBox="0 0 16 16"><path d="M6.5 1h3a.5.5 0 0 1 .5.5v1H6v-1a.5.5 0 0 1 .5-.5ZM11 2.5v-1A1.5 1.5 0 0 0 9.5 0h-3A1.5 1.5 0 0 0 5 1.5v1H2.506a.58.58 0 0 0-.01 0H1.5a.5.5 0 0 0 0 1h.538l.853 10.66A2 2 0 0 0 4.885 16h6.23a2 2 0 0 0 1.994-1.84l.853-10.66h.538a.5.5 0 0 0 0-1h-.995a.59.59 0 0 0-.01 0H11Zm1.958 1-.846 10.58a1 1 0 0 1-.997.92h-6.23a1 1 0 0 1-.997-.92L3.042 3.5h9.916Zm-7.487 1a.5.5 0 0 1 .528.47l.5 8.5a.5.5 0 0 1-.998.06L5 5.03a.5.5 0 0 1 .47-.53Zm5.058 0a.5.5 0 0 1 .47.53l-.5 8.5a.5.5 0 1 1-.998-.06l.5-8.5a.5.5 0 0 1 .528-.47ZM8 4.5a.5.5 0 0 1 .5.5v8.5a.5.5 0 0 1-1 0V5a.5.5 0 0 1 .5-.5Z"/></svg>',
-                        handle: async () => {
-                            try{
-                                await FS.delete(marked.map(item => item.path))
-                            }catch(e){
-                                return Global('ui.message').call({
-                                    'type': 'error',
-                                    'content': {
-                                        'title': '删除失败',
-                                        'content': (e as Error).message
-                                    },
-                                    'title': '文件资源管理器',
-                                    'timeout': 10
-                                } satisfies MessageOpinion)
-                            }
-                            const refdir = [] as Array<string>;
-                            for (const file of marked) if(file.type == 'file'){
-                                const dir = splitPath(file)['dir'];
-                                if(!refdir.includes(dir)) refdir.push(dir);
-                            }else{
-                                const slash = file.path.lastIndexOf('/',file.path.length -2);
-                                refdir.push(file.path.substring(0,slash +1));
-                            }
-                            // 刷新
-                            reloadTree(refdir);
+                item.push({
+                    "text": "删除",
+                    "icon": 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" fill="%23b7a6a6" viewBox="0 0 16 16"><path d="M6.5 1h3a.5.5 0 0 1 .5.5v1H6v-1a.5.5 0 0 1 .5-.5ZM11 2.5v-1A1.5 1.5 0 0 0 9.5 0h-3A1.5 1.5 0 0 0 5 1.5v1H2.506a.58.58 0 0 0-.01 0H1.5a.5.5 0 0 0 0 1h.538l.853 10.66A2 2 0 0 0 4.885 16h6.23a2 2 0 0 0 1.994-1.84l.853-10.66h.538a.5.5 0 0 0 0-1h-.995a.59.59 0 0 0-.01 0H11Zm1.958 1-.846 10.58a1 1 0 0 1-.997.92h-6.23a1 1 0 0 1-.997-.92L3.042 3.5h9.916Zm-7.487 1a.5.5 0 0 1 .528.47l.5 8.5a.5.5 0 0 1-.998.06L5 5.03a.5.5 0 0 1 .47-.53Zm5.058 0a.5.5 0 0 1 .47.53l-.5 8.5a.5.5 0 1 1-.998-.06l.5-8.5a.5.5 0 0 1 .528-.47ZM8 4.5a.5.5 0 0 1 .5.5v8.5a.5.5 0 0 1-1 0V5a.5.5 0 0 1 .5-.5Z"/></svg>',
+                    handle: async () => {
+                        try {
+                            await FS.delete(marked.map(item => item.path))
+                        } catch (e) {
+                            return Global('ui.message').call({
+                                'type': 'error',
+                                'content': {
+                                    'title': '删除失败',
+                                    'content': (e as Error).message
+                                },
+                                'title': '文件资源管理器',
+                                'timeout': 10
+                            } satisfies MessageOpinion)
                         }
-                    });
-                    
-                    if(marked.length == 1){
-                        item.push({
-                            "text": "重命名",
-                            "icon": I_RENAME,
-                            handle: () => {
-                                Global('ui.alert').call({
-                                    "type": "prompt",
-                                    "message": marked[0].dispName || marked[0].name,
-                                    "title": "重命名此文件为:",
-                                    callback(data) {
-                                        if(!data) return;
-                                        let dir = marked[0].path;
-                                        // 是文件夹
-                                        if(dir[dir.length-1] == '/')
-                                            dir = dir.substring(0,dir.length-1);
-                                        // 寻找斜杠
-                                        const pos = dir.lastIndexOf('/');
-                                        // 文件夹
-                                        dir = dir.substring(0,pos + 1);
-                                        // 目标
-                                        let newp = dir + data;
-                                        // 移动文件
-                                        FS.move(marked[0].path,newp)
-                                            // 重新加载文件夹
-                                            .then(() => reloadTree([dir]));
-                                    },
-                                } satisfies AlertOpts)
-                            },
-                        });
+                        const refdir = [] as Array<string>;
+                        for (const file of marked) if (file.type == 'file') {
+                            const dir = splitPath(file)['dir'];
+                            if (!refdir.includes(dir)) refdir.push(dir);
+                        } else {
+                            const slash = file.path.lastIndexOf('/', file.path.length - 2);
+                            refdir.push(file.path.substring(0, slash + 1));
+                        }
+                        // 刷新
+                        reloadTree(refdir);
                     }
+                });
 
-                    if(marked.length == 1 && marked[0].type == 'file'){
-                        item.push('---',{
-                            "text": "打开",
-                            "icon": I_OPEN,
-                            handle: () => openFile(marked[0]),
-                        },{
-                            "text": "打开方式",
-                            "icon": I_OPENER,
-                            handle() {
-                                Global('opener.chooser.choose').call(marked[0])
-                                    .then(opener => opener.open(marked[0]));
-                            },
-                        });
-                    }
+                if (marked.length == 1) {
+                    item.push({
+                        "text": "重命名",
+                        "icon": I_RENAME,
+                        handle: () => marked[0].rename = true,
+                    });
+                }
+
+                if (marked.length == 1 && marked[0].type == 'file') {
+                    item.push('---', {
+                        "text": "打开",
+                        "icon": I_OPEN,
+                        handle: () => openFile(marked[0]),
+                    }, {
+                        "text": "打开方式",
+                        "icon": I_OPENER,
+                        handle() {
+                            Global('opener.chooser.choose').call(marked[0])
+                                .then(opener => opener.open(marked[0]));
+                        },
+                    });
                 }
 
                 if(ADDITION.length > 0) item.push(
@@ -427,184 +491,197 @@
 </script>
 
 <template>
-    <div class="vlist" :show="show" :active="active" v-if="topLevel"
-        @contextmenu.stop.prevent="ctxmenu"
-    >
-        <div class="parent"
-            @dblclick.stop="folder()"
-            @click="markup($event,data as any)"
-            @dragstart.stop="drag_start($event, data as vDir)" :draggable="(data as vDir).path != '/'"
-            @drop="drag_onto($event, data as vDir)" @dragover="drag_alert($event, data as vDir)"
-            @dragleave="($event.currentTarget as HTMLElement).classList.remove('moving')"
-            :title="desc(data as any)" :selected="markmap.includes(data.path)"
+    <div class="parent"
+        @dblclick.stop="folder()" @click="markup($event, data as any)" @contextmenu.stop.prevent="ctxmenu(data, $event)"
+        @dragstart.stop="drag_start($event, data)" :draggable="(data).path != '/'" @drop.stop="drag_onto($event, data)"
+        @dragover.stop="drag_alert($event, data)"
+        @dragleave.stop="($event.currentTarget as HTMLElement).classList.remove('moving')" :title="desc(data as any)"
+        :selected="markmap.includes(data.path)" tabindex="-1">
+        <div class="btn-hide" :show="data.show" @click.stop="folder"></div>
+        <img :src="data.icon" v-if="data.icon">
+        <input v-if="data.rename" :value="data.name"
+            @change="rename(data, ($event.currentTarget as HTMLInputElement).value)"
+            @blur="data.rename = false"
+            @mousedown.stop @pointerdown.stop @touchstart.stop @dragstart.stop
+            v-focus
         >
-            <div :class="['btn-hide', { 'show': show }]" @click.stop="folder"></div>
-            <img :src="data.icon" v-if="data.icon">
-            <span>{{ data.dispName || data.name }}</span>
-        </div>
-
-        <div v-if="data.child" class="child" v-show="show">
-            <template v-for="(child,i) in data.child">
-
-                <tree v-if="child.type == 'dir'" 
-                    :data="child" :top-level="false"
-                />
-
-                <div v-else :class="['item',child.type]" :title="desc(child)"
-                    @click="markup($event,child)"
-                    @touchstart="touch_start" @touchmove="touch_move"
-                    @touchend.stop="touch_end(child as vFile, $event)"
-                    @dblclick.stop="openFile(child as vFile)"
-                    @dragstart.stop="drag_start($event, child)" draggable="true"
-                    :selected="markmap.includes(child.path)"
-                >
-                    <img :src="child.icon || DEFAULT_FILE_ICON">
-                    <span>{{ child.dispName || child.name }}</span>
-                </div>
-
-            </template>
-        </div>
+        <span class="text" v-else>{{ data.dispName || data.name }}</span>
     </div>
 
-    <template  v-else >
-        <div class="parent" @dblclick.stop="folder"
-            @click="markup($event,data as any)" :selected="markmap.includes(data.path)"
-            @dragstart.stop="drag_start($event, data as vFile)" :draggable="(data as vDir).path != '/'"
-            @drop="drag_onto($event, data as vDir)" @dragover="drag_alert($event, data as vDir)"
-            @dragleave="($event.currentTarget as HTMLElement).classList.remove('moving')"
-            :title="desc(data as any)">
-            <div :class="['btn-hide', { 'show': show }]" @click.stop="folder"></div>
-            <img :src="data.icon" v-if="data.icon">
-            <span>{{ data.dispName || data.name }}</span>
-        </div>
+    <div v-if="data.child" class="child" v-show="data.show" @contextmenu.stop.prevent="ctxmenu(data, $event)"
+        @dragover.stop="drag_alert($event, data)" @drop.stop="drag_onto($event, data)">
+        <template v-for="child in data.child" :key="child.name">
 
-        <div v-if="data.child" class="child" v-show="show">
-            <template v-for="(child,i) in data.child">
+            <tree v-if="child.type == 'dir'" :data="child" />
 
-                <tree v-if="child.type == 'dir'" 
-                    :data="child" :top-level="false" 
-                />
-
-                <div v-else :class="['item',child.type]" :title="desc(child)"
-                    @click="markup($event,child)"
-                    @dblclick.stop="openFile(child as vFile)"
-                    @touchstart="touch_start" @touchmove="touch_move"
-                    @dragstart.stop="drag_start($event, child)" draggable="true"
-                    @touchend.stop="touch_end(child as vFile, $event)"
-                    :selected="markmap.includes(child.path)"
+            <div v-else class="item" :title="desc(child)"
+                @click="markup($event, child)" @contextmenu.stop="ctxmenu(child, $event)"
+                @touchstart="touch_start" @touchmove="touch_move" @touchend.stop="touch_end(child as iFile, $event)"
+                @dblclick.stop="openFile(child as iFile)" @dragstart.stop="drag_start($event, child)" draggable="true"
+                :selected="markmap.includes(child.path)" :process="(child as iFile).status"
+                :style="{ '--status': (child as iFile).status }" :type="child.type" tabindex="-1"
+            >
+                <img :src="child.icon || DEFAULT_FILE_ICON">
+                <input v-if="(child as iFile).rename" :value="child.name"
+                    @change="rename(child, ($event.currentTarget as HTMLInputElement).value)"
+                    @blur="(child as iFile).rename = false"
+                    @mousedown.stop @pointerdown.stop @touchstart.stop @dragstart.stop
+                    v-focus
                 >
-                    <img :src="child.icon || DEFAULT_FILE_ICON">
-                    <span>{{ child.dispName || child.name }}</span>
-                </div>
+                <span class="text" v-else>{{ child.dispName || child.name }}</span>
+            </div>
 
-            </template>
-        </div>
-    </template>
+        </template>
+    </div>
 </template>
 
 <style lang="scss">
-.vlist {
-    display: block;
-    margin: .5rem 0;
-    pointer-events: all;
+    .vlist {
+        display: block;
+        margin: .5rem 0;
+        pointer-events: all;
 
-    img, span{
-        pointer-events: none;
-    }
+        .parent, .child > .item{
+            display: flex;
+            user-select: none;
+            border: solid .05rem transparent;
+            border-radius: .2rem;
+            min-height: 1rem;
+            margin: .07rem;
+            overflow: hidden;
 
-    &[show=false]>div:not(.parent) {
-        display: none;
-    }
+            outline: none;
 
-    &[active=true]{
-        .parent, .item{
+            > img, > span{
+                pointer-events: none;
+            }
+            
             &[selected=true] {
                 background-color: rgba(44, 83, 222, 0.3);
             }
 
             &[selected=true]:hover {
-                border-color: rgb(94, 174, 235);
+                border-color: rgb(94, 174, 235) !important;
             }
-        }
-    }
 
-    .child{
-        padding-left: .75rem;
-    }
+            &:focus{
+                background-color: rgba(114, 140, 255, 0.5) !important;
+            }
 
-    .parent,
-    .item {
-        display: flex;
-        user-select: none;
-        border: solid .05rem transparent;
-        border-radius: .2rem;
-        min-height: 1rem;
-        margin: .07rem;
-        overflow: hidden;
+            &.moving{
+                background-color: rgb(217, 246, 233);
+                border-color: rgb(68, 222, 152);
+            }
 
-        outline: none;
+            &[type=file]{
+                padding-left: .95rem;
+            }
 
-        &.moving{
-            background-color: rgb(217, 246, 233);
-            border-color: rgb(68, 222, 152);
-        }
+            > img {
+                width: 1rem;
+                height: 1rem;
+                // transform: scale(1.1) translateY(10%);
+                margin: 0 .25rem 0 .1rem;
+                flex-shrink: 0;
+            }
 
-        &.file{
-            padding-left: .95rem;
-        }
+            >.btn-hide {
+                padding: .2rem;
+                content: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path fill="currentColor" d="M233.4 406.6c12.5 12.5 32.8 12.5 45.3 0l192-192c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0L256 338.7 86.6 169.4c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3l192 192z"></path></svg>');
+                width: .6rem;
+                height: .6rem;
+                display: block;
+                border-radius: .2rem;
+                transition: all .2s;
 
-        > img {
-            width: 1rem;
-            height: 1rem;
-            // transform: scale(1.1) translateY(10%);
-            margin: 0 .25rem 0 .1rem;
-            flex-shrink: 0;
-        }
+                &:hover {
+                    background-color: #1ba9e653;
+                    filter: opacity(.5);
+                }
 
-        >.btn-hide {
-            padding: .2rem;
-            content: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path fill="currentColor" d="M233.4 406.6c12.5 12.5 32.8 12.5 45.3 0l192-192c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0L256 338.7 86.6 169.4c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3l192 192z"></path></svg>');
-            width: .6rem;
-            height: .6rem;
-            display: block;
-            border-radius: .2rem;
-            transition: all .2s;
+                &[show=true] {
+                    transform: rotate(180deg);
+                }
+            }
+
+            >.text {
+                font-size: .8rem;
+                font-weight: 400;
+                flex-grow: 1;
+                pointer-events: none;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+                overflow: hidden;
+
+                outline: none;
+                border: none;
+
+                &:focus{
+                    // border: solid .05rem rgb(211, 211, 211);
+                    border-radius: .2rem;
+                    background-color: white
+                }
+            }
+
+            // &.active {
+            //     background-color: rgba(126, 118, 118, 0.3);
+            // }
 
             &:hover {
-                background-color: #1ba9e653;
-                filter: opacity(.5);
+                background-color: rgb(44 83 222 / 18%);
             }
 
-            &.show {
-                transform: rotate(180deg);
+            &[selected=true] {
+                background-color: rgb(122 122 122 / 20%);
             }
+        
         }
 
-        >span {
-            font-size: .8rem;
-            font-weight: 400;
-            flex-grow: 1;
+        .child{
+            padding-left: .75rem;
+        }
+
+        .item[process]{
+            position: relative;
+            color: rgb(164, 159, 159);
             pointer-events: none;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-            overflow: hidden;
-        }
 
-        // &.active {
-        //     background-color: rgba(126, 118, 118, 0.3);
-        // }
+            > *{
+                filter: grayscale(.6);
+            }
 
-        &:hover {
-            background-color: rgb(44 83 222 / 18%);
-        }
+            &::before{
+                content: '';
+                position: absolute;
+                left: 0;
+                top: 0;
+                bottom: 0;
+                border-radius: .2rem;
+                width: calc( var( --status ) * 1% );
+                background-color: rgb(233, 250, 209);
+            }
 
-        &[selected=true] {
-            background-color: rgb(122 122 122 / 20%);
+            // &::after{
+            //     content: '上传进度: ' attr(process) '%';
+            //     position: absolute;
+            //     bottom: 100%;
+            //     left: 0;
+            //     font-size: .75rem;padding: .1rem .35rem;
+            //     transition: opacity .2s, transform .2s;
+            //     transform: scale(0) translateY(120%);
+            //     opacity: 0;
+            // }
+
+            // &:hover{
+            //     overflow: visible;
+
+            //     &::after{
+            //         transition-delay: 1s;
+            //         transform: scale(1) translateY(0);
+            //         opacity: 1;
+            //         background-color: white;
+            //     }
+            // }
         }
     }
-
-    >.parent {
-        padding: .2rem;
-    }
-}
 </style>
