@@ -194,18 +194,32 @@ import Upload from '@/module/upload.vue';
         }
     };
 
+    const img = [
+        "avif",
+        "webp",
+        "jpg", "jpeg", "jxl",
+        "png",
+        "ico",
+        "bmp",
+        "svg"
+    ];
+
     function plug(file: string){
         if(!muya?.editor.activeContentBlock) return;
-        muya.focus();
         const data = muya.editor.activeContentBlock.text,
             cur = muya.editor.activeContentBlock.getCursor(),
-            fname = splitPath({path: file}).fname;
+            meta = splitPath({path: file});
+        let prefix = '';
+        if(img.includes(meta.ext.toLowerCase()))
+            prefix = '!';
         if(cur) muya.editor.activeContentBlock.text = 
             data.substring(0, cur.start.offset) +
-            `[ ${data.substring(cur.start.offset, cur.end.offset +1) || fname} ](${FILE_PROXY_SERVER + file} "${fname}")` +
+            prefix + `[ ${data.substring(cur.start.offset, cur.end.offset +1) || meta.fname} ](${FILE_PROXY_SERVER + file} "${meta.fname}")` +
             data.substring(cur.end.offset +1);
         else muya.editor.activeContentBlock.text = 
-            `[ ${data || fname} ](${FILE_PROXY_SERVER + file} "${fname}")`;
+            prefix + `[ ${data || meta.fname} ](${FILE_PROXY_SERVER + file} "${meta.fname}")`;
+        muya.editor.activeContentBlock.focusHandler();
+        muya.focus();
     }
 
     onUnmounted(() => muya && muya.destroy());
