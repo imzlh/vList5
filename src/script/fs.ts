@@ -1,11 +1,50 @@
-import type { FileOrDir, ListPredirect, MessageOpinion, vDir, vFile, vSimpleFileOrDir } from "@/env";
-import { APP_API, DEFAULT_DIR_ICON, FILE_PROXY_SERVER, Global } from "@/utils";
+import type { AlertOpts, FileOrDir, ListPredirect, MessageOpinion, vDir, vFile, vSimpleFileOrDir } from "@/env";
+import { APP_API, DEFAULT_DIR_ICON, FILE_PROXY_SERVER, Global, getConfig } from "@/utils";
 import { getIcon } from "./icon";
+import { ref, type Ref } from "vue";
 
 export class PermissionDeniedError extends Error{}
 export class LoginError extends Error{}
 
+/**
+ * 为双方安全传输编码的函数
+ * @param ctxlen 消息长度
+ * @param pass 密码
+ * @returns 加密后的信息
+ */
+export async function encrypto(ctxlen: number, pass: string, content: string):Promise<string>{
+    // 验证时间有效性: 10s内
+    const timestrap = Date.now() / 1000;
+    let timecode = Math.floor(timestrap / 10);
+    if(timestrap % 10 > 5)
+        timecode += 1;
+
+    // 打乱pass，验证消息有效性
+    const pass_code = new TextEncoder().encode(pass),
+        encrypto = timecode & ctxlen;
+    let safeCode = 0;
+    for (let i = 0; i < pass_code.length; i++) 
+        safeCode += (pass_code[i] << (4 * i % 4)) & (pass_code[i] >> 4);
+    const hmac_key = (safeCode ^ encrypto).toString(20);
+
+    // hmac+sha1加密
+    const hmac = await crypto.subtle.importKey(
+            'raw', 
+            new TextEncoder().encode(hmac_key),
+            {
+                "name": "HMAC",
+                "hash": "SHA-256"
+            },
+            false,
+            ['sign']
+        ),
+        value = await crypto.subtle.sign('HMAC', hmac, new TextEncoder().encode(content));
+    const process = (input:number) => input < 0x20 ? input + 0x20 : (input > 0x7e) ? (input - 0x7e > 0x7e) ? 0x7e : input - 0x7e : input;
+    return new TextDecoder().decode( value).replace(/[^\x20-\x7E]/g, input => String.fromCharCode(process(input.charCodeAt(0)))).trim();
+}
+
 export const FS = {
+    auth_key: ref<string>(),
 
     /**
      * 请求后端
@@ -16,17 +55,27 @@ export const FS = {
      * @returns JSON
      */
     async __request(method: string,body: Object, json = false){
-        const xhr = await fetch(APP_API + '?action=' + method,{
+        if(this.auth_key.value == undefined)
+            this.auth_key = getConfig('基础').authkey;
+        const content = JSON.stringify(body),
+            xhr = await fetch(APP_API + '?action=' + method,{
             method: 'POST',
-            body: JSON.stringify(body),
+            body: content,
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'Authorization': this.auth_key.value
+                    ? await encrypto(content.length, this.auth_key.value, content)
+                    : ''
             },
         });
         if(xhr.status == 403) throw new PermissionDeniedError(await xhr.text());
         else if(xhr.status == 400) throw new SyntaxError(await xhr.text());
-        else if(xhr.status == 401) throw new LoginError(await xhr.text());
-        else if(xhr.status != 200) throw new Error(await xhr.text());
+        else if(xhr.status == 401) try{
+            await this.__auth();
+            await this.__request(method, body, json);
+        }catch{
+            throw new LoginError();
+        }else if(Math.floor(xhr.status / 100) != 2) throw new Error(await xhr.text());
            
         try{
             if(json) return await xhr.json();
@@ -145,21 +194,72 @@ export const FS = {
         });
     },
 
-    write(file:string,content: Blob,progress?:(this: XMLHttpRequest, ev: ProgressEvent<EventTarget>) => any):Promise<string>{
-        return new Promise((rs,rj) => {
+    __auth: () => new Promise((rs, rj) => Global('ui.alert').call({
+        'type': 'prompt',
+        'title': '身份验证',
+        'message': '由于身份验证失败，操作失败。\n请输入身份ID，如果忘记请查看nginx配置',
+        'callback': (data) => {
+            FS.auth_key.value = data as string;
+            rs(data as string);
+        },
+        'button': [
+            {
+                'content': '放弃',
+                'color': '#e9e9e9',
+                'role': 'close',
+                'click': () => rj(new Error('User aborted due to password error'))
+            },{
+                'content': '提交',
+                'color': '#6ce587',
+                'role': 'submit'
+            }
+        ]
+    } satisfies AlertOpts)) as Promise<string>,
+
+    write(
+        file:string,
+        content: Blob,
+        progress?:(this: XMLHttpRequest, ev: ProgressEvent<EventTarget>) => any
+    ):Promise<string>{
+        if(this.auth_key.value == undefined)
+            this.auth_key = getConfig('基础').authkey;
+
+        return new Promise(async (rs,rj) => {
+            // 预检
+            let _pre;
+            try{
+                _pre = await fetch(APP_API + '?action=upload&path=' + encodeURIComponent(file) + '&type=' + content.type + '&length=' + content.size,{
+                    headers: {
+                        'Authorization': this.auth_key.value
+                            ? await encrypto(content.size, this.auth_key.value, content.type)
+                            : ''
+                    }
+                });
+                if(_pre.status == 401){
+                    await this.__auth();
+                    this.write(file, content, progress).then(rs).catch(rj);
+                }
+                if(Math.floor(_pre.status / 100) != 2) throw 0;
+            }catch{
+                return rj(new Error('PreUpload Failed: ' + (_pre ? await _pre.text() : 'Unknown Error')));
+            }
+
             const xhr = new XMLHttpRequest();
             xhr.timeout = 60000;
             
             if(progress) xhr.addEventListener('progress', progress);
             xhr.addEventListener('load', () => 
                 Math.floor(xhr.status / 100) == 2
-                ? rs(xhr.responseText)
-                : rj(new Error('Status ' + xhr.status + ': ' + xhr.responseText))
+                    ? rs(xhr.responseText)
+                    : rj(new Error('Status ' + xhr.status + ': ' + xhr.responseText))
             );
             xhr.addEventListener('error', () => rj(new Error('Network Error')));
             xhr.addEventListener('timeout', rj);
 
             xhr.open('POST',APP_API + '?action=upload&path=' + encodeURIComponent(file));
+            xhr.setRequestHeader('Content-Type', content.type);
+            if(this.auth_key.value) 
+                xhr.setRequestHeader('Authorization', await encrypto(content.size, this.auth_key.value, content.type));
             xhr.send(content);
         });
     }

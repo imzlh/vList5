@@ -6,7 +6,7 @@
     import I_TEXT from '/file/text.webp';
     import I_IMAGE from '/file/image.webp';
     import I_3D from '/file/3d.webp';
-import type { AlertOpts } from '@/env';
+    import type { AlertOpts } from '@/env';
 
     const S_ERROR = 0,
         S_SUCCESS = 1,

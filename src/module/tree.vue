@@ -1,7 +1,7 @@
 <script lang="ts">
     import type { AlertOpts, CtxDispOpts, CtxMenuData, MessageOpinion, vDir, vFile } from '@/env';
     import { APP_API, DEFAULT_FILE_ICON, FILE_PROXY_SERVER, FS, Global, loadTree, openFile, reloadTree, size2str, splitPath } from '@/utils';
-    import { onMounted, reactive, ref, toRaw, watch, type PropType } from 'vue';
+    import { onMounted, reactive, ref, shallowRef, toRaw, watch, type PropType } from 'vue';
     import Upload from './upload.vue';
 
     import I_NEW from '/icon/new.webp';
@@ -17,7 +17,7 @@
     import I_OPENER from '/icon/opener.webp';
     import { getIcon } from '@/script/icon';
 
-    let marked = [] as Array<iMixed>;
+    export const marked = shallowRef<Array<iMixed>>([]);
     export const markmap = ref<Array<string>>([]);
 
     interface DisplayCondition{
@@ -84,7 +84,6 @@
         mark(action:file_action,file:Array<iMixed>){
             this.marked = file;
             this.action = action;
-            console.log(file);
         }
     }
 
@@ -124,7 +123,8 @@
                 loadTree,
                 DEFAULT_FILE_ICON,
                 openFile,
-                markmap
+                markmap,
+                marked
             };
         },
         directives: {
@@ -152,7 +152,7 @@
                 if(Math.abs(touch.mx - touch.x) > 10 || Math.abs(touch.my - touch.y) > 10) return;
                 el.preventDefault();
 
-                marked = [file];
+                marked.value = [file];
 
                 if(new Date().getTime() - touch.time <= 600) openFile(file);
                 else this.ctxmenu(file, new MouseEvent('contextmenu', {
@@ -165,7 +165,7 @@
 
                 e.dataTransfer.setData('application/json', JSON.stringify(toRaw(fd)));
                 e.dataTransfer.setData('text/plain', DRAG_TOKEN);
-                e.dataTransfer.dropEffect = 'move';
+                e.dataTransfer.dropEffect = 'copy';
                 
                 if(fd.icon){
                     const image = new Image(60, 60);
@@ -178,7 +178,7 @@
                 
                 // 加载事件
                 e.preventDefault();
-                e.dataTransfer.dropEffect = 'move';
+                e.dataTransfer.dropEffect = 'copy';
                 (e.currentTarget as HTMLElement).classList.add('moving');
             },
             async drag_onto(e: DragEvent, to_fd: iDir){
@@ -186,7 +186,7 @@
                 
                 // 加载事件
                 e.preventDefault();
-                e.dataTransfer.dropEffect = 'move';
+                e.dataTransfer.dropEffect = 'copy';
                 (e.currentTarget as HTMLElement).classList.remove('moving');
 
                 // 文件上传
@@ -250,13 +250,14 @@
                         (to_fd.child as Array<iMixed>).splice(id, 1);
                     }
                     return;
-                }else
+                }
 
                 // 只有满足vlist文件的才可以被拖拽
                 if(e.dataTransfer.getData('text/plain') != DRAG_TOKEN) return;
+                // 拖拽到原处不受理
 
                 const from_fd:iMixed = JSON.parse(e.dataTransfer.getData('application/json'));
-                if(from_fd.path == to_fd.path) return;
+                if((from_fd.type == 'dir' ? from_fd.path : splitPath(from_fd).dir )== to_fd.path) return;
 
                 FS.move(from_fd.path, to_fd.path)
                     .then(() => reloadTree([
@@ -284,11 +285,12 @@
                 return tmp;
             },
             markup(ev:MouseEvent,self:iMixed){
+                if(marked.value.includes(self)) return;
                 if(ev.shiftKey){
-                    marked.push(self);
+                    marked.value.push(self);
                     markmap.value.push(self.path);
                 }else{
-                    marked = [self];
+                    marked.value = [self];
                     markmap.value = [self.path];
                 }
             },
@@ -372,25 +374,26 @@
                     },'---'
                 ] as Array<CtxMenuData>;
 
-                item.push({
-                    "text": "剪切",
-                    "icon": I_CUT,
-                    handle:() =>
-                        FACTION.mark('move',marked)
-                }, {
-                    "text": "复制",
-                    "icon": I_COPY,
-                    handle: () =>
-                        FACTION.mark('copy',marked)
-                });
+                if(marked.value[0].path != '/')
+                    item.push({
+                        "text": "剪切",
+                        "icon": I_CUT,
+                        handle:() =>
+                            FACTION.mark('move',marked.value)
+                    },{
+                        "text": "复制",
+                        "icon": I_COPY,
+                        handle: () =>
+                            FACTION.mark('copy',marked.value)
+                    });
 
-                if(marked.length == 1){
+                if(marked.value.length == 1){
                     item.push({
                         "text": "粘贴",
                         "icon": I_PASTE,
                         handle: async () => {
-                            const dir = marked[0].type == 'dir'
-                                ? marked[0]
+                            const dir = marked.value[0].type == 'dir'
+                                ? marked.value[0]
                                 : this.data;
 
                             // 覆盖提示
@@ -415,69 +418,71 @@
                     });
                 }
 
-                item.push({
-                    "text": "删除",
-                    "icon": 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" fill="%23b7a6a6" viewBox="0 0 16 16"><path d="M6.5 1h3a.5.5 0 0 1 .5.5v1H6v-1a.5.5 0 0 1 .5-.5ZM11 2.5v-1A1.5 1.5 0 0 0 9.5 0h-3A1.5 1.5 0 0 0 5 1.5v1H2.506a.58.58 0 0 0-.01 0H1.5a.5.5 0 0 0 0 1h.538l.853 10.66A2 2 0 0 0 4.885 16h6.23a2 2 0 0 0 1.994-1.84l.853-10.66h.538a.5.5 0 0 0 0-1h-.995a.59.59 0 0 0-.01 0H11Zm1.958 1-.846 10.58a1 1 0 0 1-.997.92h-6.23a1 1 0 0 1-.997-.92L3.042 3.5h9.916Zm-7.487 1a.5.5 0 0 1 .528.47l.5 8.5a.5.5 0 0 1-.998.06L5 5.03a.5.5 0 0 1 .47-.53Zm5.058 0a.5.5 0 0 1 .47.53l-.5 8.5a.5.5 0 1 1-.998-.06l.5-8.5a.5.5 0 0 1 .528-.47ZM8 4.5a.5.5 0 0 1 .5.5v8.5a.5.5 0 0 1-1 0V5a.5.5 0 0 1 .5-.5Z"/></svg>',
-                    handle: async () => {
-                        try {
-                            await FS.delete(marked.map(item => item.path))
-                        } catch (e) {
-                            return Global('ui.message').call({
-                                'type': 'error',
-                                'content': {
-                                    'title': '删除失败',
-                                    'content': (e as Error).message
-                                },
-                                'title': '文件资源管理器',
-                                'timeout': 10
-                            } satisfies MessageOpinion)
+                    if(marked.value[0].path != '/'){
+                        item.push({
+                        "text": "删除",
+                        "icon": 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" fill="%23b7a6a6" viewBox="0 0 16 16"><path d="M6.5 1h3a.5.5 0 0 1 .5.5v1H6v-1a.5.5 0 0 1 .5-.5ZM11 2.5v-1A1.5 1.5 0 0 0 9.5 0h-3A1.5 1.5 0 0 0 5 1.5v1H2.506a.58.58 0 0 0-.01 0H1.5a.5.5 0 0 0 0 1h.538l.853 10.66A2 2 0 0 0 4.885 16h6.23a2 2 0 0 0 1.994-1.84l.853-10.66h.538a.5.5 0 0 0 0-1h-.995a.59.59 0 0 0-.01 0H11Zm1.958 1-.846 10.58a1 1 0 0 1-.997.92h-6.23a1 1 0 0 1-.997-.92L3.042 3.5h9.916Zm-7.487 1a.5.5 0 0 1 .528.47l.5 8.5a.5.5 0 0 1-.998.06L5 5.03a.5.5 0 0 1 .47-.53Zm5.058 0a.5.5 0 0 1 .47.53l-.5 8.5a.5.5 0 1 1-.998-.06l.5-8.5a.5.5 0 0 1 .528-.47ZM8 4.5a.5.5 0 0 1 .5.5v8.5a.5.5 0 0 1-1 0V5a.5.5 0 0 1 .5-.5Z"/></svg>',
+                        handle: async () => {
+                            try {
+                                await FS.delete(marked.value.map(item => item.path))
+                            } catch (e) {
+                                return Global('ui.message').call({
+                                    'type': 'error',
+                                    'content': {
+                                        'title': '删除失败',
+                                        'content': (e as Error).message
+                                    },
+                                    'title': '文件资源管理器',
+                                    'timeout': 10
+                                } satisfies MessageOpinion)
+                            }
+                            const refdir = [] as Array<string>;
+                            for (const file of marked.value) if (file.type == 'file') {
+                                const dir = splitPath(file)['dir'];
+                                if (!refdir.includes(dir)) refdir.push(dir);
+                            } else {
+                                const slash = file.path.lastIndexOf('/', file.path.length - 2);
+                                refdir.push(file.path.substring(0, slash + 1));
+                            }
+                            // 刷新
+                            reloadTree(refdir);
                         }
-                        const refdir = [] as Array<string>;
-                        for (const file of marked) if (file.type == 'file') {
-                            const dir = splitPath(file)['dir'];
-                            if (!refdir.includes(dir)) refdir.push(dir);
-                        } else {
-                            const slash = file.path.lastIndexOf('/', file.path.length - 2);
-                            refdir.push(file.path.substring(0, slash + 1));
-                        }
-                        // 刷新
-                        reloadTree(refdir);
+                    });
+
+                    if (marked.value.length == 1) {
+                        item.push({
+                            "text": "重命名",
+                            "icon": I_RENAME,
+                            handle: () => marked.value[0].rename = true,
+                        });
                     }
-                });
-
-                if (marked.length == 1) {
-                    item.push({
-                        "text": "重命名",
-                        "icon": I_RENAME,
-                        handle: () => marked[0].rename = true,
-                    });
                 }
 
-                if (marked.length == 1 && marked[0].type == 'file') {
-                    item.push('---', {
-                        "text": "打开",
-                        "icon": I_OPEN,
-                        handle: () => openFile(marked[0]),
-                    }, {
-                        "text": "打开方式",
-                        "icon": I_OPENER,
-                        handle() {
-                            Global('opener.chooser.choose').call(marked[0])
-                                .then(opener => opener.open(marked[0]));
-                        },
-                    });
-                }
+                    if (marked.value.length == 1 && marked.value[0].type == 'file') {
+                        item.push('---', {
+                            "text": "打开",
+                            "icon": I_OPEN,
+                            handle: () => openFile(marked.value[0]),
+                        }, {
+                            "text": "打开方式",
+                            "icon": I_OPENER,
+                            handle() {
+                                Global('opener.chooser.choose').call(marked.value[0])
+                                    .then(opener => opener.open(marked.value[0]));
+                            },
+                        });
+                    }
 
                 if(ADDITION.length > 0) item.push(
                     '---',
                     ...ADDITION.filter(item => {
-                        if(item[1].single && marked.length != 1) return false;
-                        if(item[1].sort != 'all') for (const fd of marked)
+                        if(item[1].single && marked.value.length != 1) return false;
+                        if(item[1].sort != 'all') for (const fd of marked.value)
                             if(fd.type != item[1].sort) return false;
-                        if(item[1].filter && !item[1].filter(marked))
+                        if(item[1].filter && !item[1].filter(marked.value))
                             return false;
                         return true;
-                    }).map(item => item[0](marked))
+                    }).map(item => item[0](marked.value))
                 )
 
                 Global('ui.ctxmenu').call({
@@ -492,7 +497,7 @@
 
 <template>
     <div class="parent"
-        @dblclick.stop="folder()" @click="markup($event, data as any)" @contextmenu.stop.prevent="ctxmenu(data, $event)"
+        @dblclick.stop="folder()" @click.stop="markup($event, data as any)" @contextmenu.stop.prevent="ctxmenu(data, $event)"
         @dragstart.stop="drag_start($event, data)" :draggable="(data).path != '/'" @drop.stop="drag_onto($event, data)"
         @dragover.stop="drag_alert($event, data)"
         @dragleave.stop="($event.currentTarget as HTMLElement).classList.remove('moving')" :title="desc(data as any)"
@@ -508,15 +513,18 @@
         <span class="text" v-else>{{ data.dispName || data.name }}</span>
     </div>
 
-    <div v-if="data.child" class="child" v-show="data.show" @contextmenu.stop.prevent="ctxmenu(data, $event)"
-        @dragover.stop="drag_alert($event, data)" @drop.stop="drag_onto($event, data)">
+    <div v-if="data.child" class="child" v-show="data.show"
+        @contextmenu.stop.prevent="ctxmenu(data, $event)"
+        @dragover.stop="drag_alert($event, data)" @drop.stop="drag_onto($event, data)"
+        @click.stop="markmap = [];marked = [];"
+    >
         <template v-for="child in data.child" :key="child.name">
 
             <tree v-if="child.type == 'dir'" :data="child" />
 
             <div v-else class="item" :title="desc(child)"
-                @click="markup($event, child)" @contextmenu.stop="ctxmenu(child, $event)"
-                @touchstart="touch_start" @touchmove="touch_move" @touchend.stop="touch_end(child as iFile, $event)"
+                @click.stop="markup($event, child)" @contextmenu.stop.prevent="ctxmenu(child, $event)"
+                @touchstart.stop="touch_start" @touchmove.stop="touch_move" @touchend.stop="touch_end(child as iFile, $event)"
                 @dblclick.stop="openFile(child as iFile)" @dragstart.stop="drag_start($event, child)" draggable="true"
                 :selected="markmap.includes(child.path)" :process="(child as iFile).status"
                 :style="{ '--status': (child as iFile).status }" :type="child.type" tabindex="-1"
@@ -541,6 +549,11 @@
         margin: .5rem 0;
         pointer-events: all;
 
+        .moving{
+            background-color: rgb(217, 246, 233);
+            border-color: rgb(68, 222, 152);
+        }
+
         .parent, .child > .item{
             display: flex;
             user-select: none;
@@ -555,22 +568,21 @@
             > img, > span{
                 pointer-events: none;
             }
+
+            &:hover {
+                background-color: rgb(44 83 222 / 18%);
+            }
             
             &[selected=true] {
                 background-color: rgba(44, 83, 222, 0.3);
             }
 
             &[selected=true]:hover {
-                border-color: rgb(94, 174, 235) !important;
+                border-color: rgb(94, 174, 235);
             }
 
             &:focus{
-                background-color: rgba(114, 140, 255, 0.5) !important;
-            }
-
-            &.moving{
-                background-color: rgb(217, 246, 233);
-                border-color: rgb(68, 222, 152);
+                background-color: rgba(114, 140, 255, 0.5);
             }
 
             &[type=file]{
@@ -626,14 +638,6 @@
             // &.active {
             //     background-color: rgba(126, 118, 118, 0.3);
             // }
-
-            &:hover {
-                background-color: rgb(44 83 222 / 18%);
-            }
-
-            &[selected=true] {
-                background-color: rgb(122 122 122 / 20%);
-            }
         
         }
 

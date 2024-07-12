@@ -74,6 +74,14 @@
 			"default": 18,
 			"name": "缩放",
 			"key": "layout.fontSize"
+		},
+		'身份设置',
+		{
+			"type": "text",
+			"default": '',
+			"key": "authkey",
+			"name": "身份ID",
+			"desc": "用于身份验证，解锁文件系统操作"
 		}
 	])
 </script>
@@ -81,7 +89,7 @@
 <template>
 	<!-- 左侧文件 -->
 	<div class="left" :style="{ 
-		width: layout_left -2 + 'px', 
+		width: layout_left -3 + 'px', 
 		left: layout_displayLeft ? '1rem' : '-200vw' 
 	}">
 		<div class="h">
@@ -156,7 +164,6 @@
 
 		>.left {
 			box-sizing: border-box;
-			padding: .25rem;
 			overflow: auto;
 			// display: inline-flex;
 			// flex-direction: column;
@@ -190,12 +197,9 @@
 			>.files {
 				overflow: auto;
 				height: 100%;
-				padding-top: 3.5rem;
 				box-sizing: border-box;
-			}
-
-			>.files {
 				outline: none;
+				padding: 4rem .25rem 0 .25rem;
 			}
 
 		}

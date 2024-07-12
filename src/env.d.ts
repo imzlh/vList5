@@ -114,9 +114,10 @@ interface AlertOpts{
     button?: Array<{
         content: string,
         color?: string,
-        role: Function|'close'|'submit'
+        role: 'close' | 'submit' | 'user',
+        click?: (data: boolean|string) => any
     }>,
-    callback: (data:boolean|string) => any
+    callback: (data: boolean|string) => any
 }
 
 type SettingItem = ({

@@ -1,15 +1,14 @@
 <script setup lang="ts">
     import { Global } from '@/utils';
     import type { AlertOpts } from '@/env';
-    import { ref } from 'vue';
+    import { ref, shallowRef } from 'vue';
 
-    const item = ref<AlertOpts>(),
+    const item = shallowRef<AlertOpts>(),
         dataref = ref();
 
-    function call(role: string | Function) {
+    function call(role: string) {
         if (role == 'close') item.value = undefined;
-        else if (role == 'submit') item.value?.callback(dataref.value);
-        else (role as Function)(dataref.value);
+        else if (role == 'submit') item.value?.callback(dataref.value), item.value = undefined;
     }
 
     Global('ui.alert').data = (d: AlertOpts) => {
@@ -28,7 +27,8 @@
         <div class="btns">
             <div style="flex-grow: 1;"></div>
             <template v-if="item.button">
-                <button v-for="btn in item.button" :style="{ color: btn.color }" @click="call(btn.role)">
+                <button v-for="btn in item.button" :style="{ backgroundColor: btn.color }"
+                    @click="call(btn.role);btn.click && btn.click(dataref)">
                     {{ btn.content }}
                 </button>
             </template>
