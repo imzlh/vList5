@@ -1,7 +1,7 @@
-import type { AlertOpts, FileOrDir, ListPredirect, MessageOpinion, vDir, vFile, vSimpleFileOrDir } from "@/env";
-import { APP_API, DEFAULT_DIR_ICON, FILE_PROXY_SERVER, Global, getConfig } from "@/utils";
-import { getIcon } from "./icon";
-import { ref, type Ref } from "vue";
+import type { AlertOpts, FileOrDir, ListPredirect, vSimpleFileOrDir } from "@/env";
+import { APP_API, FILE_PROXY_SERVER, Global, getConfig } from "@/utils";
+import { type Ref } from "vue";
+import SHA from "jssha";
 
 export class PermissionDeniedError extends Error{}
 export class LoginError extends Error{}
@@ -28,7 +28,8 @@ export async function encrypto(ctxlen: number, pass: string, content: string):Pr
     const hmac_key = (safeCode ^ encrypto).toString(20);
 
     // hmac+sha1加密
-    const hmac = await crypto.subtle.importKey(
+    if(crypto.subtle){
+        const hmac = await crypto.subtle.importKey(
             'raw', 
             new TextEncoder().encode(hmac_key),
             {
@@ -37,8 +38,20 @@ export async function encrypto(ctxlen: number, pass: string, content: string):Pr
             },
             false,
             ['sign']
-        ),
-        value = await crypto.subtle.sign('HMAC', hmac, new TextEncoder().encode(content));
+        );
+        var value = await crypto.subtle.sign('HMAC', hmac, new TextEncoder().encode(content));
+    }else{
+        const sha = new SHA('SHA-256', 'TEXT', {
+            'hmacKey': {
+                'encoding': 'UTF8',
+                'format': 'TEXT',
+                'value': hmac_key
+            }
+        });
+        sha.update(content);
+        var value = sha.getHMAC('ARRAYBUFFER');
+    }
+    
     const process = (input:number) => input < 0x20 ? input + 0x20 : (input > 0x7e) ? (input - 0x7e > 0x7e) ? 0x7e : input - 0x7e : input;
     return new TextDecoder().decode( value).replace(/[^\x20-\x7E]/g, input => String.fromCharCode(process(input.charCodeAt(0)))).trim();
 }

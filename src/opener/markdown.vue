@@ -1,6 +1,6 @@
 <script lang="ts" setup>
     import type { AlertOpts, MessageOpinion, vDir, vFile } from '@/env';
-import Upload from '@/module/upload.vue';
+    import Upload from '@/module/upload.vue';
     import { FILE_PROXY_SERVER, FS, Global, getTree, splitPath } from '@/utils';
     import {
         CodeBlockLanguageSelector,
