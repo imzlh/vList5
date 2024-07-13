@@ -145,6 +145,7 @@
         else CFG.sub_current = -1;
         // 视频设置
         video.value.src = CFG.playlist[CFG.current].url;
+        video.value.play();
     },{ immediate: true });
 
     onMounted(function(){
@@ -175,7 +176,7 @@
             for (let i = 0; i < vid.buffered.length; i++)
                 cached.value.push([vid.buffered.start(i) / vid.duration,vid.buffered.end(i) / vid.duration]);
         }
-        vid.oncanplay = () => vid.playbackRate = CFG.vid_rate, vid.play();
+        vid.oncanplay = () => vid.playbackRate = CFG.vid_rate;
     });
 
     function keyev(kbd:KeyboardEvent){
@@ -227,18 +228,18 @@
 
             // 进度调节
             if(Math.abs(this.moved.xmoved) > Math.abs(this.moved.ymoved) 
-                && Math.abs(this.moved.xmoved) > 10
-            )   CFG.action = (this.moved.xmoved > 0 ? '快进 ' : '快退 ') + Math.abs(this.moved.xmoved).toFixed() + ' 秒';
+                && Math.abs(this.moved.xmoved) > 20
+            )   CFG.action = (this.moved.xmoved > 0 ? '快进 ' : '快退 ') + Math.abs(this.moved.xmoved / 10).toFixed() + ' 秒';
 
             // 声音调节
-            else if(Math.abs(this.moved.ymoved) > 10)
+            else if(Math.abs(this.moved.ymoved) > 20)
                 CFG.action = '声音 ' + (
                     CFG.volume * 100 - this.moved.ymoved > 100
                     ? 100
                     : (
-                        CFG.volume * 100 - this.moved.ymoved < 0
+                        CFG.volume * 100 - this.moved.ymoved / 5 < 0
                         ? 0
-                        : (CFG.volume * 100 - this.moved.ymoved).toFixed()
+                        : (CFG.volume * 100 - this.moved.ymoved / 5).toFixed()
                     )
                 ) + '%';
 

@@ -1,7 +1,8 @@
-# vlist
+# vlist5
 
 简单的文件管理方案<br>
 使用Vue构建，与NJS集成
+<iframe src="https://hi.imzlh.top/2024/06/16.cgi" border="0" style="width:100%"></iframe>
 
 ## 目前已经完成
  - 强大的打开方式
@@ -12,10 +13,12 @@
     - 代码/文本
     - 字体
     - HTML类
+    - MarkDown编辑
     - ...(欢迎PR或issue)
  - 完善的UI
     - 手机端
     - PC
+    - Windows式重命名、上传移动
     - 动画(正在计划中)
  - Vue响应式设计
     - 设置
@@ -36,6 +39,3 @@
 npm install
 npm run build
 ```
-
-# 手册
-参考我的文章: https://hi.imzlh.top/2024/06/16.cgi

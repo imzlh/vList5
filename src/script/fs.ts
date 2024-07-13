@@ -44,7 +44,10 @@ export async function encrypto(ctxlen: number, pass: string, content: string):Pr
 }
 
 export const FS = {
-    auth_key: ref<string>(),
+    /**
+     * @private
+     */
+    auth_key: null as null | Ref<string>,
 
     /**
      * 请求后端
@@ -55,7 +58,7 @@ export const FS = {
      * @returns JSON
      */
     async __request(method: string,body: Object, json = false){
-        if(this.auth_key.value == undefined)
+        if(!this.auth_key)
             this.auth_key = getConfig('基础').authkey;
         const content = JSON.stringify(body),
             xhr = await fetch(APP_API + '?action=' + method,{
@@ -63,7 +66,7 @@ export const FS = {
             body: content,
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': this.auth_key.value
+                'Authorization': this.auth_key?.value
                     ? await encrypto(content.length, this.auth_key.value, content)
                     : ''
             },
@@ -92,12 +95,13 @@ export const FS = {
      */
     async list(path:string, predirect: ListPredirect | {} = {}){
         (predirect as any).path = path[path.length -1] == '/' ? path : path + '/';
-        return (await this.__request('list',predirect,true) as Array<string>)
+        const item = (await this.__request('list',predirect,true) as Array<string>)
             .map((item) => ({
                 name: item,
                 path: path + item,
                 url: FILE_PROXY_SERVER + path + item
-            } satisfies vSimpleFileOrDir));
+            } satisfies vSimpleFileOrDir)) as Array<FileOrDir>;
+        return item.sort((a, b) => a.name.localeCompare(b.name));
     },
 
     /**
@@ -106,11 +110,13 @@ export const FS = {
      * @returns 详细信息
      */
     async listall(path:string):Promise<Array<FileOrDir>>{
-        return (await this.__request('slist',{ path },true)).map((item:FileOrDir) => {
+        const item = (await this.__request('slist',{ path },true)).map((item:FileOrDir) => {
             item.url = FILE_PROXY_SERVER + path + item.name + (item.type == 'dir' ? '/' : '');
             item.path = path + item.name + (item.type == 'dir' ? '/' : '');
             return item;
-        });
+        }) as Array<FileOrDir>;
+        return item.filter(item => item.type == 'dir').sort((a, b) => a.name.localeCompare(b.name))
+            .concat(item.filter(item => item.type == 'file').sort((a, b) => a.name.localeCompare(b.name)) as any);
     },
 
     /**
@@ -194,11 +200,16 @@ export const FS = {
         });
     },
 
+    /**
+     * @private
+     */
     __auth: () => new Promise((rs, rj) => Global('ui.alert').call({
         'type': 'prompt',
         'title': '身份验证',
         'message': '由于身份验证失败，操作失败。\n请输入身份ID，如果忘记请查看nginx配置',
         'callback': (data) => {
+            if(!FS.auth_key)
+                FS.auth_key = getConfig('基础').authkey;
             FS.auth_key.value = data as string;
             rs(data as string);
         },
@@ -221,7 +232,7 @@ export const FS = {
         content: Blob,
         progress?:(this: XMLHttpRequest, ev: ProgressEvent<EventTarget>) => any
     ):Promise<string>{
-        if(this.auth_key.value == undefined)
+        if(!this.auth_key)
             this.auth_key = getConfig('基础').authkey;
 
         return new Promise(async (rs,rj) => {
@@ -230,14 +241,14 @@ export const FS = {
             try{
                 _pre = await fetch(APP_API + '?action=upload&path=' + encodeURIComponent(file) + '&type=' + content.type + '&length=' + content.size,{
                     headers: {
-                        'Authorization': this.auth_key.value
+                        'Authorization': this.auth_key?.value
                             ? await encrypto(content.size, this.auth_key.value, content.type)
                             : ''
                     }
                 });
                 if(_pre.status == 401){
                     await this.__auth();
-                    this.write(file, content, progress).then(rs).catch(rj);
+                    return await this.write(file, content, progress).then(rs).catch(rj);
                 }
                 if(Math.floor(_pre.status / 100) != 2) throw 0;
             }catch{
@@ -258,7 +269,7 @@ export const FS = {
 
             xhr.open('POST',APP_API + '?action=upload&path=' + encodeURIComponent(file));
             xhr.setRequestHeader('Content-Type', content.type);
-            if(this.auth_key.value) 
+            if(this.auth_key?.value) 
                 xhr.setRequestHeader('Authorization', await encrypto(content.size, this.auth_key.value, content.type));
             xhr.send(content);
         });

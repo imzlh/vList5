@@ -1,12 +1,13 @@
 <script setup lang="ts">
-    import { DEFAULT_FILE_ICON, FS, Global, reloadTree } from '@/utils';
-    import { reactive, ref } from 'vue';
+    import { DEFAULT_FILE_ICON } from '@/utils';
+    import { reactive } from 'vue';
+    import { upload } from '@/script/tree';
 
     import I_MEDIA from '/file/media.webp';
     import I_TEXT from '/file/text.webp';
     import I_IMAGE from '/file/image.webp';
     import I_3D from '/file/3d.webp';
-    import type { AlertOpts } from '@/env';
+    import type { vDir } from '@/env';
 
     const S_ERROR = 0,
         S_SUCCESS = 1,
@@ -20,7 +21,7 @@
     }
 
     const prop = defineProps(['option']),
-        dir = prop['option'] as string,
+        dir = prop['option'] as vDir,
         eque = reactive([] as Array<UploadItem>),
         mouse = reactive({
             'x': 0,
@@ -29,7 +30,6 @@
         }),
         event = defineEmits(['show', 'hide', 'close', 'select', 'upload', 'create']);
 
-    let files = await FS.list(dir);
     const drag = {
         start(e:DragEvent){
             mouse.show = true;
@@ -40,41 +40,7 @@
             if(!e.dataTransfer?.files.length) return;
             mouse.show = false;
 
-            for(const file of e.dataTransfer.files){
-                // 添加队列
-                const id = eque.push({
-                    "mime": file.type,
-                    "name": file.name,
-                    "status": S_PROGRESS,
-                    "progress": 0
-                }) -1;
-                event('upload', file);
-
-                // 寻找重复
-                let fname = file.name;
-                for (let i = 0; i < files.length; i++)
-                    if (files[i].name == file.name) {
-                        fname = await new Promise(rs => Global('ui.alert').call({
-                            "type": "prompt",
-                            "title": "上传提示",
-                            "message": `您选中的文件 ${file.name} 已经存在\n建议更改名称，或按下"确定"覆盖`,
-                            "callback": rs as any
-                        } satisfies AlertOpts));
-                        break;
-                    }
-                fname = fname == '' ? file.name : fname;
-
-                // 开始上传
-                FS.write(dir + fname,file,prog => eque[id].progress = prog.loaded / prog.total * 100)
-                    .then(() => {
-                        eque[id].status = S_SUCCESS, 
-                        eque[id].progress = 100, 
-                        reloadTree([dir]),
-                        event('create', dir +  fname)
-                    })
-                    .catch(() => eque[id].status = S_ERROR);
-            }
-            files = await FS.list(dir);
+            upload(e, dir);
         }
     }
 
@@ -92,8 +58,8 @@
 
 <template>
     <div class="upload-wrapper" @dragover.prevent="drag.start" @drop.prevent="drag.end" @dragleave="mouse.show = false">
-        <div class="container">
-            <div v-for="item in eque" @click="event('select', dir + '/' + item.name)">
+        <div class="container" @click="upload(true, dir)">
+            <div v-for="item in eque" @click.stop="event('select', dir + '/' + item.name)">
                 <img :src="getIcon(item.name)" :alt="item.mime">
                 <span class="name">{{ item.name }}</span>
                 <div :style="{
@@ -106,7 +72,7 @@
                 <svg viewBox="0 0 16 16">
                     <path d="M2.5 0c-.166 0-.33.016-.487.048l.194.98A1.51 1.51 0 0 1 2.5 1h.458V0H2.5zm2.292 0h-.917v1h.917V0zm1.833 0h-.917v1h.917V0zm1.833 0h-.916v1h.916V0zm1.834 0h-.917v1h.917V0zm1.833 0h-.917v1h.917V0zM13.5 0h-.458v1h.458c.1 0 .199.01.293.029l.194-.981A2.51 2.51 0 0 0 13.5 0zm2.079 1.11a2.511 2.511 0 0 0-.69-.689l-.556.831c.164.11.305.251.415.415l.83-.556zM1.11.421a2.511 2.511 0 0 0-.689.69l.831.556c.11-.164.251-.305.415-.415L1.11.422zM16 2.5c0-.166-.016-.33-.048-.487l-.98.194c.018.094.028.192.028.293v.458h1V2.5zM.048 2.013A2.51 2.51 0 0 0 0 2.5v.458h1V2.5c0-.1.01-.199.029-.293l-.981-.194zM0 3.875v.917h1v-.917H0zm16 .917v-.917h-1v.917h1zM0 5.708v.917h1v-.917H0zm16 .917v-.917h-1v.917h1zM0 7.542v.916h1v-.916H0zm15 .916h1v-.916h-1v.916zM0 9.375v.917h1v-.917H0zm16 .917v-.917h-1v.917h1zm-16 .916v.917h1v-.917H0zm16 .917v-.917h-1v.917h1zm-16 .917v.458c0 .166.016.33.048.487l.98-.194A1.51 1.51 0 0 1 1 13.5v-.458H0zm16 .458v-.458h-1v.458c0 .1-.01.199-.029.293l.981.194c.032-.158.048-.32.048-.487zM.421 14.89c.183.272.417.506.69.689l.556-.831a1.51 1.51 0 0 1-.415-.415l-.83.556zm14.469.689c.272-.183.506-.417.689-.69l-.831-.556c-.11.164-.251.305-.415.415l.556.83zm-12.877.373c.158.032.32.048.487.048h.458v-1H2.5c-.1 0-.199-.01-.293-.029l-.194.981zM13.5 16c.166 0 .33-.016.487-.048l-.194-.98A1.51 1.51 0 0 1 13.5 15h-.458v1h.458zm-9.625 0h.917v-1h-.917v1zm1.833 0h.917v-1h-.917v1zm1.834-1v1h.916v-1h-.916zm1.833 1h.917v-1h-.917v1zm1.833 0h.917v-1h-.917v1zM8.5 4.5a.5.5 0 0 0-1 0v3h-3a.5.5 0 0 0 0 1h3v3a.5.5 0 0 0 1 0v-3h3a.5.5 0 0 0 0-1h-3v-3z"/>
                 </svg>
-                <span>拖拽上传</span>
+                <span>拖拽或点击选取上传</span>
             </div>
         </div>
         <div class="preview" v-show="mouse.show" :style="{

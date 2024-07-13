@@ -199,7 +199,7 @@
 				height: 100%;
 				box-sizing: border-box;
 				outline: none;
-				padding: 4rem .25rem 0 .25rem;
+				padding: 4.5rem .25rem 0 .25rem;
 			}
 
 		}

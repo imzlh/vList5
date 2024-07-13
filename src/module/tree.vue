@@ -1,8 +1,9 @@
 <script lang="ts">
-    import type { AlertOpts, CtxDispOpts, CtxMenuData, MessageOpinion, vDir, vFile } from '@/env';
-    import { APP_API, DEFAULT_FILE_ICON, FILE_PROXY_SERVER, FS, Global, loadTree, openFile, reloadTree, size2str, splitPath } from '@/utils';
-    import { onMounted, reactive, ref, shallowRef, toRaw, watch, type PropType } from 'vue';
+    import type { AlertOpts, CtxDispOpts, CtxMenuData, MessageOpinion } from '@/env';
+    import { APP_API, DEFAULT_FILE_ICON, FS, Global, loadTree, openFile, reloadTree, size2str, splitPath } from '@/utils';
+    import { ref, shallowRef, toRaw, watch, type PropType } from 'vue';
     import Upload from './upload.vue';
+    import { upload, type iDir, type iFile, type iMixed } from '@/script/tree';
 
     import I_NEW from '/icon/new.webp';
     import I_FOLDER from '/icon/folder.webp';
@@ -15,7 +16,6 @@
     import I_RENAME from '/icon/rename.webp';
     import I_OPEN from "/icon/open.webp";
     import I_OPENER from '/icon/opener.webp';
-    import { getIcon } from '@/script/icon';
 
     export const marked = shallowRef<Array<iMixed>>([]);
     export const markmap = ref<Array<string>>([]);
@@ -27,21 +27,6 @@
     }
 
     type file_action = 'move'|'copy';
-
-    interface iFile extends vFile{
-        rename?: boolean,
-        status?: number,
-        show?: boolean
-    }
-
-    interface iDir extends vDir{
-        rename?: boolean,
-        show?: boolean,
-        locked?: boolean
-        status?: number
-    }
-
-    type iMixed = iFile | iDir; 
 
     const ADDITION = [] as Array<[(input: iMixed[]) => CtxMenuData, DisplayCondition]>;
     const DRAG_TOKEN = Math.floor(Math.random() * 100000000).toString(36);
@@ -183,96 +168,32 @@
             },
             async drag_onto(e: DragEvent, to_fd: iDir){
                 if(!e.dataTransfer) return;
-                
-                // 加载事件
-                e.preventDefault();
-                e.dataTransfer.dropEffect = 'copy';
+                // 去除高亮
                 (e.currentTarget as HTMLElement).classList.remove('moving');
+                // 只有满足vlist文件的才可以被拖拽
+                if(e.dataTransfer.getData('text/plain') == DRAG_TOKEN){
+                    // 拖拽到原处不受理
+                    const from_fd:iMixed = JSON.parse(e.dataTransfer.getData('application/json'));
+                    if((from_fd.type == 'dir' ? from_fd.path : splitPath(from_fd).dir )== to_fd.path) return;
 
-                // 文件上传
-                if(e.dataTransfer.files.length > 0) for(const file of e.dataTransfer.files){
-                    // 推入文件
-                    const new_file = reactive({
-                        "ctime": Date.now(),
-                        "icon": getIcon(file.name, true),
-                        "name": file.name,
-                        "path": to_fd.path + file.name,
-                        "size": file.size,
-                        "type": 'file',
-                        "url": FILE_PROXY_SERVER + to_fd.path + file.name,
-                        "status": 1
-                    } as iFile);
-                    if(!to_fd.child) await loadTree(to_fd);
-                    
-                    // 寻找重复
-                    for (let i = 0; i < (to_fd.child as Array<iMixed>).length; i++) {
-                        const element = (to_fd.child as Array<iMixed>)[i];
-                        if (element.name == new_file.name) {
-                            const text = await new Promise(rs => Global('ui.alert').call({
-                                "type": "prompt",
-                                "title": "上传提示",
-                                "message": `您选中的文件 ${file.name} 已经存在\n建议更改名称，或按下"确定"覆盖`,
-                                "callback": rs
-                            } satisfies AlertOpts));
-                            // 覆盖
-                            if(!text || text == element.name)
-                                if(element.type == 'dir')
-                                    Global('ui.message').call({
-                                        "title": "资源管理器",
-                                        "content": {
-                                            "title": "上传错误",
-                                            "content": "前提条件错误：目标是一个文件夹"
-                                        },
-                                        "type": "error",
-                                        "timeout": 10
-                                    } satisfies MessageOpinion)
-                                else
-                                    (to_fd.child as Array<iMixed>).splice(i, 1);
-                            break;
-                        }
-                    }
-                    const id = (to_fd.child as Array<iMixed>).push(new_file) -1;
-                    try{
-                        await FS.write(new_file.path, file, prog =>
-                            new_file.status = prog.loaded / prog.total * 100
-                        );
-                        new_file.status = undefined;
-                    }catch(e){
-                        Global('ui.message').call({
+                    FS.move(from_fd.path, to_fd.path)
+                        .then(() => reloadTree([
+                            from_fd.type == 'dir' ? from_fd.path : splitPath(from_fd)['dir'],
+                            to_fd.path
+                        ]))
+                        .catch(e => Global('ui.message').call({
                             "title": "资源管理器",
                             "content": {
-                                "title": "上传错误",
+                                "title": "移动错误",
                                 "content": e instanceof Error ? e.message : new String(e).toString()
                             },
                             "type": "error",
                             "timeout": 10
-                        } satisfies MessageOpinion);
-                        (to_fd.child as Array<iMixed>).splice(id, 1);
-                    }
-                    return;
+                        } satisfies MessageOpinion));
+                }else{
+                    // 处理事件
+                    upload(e, to_fd);
                 }
-
-                // 只有满足vlist文件的才可以被拖拽
-                if(e.dataTransfer.getData('text/plain') != DRAG_TOKEN) return;
-                // 拖拽到原处不受理
-
-                const from_fd:iMixed = JSON.parse(e.dataTransfer.getData('application/json'));
-                if((from_fd.type == 'dir' ? from_fd.path : splitPath(from_fd).dir )== to_fd.path) return;
-
-                FS.move(from_fd.path, to_fd.path)
-                    .then(() => reloadTree([
-                        from_fd.type == 'dir' ? from_fd.path : splitPath(from_fd)['dir'],
-                        to_fd.path
-                    ]))
-                    .catch(e => Global('ui.message').call({
-                        "title": "资源管理器",
-                        "content": {
-                            "title": "移动错误",
-                            "content": e instanceof Error ? e.message : new String(e).toString()
-                        },
-                        "type": "error",
-                        "timeout": 10
-                    } satisfies MessageOpinion));
             },
             desc(data:iMixed){
                 var tmp = data.dispName || data.name;
@@ -318,8 +239,9 @@
                     'timeout': 10
                 } satisfies MessageOpinion), file.rename = false));
             },
-            ctxmenu(fd: iMixed, e:MouseEvent){
+            ctxmenu(fd: iMixed, e: MouseEvent) {
                 const dir = fd.type == 'dir' ? fd : this.data;
+                if (marked.value.length == 0) marked.value = [fd];
 
                 const item = [
                     {
@@ -329,32 +251,32 @@
                             {
                                 "text": "文件夹",
                                 "icon": I_FOLDER,
-                                handle: () => 
+                                handle: () =>
                                     Global('ui.alert').call({
                                         "type": "prompt",
                                         "title": "创建文件夹",
                                         "message": "请输入文件夹名称",
-                                        callback: (data) => 
+                                        callback: (data) =>
                                             // 创建文件夹
                                             FS.mkdir(dir.path + data)
                                                 .then(() => loadTree(this.data)),
                                     } satisfies AlertOpts)
-                            },{
+                            }, {
                                 "text": "文件",
                                 "icon": I_TXT,
-                                handle: () => 
+                                handle: () =>
                                     Global('ui.alert').call({
                                         "type": "prompt",
                                         "title": "新建文件",
                                         "message": "请输入文件名称",
-                                        callback: (data) => 
+                                        callback: (data) =>
                                             // 创建文件夹
                                             FS.touch(dir.path + data)
                                                 .then(() => loadTree(this.data)),
                                     } satisfies AlertOpts)
                             }
                         ],
-                    },{
+                    }, {
                         "text": "上传",
                         "icon": I_UPLOAD,
                         handle: () => {
@@ -362,32 +284,32 @@
                                 "content": Upload,
                                 "icon": I_UPLOAD,
                                 "name": "上传文件",
-                                "option": dir.path
+                                "option": dir
                             });
                         },
-                    },{
+                    }, {
                         "text": "刷新",
                         "icon": I_REFRESH,
                         handle: () => {
                             loadTree(this.data)
                         },
-                    },'---'
+                    }, '---'
                 ] as Array<CtxMenuData>;
 
-                if(marked.value[0].path != '/')
+                if (marked.value[0].path != '/')
                     item.push({
                         "text": "剪切",
                         "icon": I_CUT,
-                        handle:() =>
-                            FACTION.mark('move',marked.value)
-                    },{
+                        handle: () =>
+                            FACTION.mark('move', marked.value)
+                    }, {
                         "text": "复制",
                         "icon": I_COPY,
                         handle: () =>
-                            FACTION.mark('copy',marked.value)
+                            FACTION.mark('copy', marked.value)
                     });
 
-                if(marked.value.length == 1){
+                if (marked.value.length == 1) {
                     item.push({
                         "text": "粘贴",
                         "icon": I_PASTE,
@@ -397,29 +319,29 @@
                                 : this.data;
 
                             // 覆盖提示
-                            try{
-                                if(!dir.child)
+                            try {
+                                if (!dir.child)
                                     await loadTree(dir);
-                                if(!dir.child) dir.child = [];
+                                if (!dir.child) dir.child = [];
                                 const mark = FACTION.marked.map(item => item.name),
                                     over = dir.child.filter(item => mark.includes(item.name));
-                                if(over.length > 0)
+                                if (over.length > 0)
                                     await new Promise((rs, rj) => Global('ui.alert').call({
                                         "type": "confirm",
                                         "title": "覆盖或合并提示",
-                                        "message": "这些文件将会被合并/覆盖\n\n" + 
+                                        "message": "这些文件将会被合并/覆盖\n\n" +
                                             over.map(item => item.name + '\t' + (item.type == 'dir' ? '文件夹' : size2str(item.size))),
                                         "callback": rs
                                     } satisfies AlertOpts));
-                            }catch{}    
+                            } catch { }
 
                             FACTION.exec(dir);
                         }
                     });
                 }
 
-                    if(marked.value[0].path != '/'){
-                        item.push({
+                if (marked.value[0].path != '/') {
+                    item.push({
                         "text": "删除",
                         "icon": 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" fill="%23b7a6a6" viewBox="0 0 16 16"><path d="M6.5 1h3a.5.5 0 0 1 .5.5v1H6v-1a.5.5 0 0 1 .5-.5ZM11 2.5v-1A1.5 1.5 0 0 0 9.5 0h-3A1.5 1.5 0 0 0 5 1.5v1H2.506a.58.58 0 0 0-.01 0H1.5a.5.5 0 0 0 0 1h.538l.853 10.66A2 2 0 0 0 4.885 16h6.23a2 2 0 0 0 1.994-1.84l.853-10.66h.538a.5.5 0 0 0 0-1h-.995a.59.59 0 0 0-.01 0H11Zm1.958 1-.846 10.58a1 1 0 0 1-.997.92h-6.23a1 1 0 0 1-.997-.92L3.042 3.5h9.916Zm-7.487 1a.5.5 0 0 1 .528.47l.5 8.5a.5.5 0 0 1-.998.06L5 5.03a.5.5 0 0 1 .47-.53Zm5.058 0a.5.5 0 0 1 .47.53l-.5 8.5a.5.5 0 1 1-.998-.06l.5-8.5a.5.5 0 0 1 .528-.47ZM8 4.5a.5.5 0 0 1 .5.5v8.5a.5.5 0 0 1-1 0V5a.5.5 0 0 1 .5-.5Z"/></svg>',
                         handle: async () => {
@@ -458,28 +380,28 @@
                     }
                 }
 
-                    if (marked.value.length == 1 && marked.value[0].type == 'file') {
-                        item.push('---', {
-                            "text": "打开",
-                            "icon": I_OPEN,
-                            handle: () => openFile(marked.value[0]),
-                        }, {
-                            "text": "打开方式",
-                            "icon": I_OPENER,
-                            handle() {
-                                Global('opener.chooser.choose').call(marked.value[0])
-                                    .then(opener => opener.open(marked.value[0]));
-                            },
-                        });
-                    }
+                if (marked.value.length == 1 && marked.value[0].type == 'file') {
+                    item.push('---', {
+                        "text": "打开",
+                        "icon": I_OPEN,
+                        handle: () => openFile(marked.value[0]),
+                    }, {
+                        "text": "打开方式",
+                        "icon": I_OPENER,
+                        handle() {
+                            Global('opener.chooser.choose').call(marked.value[0])
+                                .then(opener => opener.open(marked.value[0]));
+                        },
+                    });
+                }
 
-                if(ADDITION.length > 0) item.push(
+                if (ADDITION.length > 0) item.push(
                     '---',
                     ...ADDITION.filter(item => {
-                        if(item[1].single && marked.value.length != 1) return false;
-                        if(item[1].sort != 'all') for (const fd of marked.value)
-                            if(fd.type != item[1].sort) return false;
-                        if(item[1].filter && !item[1].filter(marked.value))
+                        if (item[1].single && marked.value.length != 1) return false;
+                        if (item[1].sort != 'all') for (const fd of marked.value)
+                            if (fd.type != item[1].sort) return false;
+                        if (item[1].filter && !item[1].filter(marked.value))
                             return false;
                         return true;
                     }).map(item => item[0](marked.value))
@@ -497,7 +419,7 @@
 
 <template>
     <div class="parent"
-        @dblclick.stop="folder()" @click.stop="markup($event, data as any)" @contextmenu.stop.prevent="ctxmenu(data, $event)"
+        @dblclick.stop="folder()" @click.stop="markup($event, data)" @contextmenu.stop.prevent="ctxmenu(data, $event)"
         @dragstart.stop="drag_start($event, data)" :draggable="(data).path != '/'" @drop.stop="drag_onto($event, data)"
         @dragover.stop="drag_alert($event, data)"
         @dragleave.stop="($event.currentTarget as HTMLElement).classList.remove('moving')" :title="desc(data as any)"
@@ -546,7 +468,6 @@
 <style lang="scss">
     .vlist {
         display: block;
-        margin: .5rem 0;
         pointer-events: all;
 
         .moving{
@@ -574,10 +495,10 @@
             }
             
             &[selected=true] {
-                background-color: rgba(44, 83, 222, 0.3);
+                background-color: rgba(107, 137, 245, 0.3);
             }
 
-            &[selected=true]:hover {
+            &[selected=true]:focus {
                 border-color: rgb(94, 174, 235);
             }
 

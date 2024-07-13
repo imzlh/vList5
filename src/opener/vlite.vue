@@ -178,9 +178,9 @@
     audio.onpause = () => CFG.playing = false;
     audio.onplay = () => CFG.playing = true;
     function time2str(time:number){
-        var min = Math.floor(time/60),
-            sec = time%60;
-        return (min < 10 ? '0' + min : min) + ':' + (sec < 10 ? '0' + Math.floor(sec) : sec.toFixed());
+        const min = Math.floor(time / 60),
+            sec = Math.floor(time % 60);
+        return min.toString().padStart(2, '0') + ':' + sec.toString().padStart(2, '0');
     }
     audio.ontimeupdate = async function(ev){
         // cue

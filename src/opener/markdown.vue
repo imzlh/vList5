@@ -1,7 +1,7 @@
 <script lang="ts" setup>
     import type { AlertOpts, MessageOpinion, vDir, vFile } from '@/env';
 import Upload from '@/module/upload.vue';
-    import { FILE_PROXY_SERVER, FS, Global, splitPath } from '@/utils';
+    import { FILE_PROXY_SERVER, FS, Global, getTree, splitPath } from '@/utils';
     import {
         CodeBlockLanguageSelector,
         EmojiSelector,
@@ -48,8 +48,7 @@ import Upload from '@/module/upload.vue';
             search_text: '',
             replace_text: ''
         }),
-        el = defineEmits(['hide', 'show', 'close']),
-        div = splitPath(input).dir;
+        el = defineEmits(['hide', 'show', 'close']);
 
     let muya: undefined | Muya;
 
@@ -311,7 +310,7 @@ import Upload from '@/module/upload.vue';
                     <path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z"/>
                 </svg>
 
-                <Upload :option="div" class="after" :active="CFG.upload" @click.stop
+                <Upload :option="getTree(splitPath(input).dir)" class="after" :active="CFG.upload" @click.stop
                     @create="plug" @select="plug"
                 />
                 <!-- <div @click.stop class="after" :active="CFG.upload"></div> -->
