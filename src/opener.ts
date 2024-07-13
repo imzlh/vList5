@@ -165,7 +165,7 @@ export const OPENER:Array<OpenerOption> = [
         async open(file) {
             Global('ui.window.add').call({
                 "content": (await import('@/opener/vlite.vue')).default,
-                "icon": '/app/vlite.svg',
+                "icon": I_VLITE,
                 "name": "vLite",
                 "option": file
             }, file);

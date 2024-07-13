@@ -52,8 +52,19 @@ export async function encrypto(ctxlen: number, pass: string, content: string):Pr
         var value = sha.getHMAC('ARRAYBUFFER');
     }
     
-    const process = (input:number) => input < 0x20 ? input + 0x20 : (input > 0x7e) ? (input - 0x7e > 0x7e) ? 0x7e : input - 0x7e : input;
-    return new TextDecoder().decode( value).replace(/[^\x20-\x7E]/g, input => String.fromCharCode(process(input.charCodeAt(0)))).trim();
+    const process = (input:number) => 
+        input <= 0x20 
+            ? input + 0x20 
+            : input > 0x7e 
+                ? input - 0x7e < 0x20
+                    ? 0x21
+                    : input - 0x7e > 0x7e
+                        ? 0x7b
+                        : input - 0x7e 
+                : input;
+    let out = ''
+    new Uint8Array(value).forEach(item => out += String.fromCharCode(process(item)));
+    return out;
 }
 
 export const FS = {
@@ -252,10 +263,10 @@ export const FS = {
             // 预检
             let _pre;
             try{
-                _pre = await fetch(APP_API + '?action=upload&path=' + encodeURIComponent(file) + '&type=' + content.type + '&length=' + content.size,{
+                _pre = await fetch(APP_API + '?action=upload&path=' + encodeURIComponent(file) + '&length=' + content.size,{
                     headers: {
                         'Authorization': this.auth_key?.value
-                            ? await encrypto(content.size, this.auth_key.value, content.type)
+                            ? await encrypto(content.size, this.auth_key.value, file)
                             : ''
                     }
                 });
@@ -283,7 +294,7 @@ export const FS = {
             xhr.open('POST',APP_API + '?action=upload&path=' + encodeURIComponent(file));
             xhr.setRequestHeader('Content-Type', content.type);
             if(this.auth_key?.value) 
-                xhr.setRequestHeader('Authorization', await encrypto(content.size, this.auth_key.value, content.type));
+                xhr.setRequestHeader('Authorization', await encrypto(content.size, this.auth_key.value, file));
             xhr.send(content);
         });
     }
