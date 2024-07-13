@@ -100,7 +100,7 @@ export const FS = {
                 name: item,
                 path: path + item,
                 url: FILE_PROXY_SERVER + path + item
-            } satisfies vSimpleFileOrDir)) as Array<FileOrDir>;
+            } satisfies vSimpleFileOrDir)) as Array<vSimpleFileOrDir>;
         return item.sort((a, b) => a.name.localeCompare(b.name));
     },
 
