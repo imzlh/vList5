@@ -19,8 +19,7 @@
                 const el = this.$el as HTMLElement;
 
                 // 清空样式
-                el.style.bottom = 'auto',
-                el.style.right = 'auto',
+                el.style.height = 'auto',
                 el.style.top = this.$props.y + 'px',
                 el.style.left = this.$props.x + 'px',
                 el.style.display = 'block';
@@ -35,13 +34,13 @@
                     // 超出底部
                     if(pos.bottom > sc_h)
                         if(pos.height > sc_h)
-                            el.style.top = el.style.bottom = '0';
+                            el.style.top = '0', el.style.height = sc_h - pos.height + 'px';
                         else
-                            el.style.bottom = '0',el.style.top = sc_h - pos.height + 'px';
+                            el.style.top = this.y - (pos.bottom - sc_h) - 10 + 'px', el.style.height = 'auto';
                     
                     // 超出宽度
                     if(pos.right > sc_w)
-                        el.style.left = sc_w - pos.width + 'px',
+                        el.style.left = this.x - (pos.right - sc_w) - 10 + 'px',
                         el.style.right = '0';
                 });
             });

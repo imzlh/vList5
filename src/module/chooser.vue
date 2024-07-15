@@ -1,6 +1,6 @@
 <script setup lang="ts">
     import type { FileOrDir } from '@/env';
-    import { FS, Global } from '@/utils';
+    import { FS, Global, type iMixed } from '@/utils';
     import { ref, shallowRef, watch } from 'vue';
     import List from './list.vue';
 
@@ -111,7 +111,7 @@
         <!-- 列表 -->
         <List :list="data" style="padding-top: 3.5rem;"
             @open="(file:FileOrDir) => file.type == 'dir' ? switchTo(file.path) : null"
-            @select="(id:number) => exports.push(data[id])" @clear="() => exports = []"
+            @select="(data :iMixed) => exports.push(data)" @clear="() => exports = []"
         ></List>
     </div>
 </template>

@@ -1,28 +1,17 @@
 <script setup lang="ts">
-    import { DEFAULT_FILE_ICON } from '@/utils';
     import { reactive } from 'vue';
-    import { upload } from '@/script/tree';
+    import { upload, type iFile } from '@/script/tree';
 
-    import I_MEDIA from '/file/media.webp';
-    import I_TEXT from '/file/text.webp';
-    import I_IMAGE from '/file/image.webp';
-    import I_3D from '/file/3d.webp';
     import type { vDir } from '@/env';
+import { getIcon } from '@/script/icon';
 
     const S_ERROR = 0,
         S_SUCCESS = 1,
         S_PROGRESS = 2;
 
-    interface UploadItem{
-        name: string,
-        mime: string,
-        status: number,
-        progress: number
-    }
-
     const prop = defineProps(['option']),
         dir = prop['option'] as vDir,
-        eque = reactive([] as Array<UploadItem>),
+        eque = reactive([] as Array<iFile>),
         mouse = reactive({
             'x': 0,
             'y': 0,
@@ -40,19 +29,8 @@
             if(!e.dataTransfer?.files.length) return;
             mouse.show = false;
 
-            upload(e, dir);
+            upload(e, dir, obj => eque.push(obj));
         }
-    }
-
-    function getIcon(mime:string){
-        return {
-            'audio': I_MEDIA,
-            'video': I_MEDIA,
-            'font':  I_TEXT,
-            'text':  I_TEXT,
-            'image': I_IMAGE,
-            'model': I_3D
-        }[mime.split('/',2)[0]] || DEFAULT_FILE_ICON;
     }
 </script>
 
@@ -60,11 +38,11 @@
     <div class="upload-wrapper" @dragover.prevent="drag.start" @drop.prevent="drag.end" @dragleave="mouse.show = false">
         <div class="container" @click="upload(true, dir)">
             <div v-for="item in eque" @click.stop="event('select', dir + '/' + item.name)">
-                <img :src="getIcon(item.name)" :alt="item.mime">
+                <img :src="getIcon(item.name)" :alt="item.icon">
                 <span class="name">{{ item.name }}</span>
                 <div :style="{
-                    width: item.progress + '%',
-                    backgroundColor: {[S_ERROR]: '#ffb5b5', [S_PROGRESS]: '#efefef', [S_SUCCESS]: '#d9f7de'}[item.status],
+                    width: (item.status || 100) + '%',
+                    backgroundColor: item.status == undefined ? '#d9f7de' : '#efefef',
                     opacity: item.status == S_ERROR ? .6 : 1
                 }"></div>
             </div>

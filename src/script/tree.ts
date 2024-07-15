@@ -3,7 +3,7 @@ import I_DESKTOP from '/icon/desktop.webp';
 import type { AlertOpts, FileOrDir, MessageOpinion, vDir, vFile } from "@/env";
 import { reactive } from "vue";
 import { getIcon } from "./icon";
-import { FILE_PROXY_SERVER } from "/config";
+import { DEFAULT_DIR_ICON, FILE_PROXY_SERVER } from "/config";
 import { FS, splitPath } from "./fs";
 import { Global } from "@/utils";
 
@@ -32,7 +32,9 @@ interface xFile extends File{
  * @param to_fd 目标文件夹，自动刷新
  * @returns 上传成功的文件
  */
-export async function upload(e: FileList | Array<File> | DragEvent | boolean, to_fd: vDir):Promise<Array<vFile>>{
+export async function upload(e: FileList | Array<File> | DragEvent | boolean, to_fd: vDir,
+    onCreate?: (file: iFile) => any
+):Promise<Array<vFile>>{
 
     // 通过DragEvent导入
     if(e instanceof DragEvent){
@@ -109,7 +111,7 @@ export async function upload(e: FileList | Array<File> | DragEvent | boolean, to
 
     const repeated = [] as Array<vFile>,
         repeated_files = [] as Array<File>,
-        uploaded = [] as Array<vFile>;
+        uploaded = [] as Array<iFile>;
     for (const file of e) await (async function(){
         // 相对目录
         let relative = to_fd as vDir;
@@ -183,6 +185,7 @@ export async function upload(e: FileList | Array<File> | DragEvent | boolean, to
             "url": FILE_PROXY_SERVER + to_fd.path + file.name,
             "status": 1
         } as iFile);
+        onCreate && onCreate(file_element);
 
         // 直接开始上传
         const id = (relative.child as Array<FileOrDir>).push(file_element);
@@ -225,6 +228,7 @@ export async function upload(e: FileList | Array<File> | DragEvent | boolean, to
     const error_id = [] as Array<number>,
         error = [] as Array<Error>;
     for (let i = 0 ; i < repeated.length ; i ++) try{
+        onCreate && onCreate(repeated[i]);
         await FS.write(
             repeated[i].path,
             repeated_files[i],
@@ -308,3 +312,38 @@ export function getTree(dir: string):vDir | undefined{
     }
     return subTree(TREE);
 }
+
+export async function loadPath(path: string){
+    let current = TREE;
+    for (const name of path.split('/')) {
+        if(!name) continue;
+        if(!current.child) await loadTree(current);
+        const cur = (current.child as Array<FileOrDir>).filter(item => item.name == name && item.type == 'dir')[0] as vDir | undefined;
+        // 找不到就创建
+        if(!cur) current.child?.unshift(current = {
+            'type': 'dir',
+            'ctime': Date.now(),
+            'icon': DEFAULT_DIR_ICON,
+            'name': name,
+            'path': current.path + name + '/',
+            'url': current.url + name + '/'
+        });
+        else current = cur;
+    }
+    if(!current.child) await loadTree(current);
+    return current;
+}
+
+window.addEventListener('hashchange',async function(ev){
+    const hash = this.location.hash.substring(1);
+    if(hash[0] != '/') return;
+
+    const file = await FS.stat(hash);
+    if(file.type == 'dir') await loadPath(hash);
+    else await loadPath(splitPath({ 'path' : hash }).dir);
+
+});
+
+window.addEventListener('load', function(){
+    this.dispatchEvent(new HashChangeEvent('hashchange'));
+})

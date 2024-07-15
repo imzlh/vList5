@@ -4,7 +4,7 @@ import { Global } from "@/utils";
 import { markRaw, ref, type Ref } from "vue";
 
 import I_SETTING from '/app/settings.webp';
-import { register } from "@/module/tree.vue";
+import { TREE_REG } from "@/action/tree";
 
 var CONFIG: undefined | Record<string,Array<SettingItem>>,
     cached: undefined | Record<string,Record<string,any>>;
@@ -99,7 +99,7 @@ window.onbeforeunload = function(){
     localStorage.setItem('vlist5',JSON.stringify(real));
 }
 
-register(() => ({
+TREE_REG.register(() => ({
     "text": "设置",
     "icon": I_SETTING,
     handle: () => openSetting(),

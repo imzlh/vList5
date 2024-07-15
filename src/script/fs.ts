@@ -6,6 +6,32 @@ import SHA from "jssha";
 export class PermissionDeniedError extends Error{}
 export class LoginError extends Error{}
 
+const b64ch = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=';
+const b64chs = Array.prototype.slice.call(b64ch);
+
+/**
+ * base64编码
+ * @param buf 输入
+ * @returns 输出
+ */
+function base64_encode(buf: ArrayBuffer){
+    const bin = new Uint8Array(buf);
+    let u32, c0, c1, c2, asc = '';
+    const pad = bin.length % 3;
+    for (let i = 0; i < bin.length;) {
+        c0 = bin[i++],
+        c1 = bin[i++],
+        c2 = bin[i++];
+
+        u32 = (c0 << 16) | (c1 << 8) | c2;
+        asc += b64chs[u32 >> 18 & 63]
+            + b64chs[u32 >> 12 & 63]
+            + b64chs[u32 >> 6 & 63]
+            + b64chs[u32 & 63];
+    }
+    return pad ? asc.slice(0, pad - 3) + "===".substring(pad) : asc;
+}
+
 /**
  * 为双方安全传输编码的函数
  * @param ctxlen 消息长度
@@ -34,7 +60,7 @@ export async function encrypto(ctxlen: number, pass: string, content: string):Pr
             new TextEncoder().encode(hmac_key),
             {
                 "name": "HMAC",
-                "hash": "SHA-256"
+                "hash": "SHA-1"
             },
             false,
             ['sign']
@@ -51,20 +77,8 @@ export async function encrypto(ctxlen: number, pass: string, content: string):Pr
         sha.update(content);
         var value = sha.getHMAC('ARRAYBUFFER');
     }
-    
-    const process = (input:number) => 
-        input <= 0x20 
-            ? input + 0x20 
-            : input > 0x7e 
-                ? input - 0x7e < 0x20
-                    ? 0x21
-                    : input - 0x7e > 0x7e
-                        ? 0x7b
-                        : input - 0x7e 
-                : input;
-    let out = ''
-    new Uint8Array(value).forEach(item => out += String.fromCharCode(process(item)));
-    return out;
+
+    return base64_encode(value);
 }
 
 export const FS = {
@@ -319,12 +333,12 @@ export function clearPath(path:string){
  */
 export function splitPath(f: { path: string }){
     const path = clearPath(f.path),
-        slash = path.lastIndexOf('/'),
+        slash = path.lastIndexOf('/', path.length -2),
         dot = path.lastIndexOf('.');
     return {
         dir   : path.substring(0,slash +1) || '/',
-        name  : path.substring(slash + 1, dot),
-        ext   : path.substring(dot + 1),
+        name  : path.substring(slash + 1, dot == -1 ? undefined : dot),
+        ext   : path.substring(dot == -1 ? slash + 1 : dot + 1),
         fname : path.substring(slash + 1)
     }
 }

@@ -12,8 +12,7 @@ export function getOpenerId(file:vFile):Promise<OpenerOption>|OpenerOption{
     return Global('opener.chooser.choose').call(file);
 }
 
-export async function openFile(file:FileOrDir){
-    if(file.type == 'dir') return;
+export async function openFile(file:vFile){
     const opener = await getOpenerId(file);
     try{
         await opener.open(file);

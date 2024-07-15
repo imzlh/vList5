@@ -1,84 +1,16 @@
 <script lang="ts">
-    import type { AlertOpts, CtxDispOpts, CtxMenuData, MessageOpinion } from '@/env';
-    import { APP_API, DEFAULT_FILE_ICON, FS, Global, loadTree, openFile, reloadTree, size2str, splitPath } from '@/utils';
+    import type { MessageOpinion } from '@/env';
+    import { DEFAULT_FILE_ICON, FS, Global, loadTree, openFile, reloadTree, size2str, splitPath } from '@/utils';
     import { ref, shallowRef, toRaw, watch, type PropType } from 'vue';
-    import Upload from './upload.vue';
     import { upload, type iDir, type iFile, type iMixed } from '@/script/tree';
-
-    import I_NEW from '/icon/new.webp';
-    import I_FOLDER from '/icon/folder.webp';
-    import I_TXT from '/icon/textfile.webp';
-    import I_UPLOAD from '/icon/transmit.webp';
-    import I_REFRESH from '/icon/refresh.webp';
-    import I_CUT from '/icon/cut.webp';
-    import I_COPY from '/icon/copy.webp';
-    import I_PASTE from '/icon/paste.webp';
-    import I_RENAME from '/icon/rename.webp';
-    import I_OPEN from "/icon/open.webp";
-    import I_OPENER from '/icon/opener.webp';
+    import { TREE_REG } from '@/action/tree';
+    import { UI } from '@/App.vue';
 
     export const marked = shallowRef<Array<iMixed>>([]);
     export const markmap = ref<Array<string>>([]);
 
-    interface DisplayCondition{
-        single: boolean,
-        sort: 'file' | 'dir' | 'all',
-        filter?: (file: iMixed[]) => boolean
-    }
-
-    type file_action = 'move'|'copy';
-
-    const ADDITION = [] as Array<[(input: iMixed[]) => CtxMenuData, DisplayCondition]>;
+    // DRAG的口令，用于鉴别
     const DRAG_TOKEN = Math.floor(Math.random() * 100000000).toString(36);
-
-    const FACTION = {
-        marked: [] as Array<iMixed>,
-        action: 'copy' as file_action,
-        async exec(dest: iDir):Promise<boolean|number>{
-            // 异步获取
-            const f = await fetch(APP_API + '?action=' + this.action, {
-                "method": "POST",
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                "body": JSON.stringify({
-                    from: this.marked.map(item => item.path),
-                    to: dest.path
-                })
-            });
-            if(!f.ok){
-                Global('ui.message').call({
-                    "type": "error",
-                    "title": "文件资源管理器",
-                    "content":{
-                        "title": {
-                            'copy': '复制',
-                            'move': '剪切'
-                        }[this.action] + '文件失败',
-                        "content": await f.text()
-                    },
-                    "timeout": 5
-                } satisfies MessageOpinion);
-                return false;
-            }else{
-                reloadTree([dest.path]);
-            }
-            return true;
-        },
-
-        mark(action:file_action,file:Array<iMixed>){
-            this.marked = file;
-            this.action = action;
-        }
-    }
-
-    /**
-     * 注册一个子集菜单
-     * @param item 目录内容
-     * @param cdt 显示此目录的条件
-     */
-    export const register = (item: (input: iMixed[]) => CtxMenuData, cdt: DisplayCondition) => 
-        ADDITION.push([item, cdt]);
 
     let touch = {
         x: 0,
@@ -116,6 +48,21 @@
             focus: {
                 mounted(el: HTMLInputElement){
                     el.select() ;el.focus();
+                }
+            },
+            into: {
+                updated(el:HTMLElement, bind){
+                    if(bind.value){
+                        const pos = el.getBoundingClientRect().y;
+                        if(pos <= UI.fontSize.value * 4.6 || pos >= document.documentElement.clientHeight)
+                            el.scrollIntoView({
+                                'behavior': 'smooth',
+                                'block': 'center'
+                            });
+                        el.classList.add('selected');
+                    }else{
+                        el.classList.remove('selected');
+                    }
                 }
             }
         },
@@ -240,178 +187,12 @@
                 } satisfies MessageOpinion), file.rename = false));
             },
             ctxmenu(fd: iMixed, e: MouseEvent) {
-                const dir = fd.type == 'dir' ? fd : this.data;
                 if (marked.value.length == 0) marked.value = [fd];
-
-                const item = [
-                    {
-                        "text": "创建",
-                        "icon": I_NEW,
-                        "child": [
-                            {
-                                "text": "文件夹",
-                                "icon": I_FOLDER,
-                                handle: () =>
-                                    Global('ui.alert').call({
-                                        "type": "prompt",
-                                        "title": "创建文件夹",
-                                        "message": "请输入文件夹名称",
-                                        callback: (data) =>
-                                            // 创建文件夹
-                                            FS.mkdir(dir.path + data)
-                                                .then(() => loadTree(this.data)),
-                                    } satisfies AlertOpts)
-                            }, {
-                                "text": "文件",
-                                "icon": I_TXT,
-                                handle: () =>
-                                    Global('ui.alert').call({
-                                        "type": "prompt",
-                                        "title": "新建文件",
-                                        "message": "请输入文件名称",
-                                        callback: (data) =>
-                                            // 创建文件夹
-                                            FS.touch(dir.path + data)
-                                                .then(() => loadTree(this.data)),
-                                    } satisfies AlertOpts)
-                            }
-                        ],
-                    }, {
-                        "text": "上传",
-                        "icon": I_UPLOAD,
-                        handle: () => {
-                            Global('ui.window.add').call({
-                                "content": Upload,
-                                "icon": I_UPLOAD,
-                                "name": "上传文件",
-                                "option": dir
-                            });
-                        },
-                    }, {
-                        "text": "刷新",
-                        "icon": I_REFRESH,
-                        handle: () => {
-                            loadTree(this.data)
-                        },
-                    }, '---'
-                ] as Array<CtxMenuData>;
-
-                if (marked.value[0].path != '/')
-                    item.push({
-                        "text": "剪切",
-                        "icon": I_CUT,
-                        handle: () =>
-                            FACTION.mark('move', marked.value)
-                    }, {
-                        "text": "复制",
-                        "icon": I_COPY,
-                        handle: () =>
-                            FACTION.mark('copy', marked.value)
-                    });
-
-                if (marked.value.length == 1) {
-                    item.push({
-                        "text": "粘贴",
-                        "icon": I_PASTE,
-                        handle: async () => {
-                            const dir = marked.value[0].type == 'dir'
-                                ? marked.value[0]
-                                : this.data;
-
-                            // 覆盖提示
-                            try {
-                                if (!dir.child)
-                                    await loadTree(dir);
-                                if (!dir.child) dir.child = [];
-                                const mark = FACTION.marked.map(item => item.name),
-                                    over = dir.child.filter(item => mark.includes(item.name));
-                                if (over.length > 0)
-                                    await new Promise((rs, rj) => Global('ui.alert').call({
-                                        "type": "confirm",
-                                        "title": "覆盖或合并提示",
-                                        "message": "这些文件将会被合并/覆盖\n\n" +
-                                            over.map(item => item.name + '\t' + (item.type == 'dir' ? '文件夹' : size2str(item.size))),
-                                        "callback": rs
-                                    } satisfies AlertOpts));
-                            } catch { }
-
-                            FACTION.exec(dir);
-                        }
-                    });
-                }
-
-                if (marked.value[0].path != '/') {
-                    item.push({
-                        "text": "删除",
-                        "icon": 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" fill="%23b7a6a6" viewBox="0 0 16 16"><path d="M6.5 1h3a.5.5 0 0 1 .5.5v1H6v-1a.5.5 0 0 1 .5-.5ZM11 2.5v-1A1.5 1.5 0 0 0 9.5 0h-3A1.5 1.5 0 0 0 5 1.5v1H2.506a.58.58 0 0 0-.01 0H1.5a.5.5 0 0 0 0 1h.538l.853 10.66A2 2 0 0 0 4.885 16h6.23a2 2 0 0 0 1.994-1.84l.853-10.66h.538a.5.5 0 0 0 0-1h-.995a.59.59 0 0 0-.01 0H11Zm1.958 1-.846 10.58a1 1 0 0 1-.997.92h-6.23a1 1 0 0 1-.997-.92L3.042 3.5h9.916Zm-7.487 1a.5.5 0 0 1 .528.47l.5 8.5a.5.5 0 0 1-.998.06L5 5.03a.5.5 0 0 1 .47-.53Zm5.058 0a.5.5 0 0 1 .47.53l-.5 8.5a.5.5 0 1 1-.998-.06l.5-8.5a.5.5 0 0 1 .528-.47ZM8 4.5a.5.5 0 0 1 .5.5v8.5a.5.5 0 0 1-1 0V5a.5.5 0 0 1 .5-.5Z"/></svg>',
-                        handle: async () => {
-                            try {
-                                await FS.delete(marked.value.map(item => item.path))
-                            } catch (e) {
-                                return Global('ui.message').call({
-                                    'type': 'error',
-                                    'content': {
-                                        'title': '删除失败',
-                                        'content': (e as Error).message
-                                    },
-                                    'title': '文件资源管理器',
-                                    'timeout': 10
-                                } satisfies MessageOpinion)
-                            }
-                            const refdir = [] as Array<string>;
-                            for (const file of marked.value) if (file.type == 'file') {
-                                const dir = splitPath(file)['dir'];
-                                if (!refdir.includes(dir)) refdir.push(dir);
-                            } else {
-                                const slash = file.path.lastIndexOf('/', file.path.length - 2);
-                                refdir.push(file.path.substring(0, slash + 1));
-                            }
-                            // 刷新
-                            reloadTree(refdir);
-                        }
-                    });
-
-                    if (marked.value.length == 1) {
-                        item.push({
-                            "text": "重命名",
-                            "icon": I_RENAME,
-                            handle: () => marked.value[0].rename = true,
-                        });
-                    }
-                }
-
-                if (marked.value.length == 1 && marked.value[0].type == 'file') {
-                    item.push('---', {
-                        "text": "打开",
-                        "icon": I_OPEN,
-                        handle: () => openFile(marked.value[0]),
-                    }, {
-                        "text": "打开方式",
-                        "icon": I_OPENER,
-                        handle() {
-                            Global('opener.chooser.choose').call(marked.value[0])
-                                .then(opener => opener.open(marked.value[0]));
-                        },
-                    });
-                }
-
-                if (ADDITION.length > 0) item.push(
-                    '---',
-                    ...ADDITION.filter(item => {
-                        if (item[1].single && marked.value.length != 1) return false;
-                        if (item[1].sort != 'all') for (const fd of marked.value)
-                            if (fd.type != item[1].sort) return false;
-                        if (item[1].filter && !item[1].filter(marked.value))
-                            return false;
-                        return true;
-                    }).map(item => item[0](marked.value))
-                )
-
-                Global('ui.ctxmenu').call({
-                    "pos_x": e.clientX,
-                    "pos_y": e.clientY,
-                    "content": item
-                } satisfies CtxDispOpts)
+                TREE_REG.display({
+                    x: e.clientX,
+                    y: e.clientY,
+                    indir: this.data
+                })
             }
         }
     }
@@ -423,7 +204,7 @@
         @dragstart.stop="drag_start($event, data)" :draggable="(data).path != '/'" @drop.stop="drag_onto($event, data)"
         @dragover.stop="drag_alert($event, data)"
         @dragleave.stop="($event.currentTarget as HTMLElement).classList.remove('moving')" :title="desc(data as any)"
-        :selected="markmap.includes(data.path)" tabindex="-1">
+        v-into="markmap.includes(data.path)" tabindex="-1">
         <div class="btn-hide" :show="data.show" @click.stop="folder"></div>
         <img :src="data.icon" v-if="data.icon">
         <input v-if="data.rename" :value="data.name"
@@ -448,7 +229,7 @@
                 @click.stop="markup($event, child)" @contextmenu.stop.prevent="ctxmenu(child, $event)"
                 @touchstart.stop="touch_start" @touchmove.stop="touch_move" @touchend.stop="touch_end(child as iFile, $event)"
                 @dblclick.stop="openFile(child as iFile)" @dragstart.stop="drag_start($event, child)" draggable="true"
-                :selected="markmap.includes(child.path)" :process="(child as iFile).status"
+                v-into="markmap.includes(child.path)" :process="(child as iFile).status"
                 :style="{ '--status': (child as iFile).status }" :type="child.type" tabindex="-1"
             >
                 <img :src="child.icon || DEFAULT_FILE_ICON">
@@ -469,6 +250,7 @@
     .vlist {
         display: block;
         pointer-events: all;
+        font-weight: 200;
 
         .moving{
             background-color: rgb(217, 246, 233);
@@ -494,11 +276,11 @@
                 background-color: rgb(44 83 222 / 18%);
             }
             
-            &[selected=true] {
+            &.selected {
                 background-color: rgba(107, 137, 245, 0.3);
             }
 
-            &[selected=true]:focus {
+            &.selected:focus {
                 border-color: rgb(94, 174, 235);
             }
 

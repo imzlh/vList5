@@ -1,7 +1,15 @@
 {
   "files": [],
   "extends": "@vue/tsconfig/tsconfig.dom.json",
-  "include": ["src/env.d.ts", "src/*/*.vue", "src/*.vue", "src/*/*.ts", "src/*.ts", "vendor/*.ts", "config.ts", "src/opener/markdown.vue", "vendor/mkvtool.js", "vendor/mkvsub.ts"],
+  "include": [
+    "src/env.d.ts",
+    "src/*/*.vue",
+    "src/*.vue",
+    "src/*/*.ts",
+    "src/*.ts",
+    "vendor/*.ts",
+    "config.ts",
+  ],
   "exclude": ["src/**/__tests__/*"],
   "compilerOptions": {
     "composite": true,

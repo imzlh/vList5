@@ -252,8 +252,8 @@
             if(!video.value) return;
 
             // 进度调节
-            if(Math.abs(this.moved.xmoved) > Math.abs(this.moved.ymoved) && Math.abs(this.moved.xmoved) > 10)
-                video.value.currentTime += this.moved.xmoved;
+            if(Math.abs(this.moved.xmoved) > Math.abs(this.moved.ymoved) && Math.abs(this.moved.xmoved) > 20)
+                video.value.currentTime += Math.floor(this.moved.xmoved / 10);
 
             // 声音调节
             else if(Math.abs(this.moved.ymoved) > 10)
@@ -263,7 +263,7 @@
                     : (
                         CFG.volume * 100 - this.moved.ymoved < 0
                         ? 0
-                        : Math.floor(CFG.volume - this.moved.ymoved / 100)
+                        : Math.floor(CFG.volume - this.moved.ymoved / 500)
                     );
             
             // 唤起菜单

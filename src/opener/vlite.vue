@@ -74,7 +74,7 @@
 
     // 曲目
     let cur = -1;
-    watch(() => CFG.currentID,n => {
+    watch(() => CFG.currentID, n => {
         if(CFG.playlist.length == 0) return;
         // 最后一个了
         else if(n >= CFG.playlist.length) return CFG.currentID = 0;
@@ -85,27 +85,30 @@
             if(CFG.playlist[n].start) audio.currentTime = CFG.playlist[n].start as number;
             return audio.play();
         }
-        
-        // 刷新播放状态
         cur = n;
+    },{
+        immediate: true
+    });
+    watch(() => CFG.playlist[CFG.currentID],item => {
+        // 刷新播放状态
         CFG.playing = false;
         CFG.totalTime = '-:-';
         CFG.currentTime = '0:00';
         CFG.progress = 0;
         
         // 音频设置
-        if(current.value.path != CFG.playlist[n].path){
-            audio.src = CFG.playlist[n].url;
+        if(current.value.path != item.path){
+            audio.src = item.url;
             audio.load();
         }
-        current.value = CFG.playlist[n];
+        current.value = item;
         
         // cue设置
         if(current.value.start != undefined){
             // 接下来的还是cue
-            if(CFG.playlist[n +1].start){
-                CFG.cue_until = CFG.playlist[n +1].start as number;
-                CFG.totalTime = time2str(CFG.playlist[n +1].start as number - current.value.start);
+            if(CFG.playlist[cur +1].start){
+                CFG.cue_until = CFG.playlist[cur +1].start as number;
+                CFG.totalTime = time2str(CFG.playlist[cur +1].start as number - current.value.start);
             // 直到结束
             }else{
                 CFG.cue_until = -1;
@@ -127,7 +130,7 @@
                 CFG.totalTime = time2str(audio.duration)
             ,{ once: true });
         }
-    },{ immediate: true });
+    });
 
     // 字幕解析
     let runner:Runner|undefined;
@@ -772,9 +775,9 @@
             top: 0;
             bottom: 0;
             overflow-y: auto;
-            width: 50%;
-            min-width: 15rem;
-            max-width: 100vw;
+            width: 50vw;
+            min-width: 10rem;
+            max-width: 15rem;
             padding: 1rem;
             background-color: rgba(255, 255, 255, 0.9);
             z-index: 1000;

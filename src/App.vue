@@ -1,5 +1,5 @@
 <script setup lang="ts">
-	import { onMounted, reactive, ref, watch, type Ref } from 'vue';
+	import { computed, reactive, ref, watch, type Ref } from 'vue';
 	import type { CtxDispOpts, CtxMenuData } from './env';
 	import tabManager from './module/tabs.vue';
 	import Tree from './module/tree.vue';
@@ -16,20 +16,15 @@
 		display: false,
 		x: 0,
 		y: 0
-	}),CONFIG = getConfig('基础'),
-	layout_left = CONFIG['layout.left'] as Ref<number>,
-	layout_total = ref(document.documentElement.clientWidth),
-	layout_displayLeft = ref(true);
+	});
 
-	const tree_active = ref(false);
+	window.addEventListener('resize', () => layout_displayLeft.value = false);
 
-	window.addEventListener('resize',() => (
-		layout_total.value = document.documentElement.clientWidth,
-		layout_displayLeft.value = false
-	));
+	const tree_active = ref(false),
+		layout_displayLeft = ref(false);
 	
-	watch(CONFIG['layout.fontSize'], val => document.documentElement.style.fontSize = val + 'px');
-	document.documentElement.style.fontSize = CONFIG['layout.fontSize'].value + 'px';
+	watch(UIMAIN['layout.fontSize'], val => document.documentElement.style.fontSize = val + 'px');
+	document.documentElement.style.fontSize = UIMAIN['layout.fontSize'].value + 'px';
 
 	Global('ui.ctxmenu').data = function(data:CtxDispOpts){
 		ctxconfig.x = data.pos_x;
@@ -39,12 +34,12 @@
 	}
 
 	function resize(e:PointerEvent){
-		const rawW = layout_left.value;
+		const rawW = UI.filelist_width.value;
 		function rszHandler(ev:PointerEvent){
 			ev.preventDefault();
 			const size = rawW + ev.clientX - e.clientX;
-			if(size < CONFIG['layout.fontSize'].value * 14) return;
-			else layout_left.value = Math.floor(size);
+			if(size < UIMAIN['layout.fontSize'].value * 10) return;
+			else UI.filelist_width.value = Math.floor(size);
 		}
 
 		document.addEventListener('pointermove',rszHandler);
@@ -83,13 +78,29 @@
 			"name": "身份ID",
 			"desc": "用于身份验证，解锁文件系统操作"
 		}
-	])
+	]);
+	const UIMAIN = getConfig('基础'),
+		size_w = ref(document.documentElement.clientWidth),
+		size_h = ref(document.documentElement.clientHeight);
+
+	window.addEventListener('resize',() => (
+		size_w.value = document.documentElement.clientWidth,
+		size_h.value = document.documentElement.clientHeight
+	));
+
+	export const UI = {
+		fontSize: UIMAIN['layout.fontSize'] as Ref<number>,
+		width_total: size_w,
+		height_total: size_h,
+		app_width: computed(() => size_w.value - UIMAIN['layout.left'].value -3),
+		filelist_width: UIMAIN['layout.left'] as Ref<number>
+	};
 </script>
 
 <template>
 	<!-- 左侧文件 -->
 	<div class="left" :style="{ 
-		width: layout_left -3 + 'px', 
+		width: UI.filelist_width.value + 'px', 
 		left: layout_displayLeft ? '1rem' : '-200vw' 
 	}">
 		<div class="h">
@@ -110,7 +121,7 @@
 	<!-- 调节大小 -->
 	<div class="resizer" @pointerdown.prevent="resize"></div>
 	<!-- 右侧 -->
-	<div class="right" :style="{ width: layout_total - layout_left + 'px' }">
+	<div class="right" :style="{ width: UI.app_width.value + 'px' }">
 		<tabManager ref="tabs" />
 		<!-- 右键 -->
 		<div class="ctx-mask-layer" v-show="ctxconfig.display" 
@@ -145,7 +156,7 @@
 	body {
 		margin: 0;
 		overflow: hidden;
-		font-family: 'Open Sans','Clear Sans','Helvetica Neue','Helvetica','Arial','sans-serif';
+		font-family: unset !important;
 		
 		//  兼容移动端100svh
 		position: fixed;
