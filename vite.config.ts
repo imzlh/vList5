@@ -17,17 +17,23 @@ export default defineConfig({
         rollupOptions: {
             output:{
                 manualChunks(id) {
-                    // prisma
-                    if(id.includes('prism')) return 'prism';
+                    // core
+                    if(
+                        (!id.includes('node_modules') || ['vue'].some(item => id.includes(item)))
+                        && !['markdown.vue', 'aplayer.vue', 'artplayer.vue', 'vscode.vue'].some(item => id.includes(item))
+                    ) return 'main';
                     // monaco
-                    if(id.includes('/node_modules/') && id.includes('monaco-editor'))
+                    if(id.includes('monaco-editor') || id.includes('vscode.vue'))
                         return 'vscode';
                     // muya
-                    if(id.includes('/node_modules/') && id.includes('muya'))
+                    if(id.includes('muya') || id.includes('markdown.vue'))
                         return 'muya';
-                }
-            }
-        }
+                    else if(id.includes('prism'))
+                        return 'prism';
+                },
+            },
+        },
+        chunkSizeWarningLimit: 1000
     },
     base: './'
 });

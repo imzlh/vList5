@@ -16,8 +16,6 @@ import Vplayer from './opener/vplayer.vue';
 import Vlite from '@/opener/vlite.vue';
 import FontView from '@/opener/font-view.vue';
 import Hex from '@/opener/hex.vue';
-import Vscode from '@/opener/vscode.vue';
-import Markdown from '@/opener/markdown.vue';
 
 export const OPENER:Array<OpenerOption> = [
     // Monaco-Editor(VsCode)
@@ -56,7 +54,7 @@ export const OPENER:Array<OpenerOption> = [
                 } satisfies MessageOpinion);
             else
                 Global('ui.window.add').call({
-                    "content": Vscode,
+                    "content": (await import('@/opener/vscode.vue')).default,
                     "icon": I_VSCODE,
                     "name": file.name + " - VSCode",
                     "option": file
@@ -75,7 +73,7 @@ export const OPENER:Array<OpenerOption> = [
         ],
         async open(file) {
             Global('ui.window.add').call({
-                "content": Markdown,
+                "content": (await import ('@/opener/markdown.vue')).default,
                 "icon": I_MUYA,
                 "name": file.name + " - Muya",
                 "option": file

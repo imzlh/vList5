@@ -10,3 +10,4 @@ export const APP_API = import.meta.env.DEV
 export const FILE_PROXY_SERVER = import.meta.env.DEV 
     ? 'http://192.168.1.1:81/' 
     : '';
+export const APP_ROOT = location.protocol + '//' + location.host + location.pathname;

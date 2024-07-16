@@ -905,9 +905,9 @@
                         right: -.5rem;
                         height: 1rem;
                         width: 1rem;
-                        border-radius: 0.5rem;
+                        border-radius: 1rem;
                         background-color: white;
-                        border: solid 2px gray;
+                        border: solid .05rem gray;
                     }
                 }
 
