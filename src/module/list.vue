@@ -12,7 +12,7 @@
             },
             mode: {
                 required: false,
-                default: 'list',
+                default: 'view',
                 type: String
             },
             layout: {
@@ -44,8 +44,8 @@
                 return _prop.list.filter(item => item.type == 'dir')
                     .concat((_prop.list.filter(item => item.type == 'file') as Array<vFile>).sort((a, b) => a.size - b.size))
             if(layout.orderBy == 'size_rev')
-                return _prop.list.filter(item => item.type == 'dir')
-                    .concat((_prop.list.filter(item => item.type == 'file') as Array<vFile>).sort((a, b) => b.size - a.size))
+                return (_prop.list.filter(item => item.type == 'file') as Array<vFile>).sort((a, b) => b.size - a.size)
+                    .concat(_prop.list.filter(item => item.type == 'dir') as any);
             return _prop.list
         }),
         select = shallowReactive({
@@ -59,8 +59,6 @@
         list_element = ref<Array<HTMLElement>>([]),
         data = ref<HTMLDivElement>(),
         event = defineEmits(['open','ctxmenu','select','clear','ctxroot']);
-
-        watch(() => layout.orderBy, e => console.log(e))
 
     // 改变文件内容时清空
     watch(() => _prop.list,() => (
@@ -230,10 +228,10 @@
                     <template v-for="(item, i) in ['名称', '修改时间', '大小']">
                         <th class="name" :style="{ width: layout.table[i] + '%' }"
                             :active="Math.floor(_modes.indexOf(layout.orderBy) / 2) == i"
-                            @click="layout.orderBy = layout.orderBy == _modes[i *2 +1] ? _modes[i *2] : _modes[i *2 +1] as any"
+                            @pointerdown.stop.prevent="layout.orderBy = layout.orderBy == _modes[i *2 +1] ? _modes[i *2] : _modes[i *2 +1] as any"
                         >
                             {{ item }}
-                            <div class="resizer" @pointerdown.prevent="resizeTab($event, i)"></div>
+                            <div class="resizer" @pointerdown.stop="resizeTab($event, i)"></div>
                         </th>
                     </template>
                 </tr>

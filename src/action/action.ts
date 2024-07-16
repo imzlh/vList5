@@ -1,23 +1,18 @@
 import type { MessageOpinion } from "@/env";
-import { APP_API, Global, reloadTree, type iDir, type iMixed } from "@/utils";
+import { APP_API, FS, Global, reloadTree, splitPath, type iDir, type iMixed } from "@/utils";
 
 // 文件操作
 export const FACTION = {
     marked: [] as Array<iMixed>,
     action: 'copy' as 'copy' | 'move',
     async exec(dest: iDir): Promise<boolean | number> {
-        // 异步获取
-        const f = await fetch(APP_API + '?action=' + this.action, {
-            "method": "POST",
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            "body": JSON.stringify({
+        try{
+            await FS.__request(this.action, {
                 from: this.marked.map(item => item.path),
                 to: dest.path
-            })
-        });
-        if (!f.ok) {
+            });
+            await reloadTree([... this.marked.map(item => splitPath(item).dir), dest.path]);
+        }catch(e){
             Global('ui.message').call({
                 "type": "error",
                 "title": "文件资源管理器",
@@ -26,13 +21,11 @@ export const FACTION = {
                         'copy': '复制',
                         'move': '剪切'
                     }[this.action] + '文件失败',
-                    "content": await f.text()
+                    "content": (e as Error).message
                 },
                 "timeout": 5
             } satisfies MessageOpinion);
             return false;
-        } else {
-            reloadTree([dest.path]);
         }
         return true;
     },

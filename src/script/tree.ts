@@ -46,9 +46,10 @@ export async function upload(e: FileList | Array<File> | DragEvent | boolean, to
 
         // 遍历
         const TREE = [] as Array<File>;
-        async function add_to_tree(entry: FileSystemDirectoryEntry | FileSystemEntry, parent: FileSystemDirectoryEntry) {
+        async function add_to_tree(entry: FileSystemDirectoryEntry | FileSystemEntry, parent?: FileSystemDirectoryEntry) {
             if (entry.isFile){
-                const file = await new Promise((rs, rj) => parent.getFile(entry.fullPath, undefined, r => (r as FileSystemFileEntry).file(rs, rj), rj)) as xFile;
+                if(!parent) parent = await new Promise((rs, rj) => entry.getParent(rs as any, rj));
+                const file = await new Promise((rs, rj) => (parent as FileSystemDirectoryEntry).getFile(entry.fullPath, undefined, r => (r as FileSystemFileEntry).file(rs, rj), rj)) as xFile;
                 file.fullpath = entry.fullPath;
                 TREE.push(file);
             }else {
@@ -70,11 +71,12 @@ export async function upload(e: FileList | Array<File> | DragEvent | boolean, to
         }
 
         // 遍历为{文件：文件对象}
-        for (const item of e.dataTransfer.items) {
-            const entry = item.webkitGetAsEntry(),
-                file = item.getAsFile();
-            if(!entry && file && file.size > 4096) TREE.push(file);
-            else if(entry) await add_to_tree(entry, await new Promise((rs, rj) => entry.getParent(r => rs(r as FileSystemDirectoryEntry), rj)));
+        const root = e.dataTransfer.items[0].webkitGetAsEntry()?.filesystem.root;
+        if(root) await add_to_tree(root, root);
+        else for (const item of e.dataTransfer.items) {
+            const entry = item.webkitGetAsEntry();
+            if(!entry) continue;
+            await add_to_tree(entry);
         }
 
         e = TREE;
@@ -287,17 +289,17 @@ export async function loadTree(input: vDir){
 }
 
 export function reloadTree(dir:Array<string>){
-    function subTree(tree:vDir){
+    async function subTree(tree:vDir){
         // 当前目录需要刷新
         if(dir.includes(tree.path ))
-            loadTree(tree);
+            await loadTree(tree);
 
         // 遍历子元素
         if(tree.child)
             for (const fd of tree.child)
                 if(fd.type == 'dir') subTree(fd);
     }
-    subTree(TREE);
+    return subTree(TREE);
 }
 
 export function getTree(dir: string):vDir | undefined{

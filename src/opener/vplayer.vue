@@ -3,7 +3,7 @@
     import { regSelf } from '@/opener';
     import { FS, Global, clipFName, regConfig, splitPath } from '@/utils';
     import ASS from 'assjs';
-    import { onMounted, onUnmounted, shallowReactive, shallowRef, watch } from 'vue';
+    import { nextTick, onMounted, onUnmounted, shallowReactive, shallowRef, watch } from 'vue';
     // import { extract } from '../../vendor/mkvtool';
     // import type { mkvFile } from 'vendor/mkvtool';
 
@@ -57,7 +57,9 @@
             // 显示字幕
             disp_sub: true,
             // 操作提示
-            action: ''
+            action: '',
+            // 字母偏移
+            sub_offset: '0'
         }),
         video = shallowRef<HTMLVideoElement>(),
         cached = shallowRef<Array<[number,number]>>([]),
@@ -103,50 +105,98 @@
 
     // 字幕监听
     let ass:ASS|undefined;
-    function load_sub(sub: subOption,then: (ass:ASS) => any){
-        if(sub.url){
-            const xhr = new XMLHttpRequest();
-            xhr.open('GET',sub.url);
-            xhr.send();
-            xhr.onload = () => then(ass = new ASS(xhr.responseText,video.value as HTMLVideoElement));
-            xhr.onerror = () => CFG.alert = '加载字幕失败';
-        }else{
-            ass = new ASS(sub.text as string ,video.value as HTMLVideoElement)
-        }
+    function load_sub(sub: subOption):Promise<ASS>{
+        return new Promise(function(rs, rj){
+            if(sub.url){
+                const xhr = new XMLHttpRequest();
+                xhr.open('GET',sub.url);
+                xhr.send();
+                xhr.onload = () => rs(ass = new ASS(xhr.responseText,video.value as HTMLVideoElement));
+                xhr.onerror = () => rj(CFG.alert = '加载字幕失败');
+            }else{
+                ass = new ASS(sub.text as string ,video.value as HTMLVideoElement)
+            }
+        });
     }
+
+    // 切换字幕
     watch(() => CFG.subtitle[CFG.sub_current],function(val:subOption){
-        if(val.sub_type == 'vtt') return;
-        if(ass) ass.destroy();
-        if(CFG.disp_sub) load_sub(val,() => CFG.alert = '字幕加载成功');
+        if(!val) return;
+        if(val.sub_type == 'vtt') return ass && ass.hide();
+        else if(CFG.disp_sub) load_sub(val) .then(() => CFG.alert = '字幕加载成功');
+
+        // 偏移设置
+        if(CFG.sub_offset)
+            requestAnimationFrame(() => init_sub_delay(parseFloat(CFG.sub_offset), parseFloat(CFG.sub_offset)));
     });
+
+    // 调整字幕显示状况
     watch(() => CFG.disp_sub,function(val){
-        if(!CFG.subtitle[CFG.sub_current] || CFG.subtitle[CFG.sub_current].sub_type == 'vtt') return;
-        if(!ass) load_sub(CFG.subtitle[CFG.sub_current],
-            ass => val ? ass.show() : ass.hide()
-        );
-        else val ? ass.show() : ass.hide();
+        if(!CFG.subtitle[CFG.sub_current]) return;
+
+        // ASS需要初始化
+        if(CFG.subtitle[CFG.sub_current].sub_type == 'ass'){
+            // 初始化：加载偏移
+            if(!ass){
+                load_sub(CFG.subtitle[CFG.sub_current]).then(
+                    ass => val ? ass.show() : ass.hide()
+                );
+                // 偏移设置
+                if(CFG.sub_offset)
+                    init_sub_delay(parseFloat(CFG.sub_offset), parseFloat(CFG.sub_offset));
+            // 调整显隐性
+            }else{
+                val ? ass.show() : ass.hide();
+            }
+        }
+
+        // 偏移设置
+        else if(CFG.sub_offset)
+            init_sub_delay(parseFloat(CFG.sub_offset), parseFloat(CFG.sub_offset));
     });
 
     // 曲目
-    watch(() => CFG.current,function(n){
+    watch(() => CFG.playlist[CFG.current],function(val){
+        // 判断
         if(!video.value) return;
-        // 最后一个了
-        if(n >= CFG.playlist.length) return CFG.current = 0;
-        // 第一个了
-        else if(n < 0) return CFG.current = CFG.playlist.length -1;
+        if(!val)
+            // 最后一个了
+            if(CFG.current >= CFG.playlist.length) return CFG.current = 0;
+            // 第一个了
+            else if(CFG.current < 0) return CFG.current = CFG.playlist.length -1;
+
         // 刷新播放状态
         CFG.playing = false;
         CFG.timetotal = '-:-';
         CFG.time = '0:00';
         CFG.timeprog = 0;
         // 字幕设置
-        CFG.subtitle = CFG.playlist[CFG.current].subtitle;
+        CFG.subtitle = val.subtitle;
         if(CFG.subtitle.length > 0) CFG.sub_current = 0;
         else CFG.sub_current = -1;
         // 视频设置
-        video.value.src = CFG.playlist[CFG.current].url;
+        video.value.src = val.url;
         video.value.play();
     },{ immediate: true });
+
+    function init_sub_delay(time: number, changed: number){
+        if(!video.value) return;
+        if(CFG.subtitle[CFG.sub_current].sub_type == 'vtt'){
+            const tracks = video.value.textTracks[0].cues;
+            if(!tracks) return;
+            for (let i = 0; i < tracks.length; i++)
+                tracks[i].startTime += changed,
+                tracks[i].endTime += changed;
+        }else if(ass){
+            ass.delay = time;
+        }
+    }
+
+    // 偏移时间
+    watch(() => CFG.sub_offset, (val, old) => {
+        if(!CFG.subtitle[CFG.sub_current] || !CFG.disp_sub || val == old) return;
+        init_sub_delay(parseFloat(val), parseFloat(val) - parseFloat(old));
+    })
 
     onMounted(function(){
         if(!video.value || !container.value) return;
@@ -156,9 +206,9 @@
         container.value.onfullscreenchange = () => CFG.fullscreen = document.fullscreenElement == container.value;
 
         function time2str(time:number){
-            var min = Math.floor(time/60),
-                sec = time%60;
-            return (min < 10 ? '0' + min : min) + ':' + (sec < 10 ? '0' + sec.toFixed() : sec.toFixed());
+            const min = Math.floor(time / 60),
+                sec = Math.floor(time % 60);
+            return min.toString().padStart(2, '0') + ':' + sec.toString().padStart(2, '0');
         }
 
         vid.onpause = () => CFG.playing = false;
@@ -462,7 +512,7 @@
         >
             <video ref="video">
                 <track :default="CFG.disp_sub" v-if="CFG.subtitle[CFG.sub_current] && CFG.subtitle[CFG.sub_current].sub_type == 'vtt'"
-                    kind="subtitle" lang="zh" :src="CFG.subtitle[CFG.sub_current].url">
+                    kind="captions" label="vtt sub" :src="CFG.subtitle[CFG.sub_current].url" />
             </video>
         </div>
         <!-- 顶部 -->
@@ -594,6 +644,15 @@
                             </svg>
                             <span>显示字幕</span>
                         </div>
+                        <div v-if="CFG.disp_sub" :title="CFG.sub_offset + 's'">
+                            <svg viewBox="0 0 16 16">
+                                <path fill-rule="evenodd" d="M7.646.146a.5.5 0 0 1 .708 0l2 2a.5.5 0 0 1-.708.708L8.5 1.707V5.5a.5.5 0 0 1-1 0V1.707L6.354 2.854a.5.5 0 1 1-.708-.708l2-2zM8 10a.5.5 0 0 1 .5.5v3.793l1.146-1.147a.5.5 0 0 1 .708.708l-2 2a.5.5 0 0 1-.708 0l-2-2a.5.5 0 0 1 .708-.708L7.5 14.293V10.5A.5.5 0 0 1 8 10zM.146 8.354a.5.5 0 0 1 0-.708l2-2a.5.5 0 1 1 .708.708L1.707 7.5H5.5a.5.5 0 0 1 0 1H1.707l1.147 1.146a.5.5 0 0 1-.708.708l-2-2zM10 8a.5.5 0 0 1 .5-.5h3.793l-1.147-1.146a.5.5 0 0 1 .708-.708l2 2a.5.5 0 0 1 0 .708l-2 2a.5.5 0 0 1-.708-.708L14.293 8.5H10.5A.5.5 0 0 1 10 8z"/>
+                            </svg>
+                            <span class="has_input">
+                                <div>字幕偏移 ({{ CFG.sub_offset }}s)</div>
+                                <input type="range" min="-5" max="5" step="0.1" v-model="CFG.sub_offset" />
+                            </span>
+                        </div>
                     </div>
                 </div>
                 <!--倍速-->
@@ -646,7 +705,7 @@
                         <div v-for="(sub, i) in CFG.subtitle" :active="CFG.sub_current == i"
                             @click.stop="CFG.sub_current = i"
                         >
-                            <span>{{ sub.name }}</span>
+                            <span>{{ sub.name }} ({{ sub.sub_type }})</span>
                         </div>
                     </div>
                 </div>
@@ -688,6 +747,7 @@
             display: inline-block;
             max-width: 100%;max-height: 100%;
             width: auto !important;height: auto !important;
+            position: relative;
 
             // 'auto' | 'width' | 'height' | 'full'
             &[width=width]{
@@ -719,13 +779,14 @@
                 }
             }
        
-            > *{
+            > *:not(video){
                 pointer-events: none;
-                position: absolute;top: 0;left: 0;
+                position: absolute !important;
+                top: 50% !important;left: 50% !important;
+                transform: translate(-50%, -50%);
             }
 
             > video{
-                position: static;
                 width: 100%;height: 100%;
             }
         }
@@ -931,6 +992,21 @@
                             fill: white;
                         }
 
+                        &:hover span.has_input {
+                            &::before {
+                                content: '';
+                            }
+
+                            >div {
+                                // text-indent: .5rem;
+                                display: none;
+                            }
+
+                            >input {
+                                display: block;
+                            }
+                        }
+
                         > span{
                             flex-grow: 1;
                             color: white;
@@ -938,7 +1014,26 @@
                             text-overflow: ellipsis;
                             overflow: hidden;
                             white-space: nowrap;
+                            position: relative;
                             /*word-break: break-all;*/
+
+                            &.has_input{
+                                &::before{
+                                    position: absolute;
+                                    width: .25rem;
+                                    height: 1rem;
+                                    border-radius: .2rem;
+                                    background-color: rgba(85, 255, 190, 0.6);
+                                    left: 50%;
+                                    top: 0
+                                }
+
+                                > input{
+                                    display: none;
+                                    width: 100%;
+                                    opacity: .6;
+                                }
+                            }
                         }
                     
                         &:hover{
