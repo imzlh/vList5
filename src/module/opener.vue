@@ -1,7 +1,7 @@
 <script setup lang="ts">
-    import type { OpenerOption, vFile } from '@/env';
+    import type { vFile } from '@/env';
     import { Global, splitPath } from '@/utils';
-    import { reactive, watch } from 'vue';
+    import { reactive } from 'vue';
     import { OPENER } from '@/opener';
 
     const cfg = reactive({

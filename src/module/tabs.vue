@@ -1,7 +1,7 @@
 <script setup lang="ts">
-	import type { CtxDispOpts, CtxMenuData, TabWindow } from '@/env';
+	import type { CtxDispOpts, TabWindow } from '@/env';
 	import { Global } from '@/utils';
-	import { ref, watch, defineProps, type Ref, reactive, toRaw } from 'vue';
+	import { ref, reactive, toRaw } from 'vue';
 	import I_OFF from "/icon/off.webp";
 
 	const tabs = reactive<Array<TabWindow>>([]),

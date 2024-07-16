@@ -1,6 +1,6 @@
 <script setup lang="ts">
     import { UI } from '@/App.vue';
-    import type { FileOrDir, vDir, vFile } from '@/env';
+    import type { FileOrDir, vFile } from '@/env';
     import { DEFAULT_DIR_ICON, DEFAULT_FILE_ICON, size2str, type iMixed } from '@/utils';
     import { computed, reactive, ref, shallowReactive, watch } from 'vue';
 

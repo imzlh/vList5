@@ -1,14 +1,12 @@
 
 <script setup lang="ts">
-    import type { CtxMenuData, FileOrDir, vDir, vFile } from '@/env';
+    import type { FileOrDir, vDir } from '@/env';
     import { computed, reactive, ref, watch, type Ref } from 'vue';
     import List from './list.vue';
     import { FACTION, FS, Global, getConfig, getTree, loadPath, loadTree, openFile, regConfig, reloadTree, splitPath, type iDir, type iMixed } from '@/utils';
     import { marked, markmap } from './tree.vue';
-    import I_OPEN from '/icon/open.webp';
     import { UI } from '@/App.vue';
     import { EXP_REG } from '@/action/explorer';
-import { idText } from 'typescript';
 
     defineOptions({
         inheritAttrs: false

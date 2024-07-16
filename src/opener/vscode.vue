@@ -97,13 +97,13 @@
     // 初始化
     onMounted(async () => {
         // 初始化coder
-        const coder = monaco.editor.create(element.value as HTMLElement,SETTING);
+        const coder = editor.create(element.value as HTMLElement,SETTING);
 
         // 定义销毁事件
         onUnmounted(() => coder.dispose());
 
         // 添加命令
-        coder.addCommand(monaco.KeyCode.F5,function(){
+        coder.addCommand(KeyCode.F5,function(){
             fetch(file.url)
                 .then(res => res.text())
                 .then(txt => coder.setValue(txt));
@@ -133,7 +133,7 @@
             "label": "vList: 刷新",
             "contextMenuOrder": 1,
             "keybindings": [
-                monaco.KeyCode.F5
+                KeyCode.F5
             ],
             run() {
                 fetch(file.url)
@@ -170,7 +170,7 @@
 </template>
 
 <script lang="ts">
-    import * as monaco from 'monaco-editor';
+    import { KeyCode, editor } from 'monaco-editor/';
 
     regConfig('vscode',[
         {
@@ -455,7 +455,7 @@
     const CFG = getConfig('vscode');
     watch(
         CFG['theme'],
-        res => monaco.editor.setTheme(res)
+        res => editor.setTheme(res)
     );
     
     // 设置monaco

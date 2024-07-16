@@ -3,11 +3,7 @@
     import { upload, type iFile } from '@/script/tree';
 
     import type { vDir } from '@/env';
-import { getIcon } from '@/script/icon';
-
-    const S_ERROR = 0,
-        S_SUCCESS = 1,
-        S_PROGRESS = 2;
+    import { getIcon } from '@/script/icon';
 
     const prop = defineProps(['option']),
         dir = prop['option'] as vDir,
@@ -42,8 +38,7 @@ import { getIcon } from '@/script/icon';
                 <span class="name">{{ item.name }}</span>
                 <div :style="{
                     width: (item.status || 100) + '%',
-                    backgroundColor: item.status == undefined ? '#d9f7de' : '#efefef',
-                    opacity: item.status == S_ERROR ? .6 : 1
+                    backgroundColor: item.status == undefined ? '#d9f7de' : '#efefef'
                 }"></div>
             </div>
             <div class="default" v-if="eque.length == 0">

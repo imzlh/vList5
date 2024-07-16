@@ -10,6 +10,14 @@ import I_MUYA from '/app/muya.webp';
 import I_VPLAYER from '/app/vplayer.webp';
 import I_IMAGER from '/app/imager.webp';
 import I_DESIGNER from '/app/desginer.webp';
+import Imager from './opener/imager.vue';
+import Browser from './opener/browser.vue';
+import Vplayer from './opener/vplayer.vue';
+import Vlite from '@/opener/vlite.vue';
+import FontView from '@/opener/font-view.vue';
+import Hex from '@/opener/hex.vue';
+import Vscode from '@/opener/vscode.vue';
+import Markdown from '@/opener/markdown.vue';
 
 export const OPENER:Array<OpenerOption> = [
     // Monaco-Editor(VsCode)
@@ -48,7 +56,7 @@ export const OPENER:Array<OpenerOption> = [
                 } satisfies MessageOpinion);
             else
                 Global('ui.window.add').call({
-                    "content": (await import('@/opener/vscode.vue')).default,
+                    "content": Vscode,
                     "icon": I_VSCODE,
                     "name": file.name + " - VSCode",
                     "option": file
@@ -67,7 +75,7 @@ export const OPENER:Array<OpenerOption> = [
         ],
         async open(file) {
             Global('ui.window.add').call({
-                "content": (await import('@/opener/markdown.vue')).default,
+                "content": Markdown,
                 "icon": I_MUYA,
                 "name": file.name + " - Muya",
                 "option": file
@@ -92,7 +100,7 @@ export const OPENER:Array<OpenerOption> = [
         ],
         async open(file) {
             Global('ui.window.add').call({
-                "content": (await import('@/opener/imager.vue')).default,
+                "content": Imager,
                 "icon": I_IMAGER,
                 "name": "imgViewer",
                 "option": file
@@ -111,7 +119,7 @@ export const OPENER:Array<OpenerOption> = [
         ],
         async open(file) {
             Global('ui.window.add').call({
-                "content": (await import('@/opener/browser.vue')).default,
+                "content": Browser,
                 "icon": I_CHROME,
                 "name": file.name + " - Chrome",
                 "option": file
@@ -137,7 +145,7 @@ export const OPENER:Array<OpenerOption> = [
         ],
         async open(file) {
             Global('ui.window.add').call({
-                "content": (await import('@/opener/vplayer.vue')).default,
+                "content": Vplayer,
                 "icon": I_VPLAYER,
                 "name": "vPlayer",
                 "option": file
@@ -163,7 +171,7 @@ export const OPENER:Array<OpenerOption> = [
         ],
         async open(file) {
             Global('ui.window.add').call({
-                "content": (await import('@/opener/vlite.vue')).default,
+                "content": Vlite,
                 "icon": I_VLITE,
                 "name": "vLite",
                 "option": file
@@ -186,7 +194,7 @@ export const OPENER:Array<OpenerOption> = [
         ],
         async open(file) {
             Global('ui.window.add').call({
-                "content": (await import('@/opener/font-view.vue')).default,
+                "content": FontView,
                 "icon": I_DESIGNER,
                 "name": "Font-" + clipFName(file,20),
                 "option": file
@@ -205,7 +213,7 @@ export const OPENER:Array<OpenerOption> = [
         ],
         async open(file) {
             Global('ui.window.add').call({
-                "content": (await import('@/opener/hex.vue')).default,
+                "content": Hex,
                 "icon": I_HEX,
                 "name": "Hex-" + clipFName(file,20),
                 "option": file
