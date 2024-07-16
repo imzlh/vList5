@@ -1,5 +1,5 @@
 <script lang="ts">
-    import type { MessageOpinion } from '@/env';
+    import type { MessageOpinion, vDir } from '@/env';
     import { DEFAULT_FILE_ICON, FS, Global, loadTree, openFile, reloadTree, size2str, splitPath } from '@/utils';
     import { ref, shallowRef, toRaw, watch, type PropType } from 'vue';
     import { upload, type iDir, type iFile, type iMixed } from '@/script/tree';
@@ -80,13 +80,13 @@
                 touch.mx = ev.touches[0].clientX,
                 touch.my = ev.touches[0].clientY;
             },
-            touch_end(file: iFile, el: TouchEvent){
+            touch_end(file: iMixed, el: TouchEvent){
                 if(Math.abs(touch.mx - touch.x) > 10 || Math.abs(touch.my - touch.y) > 10) return;
                 el.preventDefault();
 
                 marked.value = [file];
 
-                if(new Date().getTime() - touch.time <= 600) openFile(file);
+                if(new Date().getTime() - touch.time <= 600) file.type == 'dir' ? this.folder(file) : openFile(file);
                 else this.ctxmenu(file, new MouseEvent('contextmenu', {
                     "clientX": touch.mx,
                     "clientY": touch.my
@@ -162,13 +162,14 @@
                     markmap.value = [self.path];
                 }
             },
-            folder(){
-                if(this.data.locked) this.data.show = true
-                else if(this.data.child) this.data.show = !this.data.show;
+            folder(dir?:iDir){
+                dir = dir || this.data;
+                if(dir.locked) dir.show = true
+                else if(dir.child) dir.show = !dir.show;
                 else{
-                    loadTree(this.data as any)
-                        .then(() => this.data.locked = false);
-                    this.data.locked = this.data.show = true;
+                    loadTree(dir as any)
+                        .then(() => dir.locked = false);
+                        dir.locked = dir.show = true;
                 }
             },
             rename(file: iMixed, val: string){
@@ -204,8 +205,10 @@
         @dragstart.stop="drag_start($event, data)" :draggable="(data).path != '/'" @drop.stop="drag_onto($event, data)"
         @dragover.stop="drag_alert($event, data)"
         @dragleave.stop="($event.currentTarget as HTMLElement).classList.remove('moving')" :title="desc(data as any)"
-        v-into="markmap.includes(data.path)" tabindex="-1">
-        <div class="btn-hide" :show="data.show" @click.stop="folder"></div>
+        @touchstart.stop="touch_start" @touchmove.stop="touch_move" @touchend.stop="touch_end(data, $event)"
+        v-into="markmap.includes(data.path)" tabindex="-1"
+    >
+        <div class="btn-hide" :show="data.show" @click.stop="folder()"></div>
         <img :src="data.icon" v-if="data.icon">
         <input v-if="data.rename" :value="data.name"
             @change="rename(data, ($event.currentTarget as HTMLInputElement).value)"

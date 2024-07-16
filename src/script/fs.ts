@@ -39,25 +39,17 @@ function base64_encode(buf: ArrayBuffer){
  * @returns 加密后的信息
  */
 export async function encrypto(ctxlen: number, pass: string, content: string):Promise<string>{
-    // 验证时间有效性: 10s内
-    const timestrap = Date.now() / 1000;
-    let timecode = Math.floor(timestrap / 10);
-    if(timestrap % 10 > 5)
-        timecode += 1;
-
     // 打乱pass，验证消息有效性
-    const pass_code = new TextEncoder().encode(pass),
-        encrypto = timecode & ctxlen;
-    let safeCode = 0;
+    const pass_code = new TextEncoder().encode(pass);
+    if(ctxlen < 1000) ctxlen *= ctxlen;
     for (let i = 0; i < pass_code.length; i++) 
-        safeCode += (pass_code[i] << (4 * i % 4)) & (pass_code[i] >> 4);
-    const hmac_key = (safeCode ^ encrypto).toString(20);
+        pass_code[i] &= ctxlen >> (i % 4);
 
     // hmac+sha1加密
     if(crypto.subtle){
         const hmac = await crypto.subtle.importKey(
             'raw', 
-            new TextEncoder().encode(hmac_key),
+            pass_code,
             {
                 "name": "HMAC",
                 "hash": "SHA-1"
@@ -67,11 +59,10 @@ export async function encrypto(ctxlen: number, pass: string, content: string):Pr
         );
         var value = await crypto.subtle.sign('HMAC', hmac, new TextEncoder().encode(content));
     }else{
-        const sha = new SHA('SHA-256', 'TEXT', {
+        const sha = new SHA('SHA-1', 'TEXT', {
             'hmacKey': {
-                'encoding': 'UTF8',
-                'format': 'TEXT',
-                'value': hmac_key
+                'format': 'UINT8ARRAY',
+                'value': pass_code
             }
         });
         sha.update(content);

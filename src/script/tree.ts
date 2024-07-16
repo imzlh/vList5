@@ -71,9 +71,10 @@ export async function upload(e: FileList | Array<File> | DragEvent | boolean, to
 
         // 遍历为{文件：文件对象}
         for (const item of e.dataTransfer.items) {
-            const entry = item.webkitGetAsEntry();
-            if(!entry) continue;
-            await add_to_tree(entry, await new Promise((rs, rj) => entry.getParent(r => rs(r as FileSystemDirectoryEntry), rj)));
+            const entry = item.webkitGetAsEntry(),
+                file = item.getAsFile();
+            if(!entry && file && file.size > 4096) TREE.push(file);
+            else if(entry) await add_to_tree(entry, await new Promise((rs, rj) => entry.getParent(r => rs(r as FileSystemDirectoryEntry), rj)));
         }
 
         e = TREE;

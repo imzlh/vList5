@@ -326,12 +326,13 @@ import { idText } from 'typescript';
             background-color: #f6f3f3;
             position: absolute;
             width: 100%;
+            box-sizing: border-box;
             display: flex;
-            gap: .35rem;
-            padding: 2.5rem .35rem .35rem .35rem;
+            gap: 0.35rem;
+            padding: 2.5rem 0.35rem 0.35rem 0.35rem;
             align-items: center;
-            // overflow-y: auto;
             position: relative;
+            flex-wrap: wrap;
 
             > .btn {
                 padding: .35rem;

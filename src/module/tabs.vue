@@ -80,6 +80,8 @@
 
 
 <style lang="scss">
+	@import '../public/icon.scss';
+
 	.tab {
 		padding: .45rem;
 		display: flex;
@@ -114,7 +116,7 @@
 			cursor: pointer;
 			transition: all .2s;
 			position: relative;
-			font-size: .9rem;
+			font-size: .85rem;
 
 			&[active=true]::before {
 				content: '';
@@ -131,11 +133,26 @@
 				background-color: #edeaea;
 			}
 
+			&:hover > i.close{
+				display: block;
+			}
+
 			>img {
 				height: 1em;
 				width: 1em;
 				margin: 0 .35em;
 				transform: scale(1.2) translateY(15%);
+			}
+
+			>i.close{
+				display: none;
+				content: $icon_close;
+				width: 1rem;
+				height: 1rem;
+
+				position: absolute;
+				right: .35rem;
+				top: .5rem;
 			}
 		}
 	}
