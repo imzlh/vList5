@@ -1,8 +1,8 @@
 <script setup lang="ts">
-	import { computed, reactive, ref, watch, type Ref } from 'vue';
+	import { computed, onMounted, reactive, ref, watch, type Ref } from 'vue';
 	import type { CtxDispOpts, CtxMenuData } from './env';
 	import tabManager from './module/tabs.vue';
-	import Tree from './module/tree.vue';
+	import Tree, { updated } from './module/tree.vue';
 	import CtxMenu from './module/ctxmenu.vue';
 	import { APP_NAME, Global, TREE, getConfig, regConfig } from './utils';
 	import Opener from './module/opener.vue';
@@ -12,12 +12,61 @@
 	import './opener';
 
 	const ctxconfig = reactive({
-		item: [] as Array<CtxMenuData>,
-		display: false,
-		x: 0,
-		y: 0
-	});
+			item: [] as Array<CtxMenuData>,
+			display: false,
+			x: 0,
+			y: 0
+		}),
+		list_ele = ref<HTMLElement>();
 
+	// 键盘事件管理器
+	const KeyBoardManager = {
+		/**
+		 * @private
+		 */
+		current: 0,
+		/**
+		 * @private
+		 */
+		elements: computed(() => (list_ele.value as HTMLElement).getElementsByClassName('selectable')),
+
+		get next(){
+			if(this.current == this.elements.value.length-1)
+				this.current = 0;
+			else
+				this.current ++;
+			return this.elements.value[this.current] as HTMLElement;
+		},
+		get prev(){
+			if(this.current == 0)
+				this.current = this.elements.value.length -1;
+			else
+				this.current --;
+			return this.elements.value[this.current] as HTMLElement;
+		},
+		__handler(e: KeyboardEvent){
+			e.preventDefault();
+
+			switch (e.key) {
+				case 'ArrowDown':
+					this.next.click();    
+				break;
+
+				case 'ArrowUp':
+					this.prev.click();
+				break;
+
+				case 'Enter':
+					this.elements.value[this.current].dispatchEvent(new MouseEvent('dblclick'));
+				break;
+
+				default:
+					break;
+			}
+		}
+	}
+		
+	watch(list_ele, el => el && el.addEventListener('keydown', e => KeyBoardManager.__handler(e)));
 	window.addEventListener('resize', () => layout_displayLeft.value = false);
 
 	const tree_active = ref(false),
@@ -109,7 +158,7 @@
 			</svg>
 			{{ APP_NAME }}
 		</div>
-		<div class="files vlist" tabindex="-1" @contextmenu.prevent @focus="tree_active = true" @blur="tree_active = false">
+		<div class="files vlist" ref="list_ele" tabindex="-1" @contextmenu.prevent @focus="tree_active = true" @blur="tree_active = false">
 			<Tree :data="TREE" :active="tree_active" />
 		</div>
 	</div>

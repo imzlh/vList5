@@ -36,11 +36,11 @@
         for (const file of dir) {
             const inf = splitPath(file),
                 ext = inf.ext.toLowerCase(),
-                fullmatch = inf.name.toLowerCase() == info['name'];
+                fullmatch = inf.name.toLowerCase() == info['name'].toLowerCase();
             // 可以作为封面
             if (IMAGE.includes(ext) &&
-                (fullmatch ||
-                    (inf.name.toLowerCase() == 'cover' && !cover))
+                // 匹配图片
+                (fullmatch || (inf.name.toLowerCase() == 'cover' && !cover))
             )
                 cover = file;
             else if (ext == 'lrc' && fullmatch)
@@ -455,13 +455,14 @@
         cursor: default
     }
 
-    .aplayer .aplayer-list ol{
+    .aplayer .aplayer-list{
         position: absolute !important;
         height: 50%;
         left: 0;
         right: 0;
         top: 50%;
         z-index: 10;
+        overflow-y: auto;
     }
 
     .aplayer .aplayer-list ol {

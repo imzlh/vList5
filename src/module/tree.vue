@@ -6,8 +6,9 @@
     import { TREE_REG } from '@/action/tree';
     import { UI } from '@/App.vue';
 
-    export const marked = shallowRef<Array<iMixed>>([]);
-    export const markmap = ref<Array<string>>([]);
+    export const marked = shallowRef<Array<iMixed>>([]),
+        markmap = ref<Array<string>>([]),
+        updated = ref(false);
 
     // DRAG的口令，用于鉴别
     const DRAG_TOKEN = Math.floor(Math.random() * 100000000).toString(36);
@@ -200,12 +201,12 @@
 </script>
 
 <template>
-    <div class="parent"
+    <div class="parent selectable" ref="parent"
         @dblclick.stop="folder()" @click.stop="markup($event, data)" @contextmenu.stop.prevent="ctxmenu(data, $event)"
         @dragstart.stop="drag_start($event, data)" :draggable="(data).path != '/'" @drop.stop="drag_onto($event, data)"
         @dragover.stop="drag_alert($event, data)"
         @dragleave.stop="($event.currentTarget as HTMLElement).classList.remove('moving')" :title="desc(data as any)"
-        @touchstart.stop="touch_start" @touchmove.stop="touch_move" @touchend.stop="touch_end(data, $event)"
+        @touchstart.passive.stop="touch_start" @touchmove.passive.stop="touch_move" @touchend.stop="touch_end(data, $event)"
         v-into="markmap.includes(data.path)" tabindex="-1"
     >
         <div class="btn-hide" :show="data.show" @click.stop="folder()"></div>
@@ -213,7 +214,7 @@
         <input v-if="data.rename" :value="data.name"
             @change="rename(data, ($event.currentTarget as HTMLInputElement).value)"
             @blur="data.rename = false"
-            @mousedown.stop @pointerdown.stop @touchstart.stop @dragstart.stop
+            @mousedown.stop @pointerdown.stop @touchstart.passive.stop @dragstart.stop
             v-focus
         >
         <span class="text" v-else>{{ data.dispName || data.name }}</span>
@@ -228,7 +229,7 @@
 
             <tree v-if="child.type == 'dir'" :data="child" />
 
-            <div v-else class="item" :title="desc(child)"
+            <div v-else class="item selectable" :title="desc(child)" ref="elements"
                 @click.stop="markup($event, child)" @contextmenu.stop.prevent="ctxmenu(child, $event)"
                 @touchstart.stop="touch_start" @touchmove.stop="touch_move" @touchend.stop="touch_end(child as iFile, $event)"
                 @dblclick.stop="openFile(child as iFile)" @dragstart.stop="drag_start($event, child)" draggable="true"
@@ -239,7 +240,7 @@
                 <input v-if="(child as iFile).rename" :value="child.name"
                     @change="rename(child, ($event.currentTarget as HTMLInputElement).value)"
                     @blur="(child as iFile).rename = false"
-                    @mousedown.stop @pointerdown.stop @touchstart.stop @dragstart.stop
+                    @mousedown.stop @pointerdown.stop @touchstart.passive.stop @dragstart.stop
                     v-focus
                 >
                 <span class="text" v-else>{{ child.dispName || child.name }}</span>

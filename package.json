@@ -15,7 +15,6 @@
     "@petamoriken/float16": "^3.8.7",
     "aplayer-ts": "^2.4.5",
     "artplayer": "^5.1.5",
-    "artplayer-plugin-libass": "^1.0.0",
     "assjs": "^0.1.0",
     "buffer": "^6.0.3",
     "ebml": "^3.0.0",

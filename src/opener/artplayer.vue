@@ -2,13 +2,9 @@
     import type { MessageOpinion, vSimpleFileOrDir } from '@/env';
     import ArtPlayer from 'artplayer';
     import { onMounted, onUnmounted, ref } from 'vue';
-    import artplayerPluginAss from 'artplayer-plugin-libass';
     import { FS, Global, clipFName, getConfig, regConfig, splitPath } from '@/utils';
     import { regSelf } from '@/opener';
-    import type { ComponentOption, Selector } from 'artplayer/types/component';
-    import type { SettingOption } from 'artplayer/types/setting';
-    
-    import F_FALLBACK from '/fallback.woff2';
+    import type { Selector } from 'artplayer/types/component';
 
     const element = ref<HTMLDivElement>();
     const props = defineProps({
@@ -26,7 +22,9 @@
         seek_time: DC['seek'],
         subtitle: [
             "ssa",
-            "ass"
+            "ass",
+            "vtt",
+            "srt"
         ],
         "video":[
             "webm",
@@ -81,47 +79,12 @@
                         plugASS && plugASS.hide();
                         return !item.switch;
                     },
-                } as any, {
-                    html: '选取字幕',
-                    tooltip: '在文件夹中选择新文件',
-                    icon: `<i class="art-icon">
-                                <svg width="22" height="22" viewBox="0 0 16 16">
-                                    <path d="M1 3.5A1.5 1.5 0 0 1 2.5 2h2.764c.958 0 1.76.56 2.311 1.184C7.985 3.648 8.48 4 9 4h4.5A1.5 1.5 0 0 1 15 5.5v.64c.57.265.94.876.856 1.546l-.64 5.124A2.5 2.5 0 0 1 12.733 15H3.266a2.5 2.5 0 0 1-2.481-2.19l-.64-5.124A1.5 1.5 0 0 1 1 6.14V3.5zM2 6h12v-.5a.5.5 0 0 0-.5-.5H9c-.964 0-1.71-.629-2.174-1.154C6.374 3.334 5.82 3 5.264 3H2.5a.5.5 0 0 0-.5.5V6zm-.367 1a.5.5 0 0 0-.496.562l.64 5.124A1.5 1.5 0 0 0 3.266 14h9.468a1.5 1.5 0 0 0 1.489-1.314l.64-5.124A.5.5 0 0 0 14.367 7H1.633z"/>
-                                </svg>
-                            </i>`,
-                    switch: false,
-                    onSwitch: (item:Record<string,any>) => {
-                        if(!art) return;
-                        const selector = art.setting.find('subtitle').selector as Array<Item>;
-                        Global('util.choose').call(this.dir)
-                            .then((items:Array<vSimpleFileOrDir>) => items.forEach(each => {
-                                if(!['ass','ssa','vtt','srt'].includes(splitPath(each)['ext'].toLowerCase()))
-                                    Global('ui.message').call({
-                                        "type": "warn",
-                                        "title": "打开文件",
-                                        "content":{
-                                            "title": "可疑文件: " + clipFName(file,15),
-                                            "content": "这个文件不是标准后缀，可能会无法渲染"
-                                        },
-                                        "timeout": 5
-                                    } satisfies MessageOpinion);
-                                this.subtitles.push(each);
-                                selector.push({
-                                    "html": each.name,
-                                    "url": each.url,
-                                    "name": each.name,
-                                    "default": splitPath(file)['name'] == splitPath(each)['name'],
-                                    selector: []
-                                });
-                            }));
-                        return false;
-                    }
-                } as any].concat(this.subtitles.map(item => ({
+                } as any,...this.subtitles.map(item => ({
                     "html": item.name,
                     "url": item.url,
                     "name": item.name,
-                    "default": splitPath(file)['name'] == splitPath(item)['name']
-                }))),
+                    "default": file.path == item.path
+                }))],
                 "name": "subtitle"
             });
 
@@ -224,10 +187,7 @@
             "autoOrientation": true,
             "autoPlayback": true,
             "subtitle": {
-                escape: false,
-                style: {
-                    'fontSize': '2rem'
-                }
+                escape: false
             },
             // "customType": {
             //     "m3u8": opener.mpd,
@@ -331,14 +291,6 @@
                 }
             ]
         });
-        // 加载ASS
-        plugASS = artplayerPluginAss({
-            workerUrl: 'https://unpkg.com/libass-wasm@4.1.0/dist/js/subtitles-octopus-worker.js',
-            wasmUrl: 'https://unpkg.com/libass-wasm@4.1.0/dist/js/subtitles-octopus-worker.wasm',
-            fallbackFont: F_FALLBACK
-        })(art);
-
-        // plugASS.init();
         // 初始化列表
         control.play(file);
     });
@@ -350,7 +302,7 @@
 </template>
 
 <script lang="ts">
-    regConfig('aryplayer',[
+    regConfig('artplayer',[
         {
             "type": "number",
             "name": "单次切换时长",

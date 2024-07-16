@@ -719,7 +719,6 @@
             overflow: hidden scroll;
             height: 100%;
             width: 50%;
-            margin: 50% 0 50% 0;
             scroll-behavior: smooth;
 
             @media screen and (max-width: 30rem) {

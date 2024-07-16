@@ -788,6 +788,18 @@
 
             > video{
                 width: 100%;height: 100%;
+
+                &::cue{
+                    background-color: transparent;
+                    text-shadow: black 2px 0 0,
+                        black 0 2px 0,
+                        black -2px 0 0,
+                        black 0 -2px 0,
+                        black 2px 2px 0,
+                        black -2px -2px 0,
+                        black 2px -2px 0,
+                        black -2px 2px 0;
+                }
             }
         }
 
@@ -895,7 +907,7 @@
                         width: 1rem;
                         border-radius: 0.5rem;
                         background-color: white;
-                        border: solid 1px gray;
+                        border: solid 2px gray;
                     }
                 }
 
