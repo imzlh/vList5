@@ -1,6 +1,6 @@
 <script setup lang="ts">
     import { reactive } from 'vue';
-    import { upload, type iFile } from '@/script/tree';
+    import { upload, type iFile } from '@/utils';
 
     import type { vDir } from '@/env';
     import { getIcon } from '@/script/icon';
@@ -57,7 +57,7 @@
             </svg>
         </div>
     </div>
-    
+
 </template>
 
 <style lang="scss">
@@ -133,7 +133,7 @@
                 }
             }
         }
-        
+
         > .preview{
             // background-color: white;
             // box-shadow: .35rem .45rem 2rem -.2rem #c4c4c4;

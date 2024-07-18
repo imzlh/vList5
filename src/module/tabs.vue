@@ -31,7 +31,7 @@
 					"icon": I_OFF,
 					handle() {
 						current.value = -1;
-						delete tabs[i];
+						tabs.splice(i, 1);
 					},
 				}
 			]
@@ -43,23 +43,28 @@
 </script>
 
 <template>
-	<div class="tab">
+	<div class="tab" v-bind="$attrs">
 		<template v-for="(data, i) in tabs">
 			<div v-if="data" @click="current = i" @contextmenu.prevent="ctxMenu($event, i)"
 				:active="current == i"
 			>
 				<img :src="data.icon" onerror="this.style.display = 'none';" class="icon">
 				<span>{{ data.name }}</span>
-				<i class="close" @click="delete tabs[i];"></i>
+				<i class="close" @click.stop="tabs.splice(i, 1);"></i>
 			</div>
 		</template>
 	</div>
 
 	<template v-for="(data, i) in tabs">
 		<div v-if="data" :key="data.name + i" class="app" v-show="i == current">
+			<div class="app-meta-header" @click="current = i">
+				<img :src="data.icon" onerror="this.style.display = 'none';" class="icon">
+				<span>{{ data.name }}</span>
+				<i class="close" @click="tabs.splice(i, 1);"></i>
+			</div>
 			<suspense>
-				<component :is="toRaw(data.content)" :option="data.option" 
-					@close="delete tabs[i]" @hide="current = -1" @show="current = i"
+				<component :is="toRaw(data.content)" :option="data.option"
+					@close="tabs.splice(i, 1);" @hide="current = -1" @show="current = i"
 				/>
 
 				<template #fallback>
@@ -87,7 +92,7 @@
 		display: flex;
 		gap: .45rem;
 		overflow-y: scroll;
-		z-index: 50;
+		z-index: 39;
 
 		position: absolute;
 		top: 0;
@@ -160,6 +165,45 @@
 	.app {
 		width: 100%;
 		height: 100%;
+		transition: transform .2s;
+
+		>.app-meta-header {
+			display: none;
+
+			position: absolute;
+			z-index: 40;
+			top: 0;
+			left: 0;
+			width: 100%;
+			height: 100%;
+			background-color: rgb(247 247 247 / 60%);
+			backdrop-filter: blur(.2rem);
+			padding: 1rem 0;
+			color: rgb(96, 93, 93);
+			font-size: 1.2rem;
+
+			>img {
+				width: 5rem;
+				height: 5rem;
+			}
+
+			>* {
+				display: block;
+				margin: auto;
+				pointer-events: none
+			}
+
+			>i {
+				pointer-events: all;
+				content: $icon_close;
+				position: absolute;
+				top: 1rem;
+				right: 1rem;
+				height: 1.5rem;
+				width: 1.5em;
+				z-index: 1;
+			}
+		}
 
 		&.default_app {
 			z-index: -1;

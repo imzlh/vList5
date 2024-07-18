@@ -241,7 +241,7 @@ export default [
     {
         name: 'typescript-def',
         fileExtensions: ['d.ts', 'd.cts', 'd.mts'],
-    },{
+    }, {
         name: 'typescript',
         fileExtensions: ['ts']
     },
@@ -654,12 +654,14 @@ export default [
     { name: 'email', fileExtensions: ['ics'], fileNames: ['.mailmap'] },
     {
         name: 'audio',
-        fileExtensions: ['mp3', 'flac', 'm4a', 'wma', 'aiff', 'wav', 'cue'],
+        fileExtensions: ['mp3', 'flac', 'm4a', 'wma', 'aiff', 'wav', 'cue', 'opus', 'oga'],
     },
     { name: 'coffee', fileExtensions: ['coffee', 'cson', 'iced'] },
-    { name: 'document', fileExtensions: [
-        'txt', 'ass', 'vtt'
-    ] },
+    {
+        name: 'document', fileExtensions: [
+            'txt', 'ass', 'vtt'
+        ]
+    },
     {
         name: 'graphql',
         fileExtensions: ['graphql', 'gql'],

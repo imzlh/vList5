@@ -3,9 +3,8 @@
     import type { FileOrDir, vDir } from '@/env';
     import { computed, reactive, ref, watch, type Ref } from 'vue';
     import List from './list.vue';
-    import { FACTION, FS, Global, getConfig, getTree, loadPath, loadTree, openFile, regConfig, reloadTree, splitPath, type iDir, type iMixed } from '@/utils';
-    import { marked, markmap } from './tree.vue';
-    import { UI } from '@/App.vue';
+    import { FACTION, UI, FS, Global, getConfig, getTree, loadPath, loadTree, openFile, regConfig, reloadTree, splitPath, type iDir, type iMixed, list_marked as marked, list_markmap as markmap } from '@/utils';
+
     import { EXP_REG } from '@/action/explorer';
 
     defineOptions({
@@ -24,7 +23,7 @@
             parent: computed(() => trace.value[current.value]),
             path_splited: computed(function ():Array<[string, string]>{
                 let prefix = '/';
-                return CFG.parent.path.replace(/\/+/,'/').split('/').filter(item => item != '').map((value:string,index:number) => 
+                return CFG.parent.path.replace(/\/+/,'/').split('/').filter(item => item != '').map((value:string,index:number) =>
                     [value,prefix = prefix + value + '/']
                 );
             }),
@@ -377,7 +376,7 @@
                         &:hover {
                             background-color: #f1f1f1;
                         }
-                        
+
                         &[active=true]{
                             font-weight: 500;
                             color: black;

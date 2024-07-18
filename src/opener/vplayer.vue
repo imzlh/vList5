@@ -1,7 +1,7 @@
 <script setup lang="ts">
     import type { MessageOpinion, vSimpleFileOrDir } from '@/env';
     import { regSelf } from '@/opener';
-    import { FS, Global, clipFName, regConfig, splitPath } from '@/utils';
+    import { FS, Global, clipFName, regConfig, reqFullscreen, splitPath } from '@/utils';
     import ASS from 'assjs';
     import { nextTick, onMounted, onUnmounted, shallowReactive, shallowRef, watch } from 'vue';
     // import { extract } from '../../vendor/mkvtool';
@@ -59,11 +59,12 @@
             // 操作提示
             action: '',
             // 字母偏移
-            sub_offset: '0'
+            sub_offset: '0',
+            // 错误提示
+            error: false
         }),
         video = shallowRef<HTMLVideoElement>(),
         cached = shallowRef<Array<[number,number]>>([]),
-        container = shallowRef<HTMLDivElement>(),
         ev = defineEmits(['show']);
 
     // 信息栏监听器
@@ -84,14 +85,14 @@
 
     // 声音大小
     watch(
-        () => CFG.volume, 
+        () => CFG.volume,
         n => video.value && (video.value.volume = n,CFG.alert = '声音大小: ' + n * 100 + '%'),
         { immediate: true }
     );
 
     // 倍速
     watch(
-        () => CFG.vid_rate, 
+        () => CFG.vid_rate,
         n => video.value && (video.value.playbackRate = n,CFG.alert = '倍速播放: ' + n + 'x'),
         { immediate: true }
     );
@@ -99,7 +100,7 @@
     // 全屏监听
     watch(
         () => CFG.fullscreen,
-        n => container.value && (n ? container.value.requestFullscreen() : document.exitFullscreen()),
+        n => n ? reqFullscreen() : document.exitFullscreen(),
         { immediate: true }
     );
 
@@ -170,6 +171,7 @@
         CFG.timetotal = '-:-';
         CFG.time = '0:00';
         CFG.timeprog = 0;
+        CFG.error = false;
         // 字幕设置
         CFG.subtitle = val.subtitle;
         if(CFG.subtitle.length > 0) CFG.sub_current = 0;
@@ -199,11 +201,10 @@
     })
 
     onMounted(function(){
-        if(!video.value || !container.value) return;
+        if(!video.value) return;
         const vid = video.value;
         vid.crossOrigin = 'anonymous';
 
-        container.value.onfullscreenchange = () => CFG.fullscreen = document.fullscreenElement == container.value;
 
         function time2str(time:number){
             const min = Math.floor(time / 60),
@@ -218,8 +219,8 @@
             CFG.time = time2str(vid.currentTime)
         );
         vid.onvolumechange = () => CFG.volume = vid.volume;
-        vid.onerror = () => CFG.alert = '视频加载失败';
-        vid.onended = () => CFG.loop ? CFG.current ++ : vid.play();
+        vid.onerror = () => CFG.error = true;
+        vid.onended = () => CFG.loop ? vid.play() : CFG.current ++;
         vid.ondurationchange = () => CFG.timetotal = time2str(vid.duration);
         vid.onprogress = function(){
             cached.value = [];
@@ -258,8 +259,8 @@
 
     const touch = {
         moved: {
-            x: 0, y: 0, 
-            xmoved: 0, ymoved: 0, 
+            x: 0, y: 0,
+            xmoved: 0, ymoved: 0,
             started: false,
             lastClick: 0
         },
@@ -277,7 +278,7 @@
             this.moved.ymoved = y - this.moved.y;
 
             // 进度调节
-            if(Math.abs(this.moved.xmoved) > Math.abs(this.moved.ymoved) 
+            if(Math.abs(this.moved.xmoved) > Math.abs(this.moved.ymoved)
                 && Math.abs(this.moved.xmoved) > 20
             )   CFG.action = (this.moved.xmoved > 0 ? '快进 ' : '快退 ') + Math.abs(this.moved.xmoved / 10).toFixed() + ' 秒';
 
@@ -307,7 +308,7 @@
 
             // 声音调节
             else if(Math.abs(this.moved.ymoved) > 10)
-                video.value.volume = 
+                video.value.volume =
                     CFG.volume * 100 - this.moved.ymoved > 100
                     ? 1
                     : (
@@ -315,7 +316,7 @@
                         ? 0
                         : Math.floor(CFG.volume - this.moved.ymoved / 500)
                     );
-            
+
             // 唤起菜单
             else if(now - this.moved.lastClick < 500)
                 CFG.playing ? video.value.pause() : video.value.play()
@@ -503,7 +504,7 @@
 
 <template>
     <div class="vpf_container" :active="CFG.active"  tabindex="-1"
-        @dblclick="CFG.playing ? video?.pause() : video?.play()" ref="container"
+        @dblclick="CFG.playing ? video?.pause() : video?.play()"
         @pointermove="mouse" @click="mouse"
         @keydown="keyev"
     >
@@ -514,6 +515,13 @@
                 <track :default="CFG.disp_sub" v-if="CFG.subtitle[CFG.sub_current] && CFG.subtitle[CFG.sub_current].sub_type == 'vtt'"
                     kind="captions" label="vtt sub" :src="CFG.subtitle[CFG.sub_current].url" />
             </video>
+            <!-- 错误提示 -->
+            <div class="error">
+                <svg viewBox="0 0 16 16">
+                    <path d="M7.938 2.016A.13.13 0 0 1 8.002 2a.13.13 0 0 1 .063.016.146.146 0 0 1 .054.057l6.857 11.667c.036.06.035.124.002.183a.163.163 0 0 1-.054.06.116.116 0 0 1-.066.017H1.146a.115.115 0 0 1-.066-.017.163.163 0 0 1-.054-.06.176.176 0 0 1 .002-.183L7.884 2.073a.147.147 0 0 1 .054-.057zm1.044-.45a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767L8.982 1.566z"/>
+                    <path d="M7.002 12a1 1 0 1 1 2 0 1 1 0 0 1-2 0zM7.1 5.995a.905.905 0 1 1 1.8 0l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995z"/>
+                </svg>
+            </div>
         </div>
         <!-- 顶部 -->
         <div class="top" v-if="CFG.playlist[CFG.current]">
@@ -531,7 +539,7 @@
                 <span>{{ CFG.time }}</span>
                 <span class="total">{{ CFG.timetotal }}</span>
             </div>
-            <div class="progress" 
+            <div class="progress"
                 @click.stop="video && (video.currentTime = ($event.offsetX / ($event.currentTarget as HTMLElement).clientWidth * video.duration))"
             >
                 <div v-for="cache in cached" :style="{
@@ -778,12 +786,29 @@
                     object-fit: fill;
                 }
             }
-       
+
             > *:not(video){
                 pointer-events: none;
                 position: absolute !important;
                 top: 50% !important;left: 50% !important;
                 transform: translate(-50%, -50%);
+            }
+
+            > div.error{
+                position: absolute;
+                inset: 0;
+                pointer-events: none;
+                display: flex;
+                align-items: center;
+                justify-items: center;
+
+                > svg{
+                    display: block;
+                    width: 2rem;
+                    height: 2rem;
+                    fill: white;
+                    opacity: .5;
+                }
             }
 
             > video{
@@ -845,7 +870,7 @@
             bottom: 0;left: 0;right: 0;z-index: 10;
             transform: translateY(100%);
             background-image: linear-gradient(transparent,#424242c7,black);
-        
+
             > .time{
                 position: absolute;
                 top: -2rem;left: 0;right: 0;
@@ -1047,7 +1072,7 @@
                                 }
                             }
                         }
-                    
+
                         &:hover{
                             background-color: gray;
                         }

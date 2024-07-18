@@ -50,7 +50,7 @@
         resolver = undefined;display.value = false;
     }
 
-    watch(current,() => history.value[current.value] && 
+    watch(current,() => history.value[current.value] &&
         FS.listall(history.value[current.value]).then(list => data.value = list)
     );
     watch(current, () => path.value = history.value[current.value] || '/');
@@ -89,14 +89,14 @@
                 </div>
                 <!-- 按钮 -->
                 <button class="non-fill" @click="display = false">取消</button>
-                <button class="fill" @click="submit">确定</button> 
+                <button class="fill" @click="submit">确定</button>
             </div>
             <!-- 路径 -->
             <div class="path">
                 <!-- 路径输入 -->
                 <input type="text" v-if="showPath" :value="path" >
                 <!-- 路径分层 -->
-                <div class="bread" v-else 
+                <div class="bread" v-else
                     @click="showPath = true" @blur="showPath = false"
                     tabindex="-11"
                 >
@@ -126,14 +126,14 @@
         transform: translate(-50%, -50%);
         border-radius: .25rem;
         overflow: hidden;
-        
+
         width: 100vw;
         height: 80vh;
         max-width: 35rem;
         max-height: 25rem;
         background-color: #f3f3f3;
         border: solid .1rem #8080804a;
-        z-index: 50;
+        z-index: 58;
 
         // 针对list
         --size: 5rem;
@@ -145,7 +145,7 @@
             top: 0;
             left: 0;
             right: 0;
-            z-index: 5;
+            z-index: 1;
 
             user-select: none;
 
@@ -155,7 +155,7 @@
                 height: 1.6rem;
                 padding: .35rem .5rem;
                 gap: .35rem;
-                
+
                 > *{
                     flex-shrink: 0;
                 }
@@ -166,7 +166,7 @@
                     font-size: .9rem;
                     padding-bottom: .35rem;
                 }
-                
+
                 > div{
                     color: rgb(161, 154, 154);
                     transition: all .2s;
@@ -182,7 +182,7 @@
                     height: 1rem;
                     margin: 0 .2rem;
                 }
-                
+
                 > button{
                     font-size: .8rem;
                     padding: 0 .75rem;
@@ -215,7 +215,7 @@
                     border: none;
                     outline: none;
                     background-color: transparent;
-                    
+
                     position: absolute;
                     inset: 0;
                     line-height: 1.3rem;
@@ -237,7 +237,7 @@
                             content: $icon_right;
                         }
                     }
-                    
+
                     > *{
                         padding: 0 .2rem;
                         line-height: 2rem;

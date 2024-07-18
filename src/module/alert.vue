@@ -69,7 +69,7 @@
         margin: auto;
         width: 100vw;
         max-width: 23rem;
-        z-index: 120;
+        z-index: 59;
         box-sizing: border-box;
         border: solid .05rem #e7e7e7;
         border-radius: 0.35rem;

@@ -57,7 +57,7 @@
         border-radius: .5rem;
         background-color: rgb(240 244 253 / 80%);
         overflow: hidden;
-        z-index: 250;
+        z-index: 25;
         transform: translate(-50%,-50%);
         transition-timing-function: ease-out;
         opacity: 0;
@@ -83,7 +83,7 @@
             margin: .75rem;
             background-color: white;
             border-radius: .3rem;
-        
+
             > div{
                 padding: .45rem;
                 border-radius: .3rem;
@@ -143,6 +143,6 @@
 		position: fixed;
 		inset: 0;
 		background-color: rgba(210, 196, 196, 0.5);
-		z-index: 200;
+		z-index: 24;
 	}
 </style>

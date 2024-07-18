@@ -1,7 +1,7 @@
 <script setup lang="ts">
     import type { CtxDispOpts, vSimpleFileOrDir } from '@/env';
     import { regSelf } from '@/opener';
-    import { FS, Global, splitPath } from '@/utils';
+    import { FS, Global, reqFullscreen, splitPath } from '@/utils';
     import { onMounted, onUnmounted, reactive, ref } from 'vue';
 
     const imgElem = ref<HTMLImageElement>(),
@@ -35,7 +35,7 @@
         if(!cfg.imgs[i]) cfg.id = fallback;
         else cfg.id = i;
     }
-    
+
     let dir = '';
     async function initFile(f:vSimpleFileOrDir){
         const info = splitPath(f);
@@ -59,7 +59,7 @@
             const temp:Array<vSimpleFileOrDir> = [];
             let id = -1;
             (await FS.list(info.dir)).forEach(data => {
-                (IMAGE.includes(splitPath(data)['ext'].toLowerCase())) 
+                (IMAGE.includes(splitPath(data)['ext'].toLowerCase()))
                     ? ( data.path == f.path ? id = temp.push(data)-1 : temp.push(data) ) : null
             });
             cfg.imgs = temp;
@@ -95,7 +95,7 @@
         if(document.fullscreenElement){
             document.exitFullscreen();
         }else{
-            boxElem.value?.requestFullscreen();
+            reqFullscreen();
         }
     }
 
@@ -160,7 +160,7 @@
                         if(!ctx) return Global('ui.message').call(E_IMAGE);
                         img.setAttribute('crossOrigin', 'anonymous');
                         img.src = cfg.imgs[cfg.id].url;
-                        
+
                         // 转Blob
                         img.onload = function(){
                             // 重置画布大小
@@ -249,7 +249,7 @@
                 transform: `scale(${cfg.scale}) translate(calc(${cfg.offset_x}px - 50%), calc(${cfg.offset_y}px - 50%)) rotate(${cfg.rotate}deg)`,
                 display: cfg.loading ? 'none' : 'block'
             }"
-            :src="cfg.imgs[cfg.id].url" 
+            :src="cfg.imgs[cfg.id].url"
             :alt="cfg.imgs[cfg.id].name"
             @load="cfg.loading = false" @loadstart="cfg.loading = true"
             @pointerdown.prevent="moveStart"
@@ -350,7 +350,7 @@
                     height: 1.25rem;
                 }
             }
-            
+
         }
 
         .vcount{

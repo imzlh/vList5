@@ -67,7 +67,7 @@
 
     // 声音大小
     watch(
-        () => CFG.volume, 
+        () => CFG.volume,
         n => audio && (audio.volume = n),
         { immediate: true }
     );
@@ -95,14 +95,14 @@
         CFG.totalTime = '-:-';
         CFG.currentTime = '0:00';
         CFG.progress = 0;
-        
+
         // 音频设置
         if(current.value.path != item.path){
             audio.src = item.url;
             audio.load();
         }
         current.value = item;
-        
+
         // cue设置
         if(current.value.start != undefined){
             // 接下来的还是cue
@@ -112,21 +112,21 @@
             // 直到结束
             }else{
                 CFG.cue_until = -1;
-                audio.addEventListener('durationchange',() => 
+                audio.addEventListener('durationchange',() =>
                     CFG.totalTime = time2str(audio.duration - (current.value.start as number))
                 ,{ once: true });
             }
             // seek到起点
             if(audio.duration > 0)
                 audio.currentTime = current.value.start as number;
-            else audio.addEventListener('loadedmetadata',() => 
+            else audio.addEventListener('loadedmetadata',() =>
                     audio.currentTime = current.value.start as number
                 ,{ once: true });
         // 常规media
         }else{
             CFG.cue_until = -1;
             audio.pause();
-            audio.addEventListener('durationchange',() => 
+            audio.addEventListener('durationchange',() =>
                 CFG.totalTime = time2str(audio.duration)
             ,{ once: true });
         }
@@ -164,12 +164,12 @@
                     "timeout": 5
                 })
             }
-            
+
             // 解析元数据
             if(res.info.ar) current.value.composer = res.info.ar;
             if(res.info.al) current.value.album = res.info.al;
             if(res.info.ti) current.value.name = res.info.ti;
-        
+
             // 开始滚动歌词
             res.lyrics.sort((a,b) => a.timestamp - b.timestamp);
             CFG.lrc = res.lyrics;
@@ -328,7 +328,7 @@
                     const xhr = await fetch(item.url);
                     if(!xhr.ok) throw new Error('HTTP not ok');
                     const cue = parseCue(await xhr.text());
-                    
+
                     // 载入
                     if (file.name == item.name)
                         id = CFG.playlist.length;
@@ -522,7 +522,7 @@
                     width: 100%;
                 }
             }
-            
+
             &[single=false]{
                 min-width: 25%;
                 width: 45vh;
@@ -604,7 +604,7 @@
                         padding: .25rem;
                         margin: 0 .25rem;
                         border-radius: .4rem;
-                        
+
                         > svg{
                             width: 2rem;
                             height: 2rem;
@@ -682,7 +682,7 @@
                     min-width: 3em;
                     text-align: center;
                 }
-                
+
                 > .timebar{
                     flex-grow: 1;
                     margin: 0 .25rem;
@@ -762,7 +762,7 @@
 
         > .side-overlay{
             background-color: #dedede49;
-            z-index: 999;
+            z-index: 18;
             position: absolute;
             inset: 0;
             backdrop-filter: blur( .2rem );
@@ -779,7 +779,7 @@
             max-width: 15rem;
             padding: 1rem;
             background-color: rgba(255, 255, 255, 0.9);
-            z-index: 1000;
+            z-index: 20;
             transform: translateX(100%);
             transition: all .2s;
 

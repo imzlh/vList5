@@ -1,10 +1,9 @@
 <script lang="ts">
-    import type { MessageOpinion, vDir } from '@/env';
-    import { DEFAULT_FILE_ICON, FS, Global, loadTree, openFile, reloadTree, size2str, splitPath } from '@/utils';
+    import type { MessageOpinion } from '@/env';
+    import { DEFAULT_FILE_ICON, FS, Global, loadTree, UI, openFile, reloadTree, size2str, splitPath } from '@/utils';
     import { ref, shallowRef, toRaw, watch, type PropType } from 'vue';
     import { upload, type iDir, type iFile, type iMixed } from '@/script/tree';
     import { TREE_REG } from '@/action/tree';
-    import { UI } from '@/App.vue';
 
     export const marked = shallowRef<Array<iMixed>>([]),
         markmap = ref<Array<string>>([]),
@@ -36,7 +35,7 @@
         },
         setup: function (prop) {
             watch(() => prop.data.child,(n,r) => r == undefined && (prop.data.show = true));
-            
+
             return {
                 loadTree,
                 DEFAULT_FILE_ICON,
@@ -70,7 +69,7 @@
         methods: {
             touch_start(ev:TouchEvent){
                 touch = {
-                    x: ev.touches[0].clientX, 
+                    x: ev.touches[0].clientX,
                     y: ev.touches[0].clientY,
                     mx: ev.touches[0].clientX,
                     my: ev.touches[0].clientY,
@@ -99,7 +98,7 @@
                 e.dataTransfer.setData('application/json', JSON.stringify(toRaw(fd)));
                 e.dataTransfer.setData('text/plain', DRAG_TOKEN);
                 e.dataTransfer.dropEffect = 'copy';
-                
+
                 if(fd.icon){
                     const image = new Image(60, 60);
                     image.src = fd.icon;
@@ -108,7 +107,7 @@
             },
             drag_alert(e: DragEvent, fd: iDir){
                 if(!e.dataTransfer) return;
-                
+
                 // 加载事件
                 e.preventDefault();
                 e.dataTransfer.dropEffect = 'copy';
@@ -279,7 +278,7 @@
             &:hover {
                 background-color: rgb(44 83 222 / 18%);
             }
-            
+
             &.selected {
                 background-color: rgba(107, 137, 245, 0.3);
             }
@@ -345,7 +344,7 @@
             // &.active {
             //     background-color: rgba(126, 118, 118, 0.3);
             // }
-        
+
         }
 
         .child{

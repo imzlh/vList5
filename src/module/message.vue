@@ -7,11 +7,11 @@
 
     function postMessage(msg: MessageOpinion) {
         const i = message.push(msg) - 1;
-        if (msg.timeout) setTimeout(() => delete message[i], msg.timeout * 1000);
+        if (msg.timeout) setTimeout(() => message.splice(i, 1), msg.timeout * 1000);
     }
     function msg_destroy(i: number) {
         message[i].hidden = true;
-        nextTick(() => setTimeout(() => delete message[i], 200));
+        nextTick(() => setTimeout(() => message.splice(i, 1), 200));
     }
 
     Global('ui.message').data = postMessage;
@@ -36,7 +36,7 @@
                     </div>
                 </template>
                 <component v-else-if="item.body" :is="item.body" :title="item.title" :icon="item.icon" @click="item.handle"
-                    @destroy="delete message[i]"></component>
+                    @destroy="message.splice(i, 1)"></component>
             </div>
         </template>
     </div>
@@ -53,7 +53,7 @@
         position: fixed;
         bottom: 1rem;
         right: 1rem;
-        z-index: 100;
+        z-index: 25;
 
         .msg {
             background-color: rgba(219, 224, 233, 0.9);
@@ -97,7 +97,7 @@
                 align-items: center;
                 gap: 1rem;
                 padding: .5rem 1rem 1rem 1rem;
-                
+
                 &[data-level]{
                     position: relative;
 

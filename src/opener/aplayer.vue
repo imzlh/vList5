@@ -188,7 +188,7 @@
         box-shadow: 0 .05rem .05rem rgba(0,0,0,.2);
         background: rgba(0,0,0,.2);
         transition: all .1s ease;
-        z-index: 20;
+        z-index: 10;
     }
 
     .aplayer .aplayer-pic .aplayer-button path {
@@ -245,7 +245,7 @@
         -ms-user-select: text;
         user-select: text;
         cursor: default;
-        z-index: 10;
+        z-index: 5;
     }
 
     .aplayer .aplayer-info .aplayer-music .aplayer-title {
@@ -369,7 +369,7 @@
         border-radius: .4rem;
         background: #dfd8d8a1;
         overflow: hidden;
-        z-index: 50;
+        z-index: 12;
 
         opacity: 0;
         transition: opacity .1s;

@@ -1,11 +1,28 @@
 <script setup lang="ts">
     import type { SettingItem, SettingObject } from '@/env';
-    import { reactive, ref, shallowRef } from 'vue';
+    import { reactive, ref, shallowRef, type Ref } from 'vue';
 
     const props = defineProps(['option']),
         item = props['option'] as SettingObject,
         items = shallowRef<Array<SettingItem>>(item.child),
         path = shallowRef<Array<SettingObject>>([item]);
+
+    function click(el: PointerEvent, step = -1, refl: Ref<number>){
+        const target = el.target as HTMLElement;
+
+        let timer: number|undefined = setTimeout(function(){
+            timer = undefined;
+            interval = setInterval(() => refl.value += step,100);
+        }, 500),interval: undefined | number;
+
+        document.documentElement.addEventListener('pointerup',function(){
+            interval ? clearInterval(interval) : refl.value += step;
+            timer && clearTimeout(timer);
+        },{
+            "once": true,
+            "passive": true
+        });
+    }
 </script>
 
 <template>
@@ -34,9 +51,9 @@
                     <input v-if="item.type == 'text'" v-model="item.value.value" class="right input" type="text">
 
                     <div v-else-if="item.type == 'number'" class="right numinput">
-                        <div class="minus" @click="item.value.value -= item.step"></div>
+                        <div class="minus" @pointerdown="click($event, -item.step, item.value)"></div>
                         <div class="real">{{ item.value.value }}</div>
-                        <div class="add" @click="item.value.value += item.step"></div>
+                        <div class="add" @pointerdown="click($event, item.step, item.value)"></div>
                     </div>
 
                     <div v-else-if="item.type == 'check'" class="right check"
@@ -186,7 +203,7 @@
                                 top: 50%;
                                 transform: translateY(-50%);
                                 width: 100%;
-                                z-index: 10;
+                                z-index: 1;
                                 padding: .35rem;
                                 border-radius: 0.4rem;
                                 box-shadow: .2rem .1rem 0.8rem rgb(218 218 218);

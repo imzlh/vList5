@@ -19,7 +19,7 @@
     position: absolute;
     left: $offset_left;
     top: $offset_top;
-    z-index: 100;
+    z-index: 10;
     width: var(--width);
 
     >div {
@@ -72,7 +72,7 @@
             display: block;
         }
     }
-    
+
     >span{
         margin: .25rem;
         height: .1rem;

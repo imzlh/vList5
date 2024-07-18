@@ -1,7 +1,6 @@
 <script setup lang="ts">
-    import { UI } from '@/App.vue';
     import type { FileOrDir, vFile } from '@/env';
-    import { DEFAULT_DIR_ICON, DEFAULT_FILE_ICON, size2str, type iMixed } from '@/utils';
+    import { DEFAULT_DIR_ICON, DEFAULT_FILE_ICON, size2str, type iMixed, UI } from '@/utils';
     import { computed, reactive, ref, shallowReactive, watch } from 'vue';
 
     // ==================== 文件（夹）管理器 =======================
@@ -66,7 +65,7 @@
         selected.value = [], event('clear')
     ));
 
-    const getIcon = (fd: FileOrDir) => 
+    const getIcon = (fd: FileOrDir) =>
         fd.icon
             ? fd.icon
             : fd.type == 'dir'      // 默认
@@ -93,13 +92,13 @@
             // 完全选中
             if(
                 !((x1>xr2 || xr1>x2) || (y1>yr2 || yr1>y2))
-                // (x1 <= xr2 || x2 >= xr1) && (y1 <= yr2 || y2 >= yr1) 
+                // (x1 <= xr2 || x2 >= xr1) && (y1 <= yr2 || y2 >= yr1)
             ) node_select(child,false);
         }
     }
 
     function clear_selected(){
-        for (let i = 0; i < selected.value.length; i++) 
+        for (let i = 0; i < selected.value.length; i++)
             selected.value[i].classList.remove('selected'),
             selected.value[i].blur();
         selected.value = [];
@@ -156,7 +155,7 @@
                 select.enable = false;
             },
             { once: true });
-        
+
     }
 
     function node_select(element:HTMLElement,only?:boolean){
@@ -181,7 +180,7 @@
             layout.table[id] = rawWidth + ((ev.clientX - e.clientX) * 100 / divHeight.value);
         }
 
-        const remove = () => 
+        const remove = () =>
             document.removeEventListener('pointermove', handler)
 
         document.addEventListener('pointermove', handler);
@@ -190,7 +189,7 @@
         });
     }
 
-    defineExpose({elements: selected, selected: computed(() => 
+    defineExpose({elements: selected, selected: computed(() =>
         selected.value.map(item => flist.value[parseInt(item.dataset.id as string)])
     )});
 </script>
@@ -212,7 +211,7 @@
                 <div :type="fd.type" ref="list_element" class="item" tabindex="2" @pointerdown.stop @pointermove.prevent
                     @click.stop="node_select($event.currentTarget as HTMLElement, !$event.shiftKey);" @dblclick.prevent="event('open', fd)"
                     @contextmenu.prevent="event('ctxmenu', fd, $event)"
-                    :data-id="i"    
+                    :data-id="i"
                 >
                     <!-- 图标 -->
                     <img :src="getIcon(fd)" />
@@ -222,7 +221,7 @@
             </template>
         </div>
         <table class="list" v-else>
-            
+
             <thead>
                 <tr>
                     <template v-for="(item, i) in ['名称', '修改时间', '大小']">
@@ -249,7 +248,7 @@
                         <td class="name">
                             {{ fd.name }}
                         </td>
-                        
+
                         <td>
                             {{ format(new Date(fd.ctime)) }}
                         </td>
@@ -260,7 +259,7 @@
                     </tr>
                  </template>
             </tbody>
-           
+
         </table>
 
         <!-- 信息栏 -->
@@ -311,7 +310,7 @@
 
             position: relative;
         }
-        
+
         > .view{
 
             > div {
@@ -402,7 +401,7 @@
                     height: 1.5rem;
                     cursor: col-resize;
                     position: relative;
-                    
+
                     &::before{
                         content: '';
                         position: absolute;
@@ -456,8 +455,8 @@
                     }
                 }
             }
-    
-            
+
+
         }
 
         >.select {

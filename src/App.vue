@@ -1,5 +1,5 @@
 <script setup lang="ts">
-	import { computed, onMounted, reactive, ref, watch, type Ref } from 'vue';
+	import { computed, onMounted, reactive, readonly, ref, watch, type Ref } from 'vue';
 	import type { CtxDispOpts, CtxMenuData } from './env';
 	import tabManager from './module/tabs.vue';
 	import Tree, { updated } from './module/tree.vue';
@@ -49,7 +49,7 @@
 
 			switch (e.key) {
 				case 'ArrowDown':
-					this.next.click();    
+					this.next.click();
 				break;
 
 				case 'ArrowUp':
@@ -65,13 +65,14 @@
 			}
 		}
 	}
-		
+
 	watch(list_ele, el => el && el.addEventListener('keydown', e => KeyBoardManager.__handler(e)));
 	window.addEventListener('resize', () => layout_displayLeft.value = false);
 
 	const tree_active = ref(false),
-		layout_displayLeft = ref(false);
-	
+		layout_displayLeft = ref(false),
+		taskmode = ref(false);
+
 	watch(UIMAIN['layout.fontSize'], val => document.documentElement.style.fontSize = val + 'px');
 	document.documentElement.style.fontSize = UIMAIN['layout.fontSize'].value + 'px';
 
@@ -97,6 +98,12 @@
 			() => document.removeEventListener('pointermove',rszHandler),
 			{ once: true}
 		);
+	}
+
+	function handleAppClick(el: MouseEvent){
+		const target = el.target as HTMLElement;
+		if(target.classList.contains('app-meta-header') && taskmode.value)
+			taskmode.value = false
 	}
 </script>
 
@@ -137,20 +144,30 @@
 		size_h.value = document.documentElement.clientHeight
 	));
 
+	export const reqFullscreen = () => document.body.requestFullscreen({
+		"navigationUI": "hide"
+	});
+
+	const fullscreen = ref(false);
+	document.body.addEventListener('fullscreenchange', () =>
+		fullscreen.value = !!document.fullscreenElement
+	);
+
 	export const UI = {
 		fontSize: UIMAIN['layout.fontSize'] as Ref<number>,
 		width_total: size_w,
 		height_total: size_h,
 		app_width: computed(() => size_w.value - UIMAIN['layout.left'].value -3),
-		filelist_width: UIMAIN['layout.left'] as Ref<number>
+		filelist_width: UIMAIN['layout.left'] as Ref<number>,
+		fullscreen
 	};
 </script>
 
 <template>
 	<!-- 左侧文件 -->
-	<div class="left" :style="{ 
-		width: UI.filelist_width.value + 'px', 
-		left: layout_displayLeft ? '1rem' : '-200vw' 
+	<div class="left" :style="{
+		width: UI.filelist_width.value + 'px',
+		left: layout_displayLeft ? '1rem' : '-200vw'
 	}">
 		<div class="h">
 			<svg fill="currentColor" viewBox="0 0 16 16">
@@ -170,12 +187,15 @@
 	<!-- 调节大小 -->
 	<div class="resizer" @pointerdown.prevent="resize"></div>
 	<!-- 右侧 -->
-	<div class="right" :style="{ width: UI.app_width.value + 'px' }">
-		<tabManager ref="tabs" />
+	<div class="right" :taskmode="taskmode" :fullscreen="fullscreen"
+		:style="{ width: UI.app_width.value + 'px' }"
+		@click="handleAppClick"
+	>
+		<tabManager ref="tabs" @click="taskmode = !taskmode" />
 		<!-- 右键 -->
-		<div class="ctx-mask-layer" v-show="ctxconfig.display" 
+		<div class="ctx-mask-layer" v-show="ctxconfig.display"
 			@click="ctxconfig.display = false;" @contextmenu.prevent="ctxconfig.display = false"></div>
-		<CtxMenu 
+		<CtxMenu
 			@blur="ctxconfig.display = false"
 			:data="ctxconfig.item" :display="ctxconfig.display"
 			:x="ctxconfig.x" :y="ctxconfig.y"
@@ -206,7 +226,7 @@
 		margin: 0;
 		overflow: hidden;
 		font-family: unset !important;
-		
+
 		//  兼容移动端100svh
 		position: fixed;
 		top: 0;
@@ -277,12 +297,24 @@
 				bottom: 0;
 				left: -.25rem;
 				right: -.25rem;
-				z-index: 5;
+				z-index: 45;
 			}
 		}
 
 		>.right {
 			position: relative;
+
+			&[fullscreen=true]{
+				position: fixed;
+				left: 0;right: 0;bottom: 0;top: 0;
+				z-index: 100;
+				width: 100vw !important;
+				background-color: white;
+
+				> .tab{
+					display: none;
+				}
+			}
 		}
 
 		.ctx-mask-layer {
@@ -291,7 +323,7 @@
 			left: 0;
 			width: 100vw;
 			height: 100vh;
-			z-index: 100;
+			z-index: 50;
 		}
 	}
 
@@ -349,7 +381,7 @@
 				height: calc(100vh - 2rem);
 				border-radius: 0.8rem;
 				// padding: 1rem;
-				z-index: 100;
+				z-index: 55;
 			}
 
 			// 遮罩
@@ -359,16 +391,85 @@
 				width: 100vw;
 				height: 100vh;
 				background-color: rgba(0, 0, 0, 0.3);
-				z-index: 99;
+				z-index: 51;
 				transition: all .3s;
 			}
 
 			>.right {
 				position: absolute;
 				width: 100% !important;
+				overflow-y: auto;
+
+				> .tab{
+					position: fixed;
+					display: block;
+					margin: 0;
+					left: auto;
+					top: auto;
+					right: .5rem;
+					bottom: 1rem;
+
+					> div[active=true] {
+						width: 1.5rem;
+						height: 1.5rem;
+						padding: .5rem;
+						border-radius: 2rem;
+						flex-shrink: 0;
+						background-color: rgb(255, 255, 255);
+
+						&:hover > i, &::before, > span{
+							display: none;
+						}
+
+						> img{
+							display: block;
+							margin: 0;
+							padding: 0;
+							width: 100%;
+							height: 100%;
+							transform: none;
+						}
+					}
+
+					> div[active=false]{
+						display: none;
+					}
+				}
+
+				&[taskmode=true]{
+					overflow-y: auto;
+					text-align: center;
+					padding-top: 50vh;
+					background-image: linear-gradient(45deg, #6088dc, #29e6eb);
+
+					> .app{
+						transform: scale(.8);
+						display: inline-block;
+						overflow: hidden;
+						width: 100vw;
+						height: 100vh;
+						height: 100svh;
+						margin-top: -50vh;
+						display: block !important;
+						background-color: white;
+
+						border-radius: .35rem;
+						box-shadow: .05rem .01rem 2rem rgb(156, 155, 155);
+						border: solid .1rem #b6b6b6;
+
+						> .app-meta-header{
+							display: block;
+						}
+					}
+
+					> .app.default_app{
+						display: none !important;
+					}
+				}
+
 				> .mobile-tool{
-					position: absolute;
-					bottom: 40%;
+					position: fixed;
+					bottom: 20vh;
 					right: 0;
 					transform: translateY(-50%);
 

@@ -26,7 +26,7 @@
 
                 // 等待渲染，判断是否超出长度
                 nextTick(() => {
-                    
+
                     const pos = el.getBoundingClientRect(),
                         sc_w = document.documentElement.clientWidth,
                         sc_h = document.documentElement.clientHeight;
@@ -37,7 +37,7 @@
                             el.style.top = '0', el.style.height = sc_h - pos.height + 'px';
                         else
                             el.style.top = this.y - (pos.bottom - sc_h) - 10 + 'px', el.style.height = 'auto';
-                    
+
                     // 超出宽度
                     if(pos.right > sc_w)
                         el.style.left = this.x - (pos.right - sc_w) - 10 + 'px',
@@ -95,7 +95,7 @@
                     {{ item.kbd.key }}
                 </span>
 
-                <ctxTree 
+                <ctxTree
                     v-if="item.child" :data="item.child" :x="10" :y="0"
                     class="child" :display="active == i" @click.stop
                     @blur="active = -1;$emit('blur')"
@@ -106,7 +106,7 @@
                 <li v-for="child of item.child" :style="{backgroundImage: `url('${child.icon}')`}"></li>
             </ul>
         </template>
-        
+
     </div>
 </template>
 <style lang="scss">
@@ -117,7 +117,7 @@
         display: none;
         @include ui_menu();
         font-size: .85rem;
-        z-index: 120;
+        z-index: 58;
         user-select: none;
         position: fixed;
 

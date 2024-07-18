@@ -150,7 +150,7 @@
 
             if(CFG.search_index == 0)
                 CFG.search_index = CFG.search_res;
-                
+
             CFG.search_index --;
             const el = this.el[CFG.search_index];
 
@@ -167,7 +167,7 @@
 
             if(CFG.search_index+1 == CFG.search_res)
                 CFG.search_index = -1;
-                
+
             CFG.search_index ++;
             const el = this.el[CFG.search_index];
 
@@ -211,11 +211,11 @@
         let prefix = '';
         if(img.includes(meta.ext.toLowerCase()))
             prefix = '!';
-        if(cur) muya.editor.activeContentBlock.text = 
+        if(cur) muya.editor.activeContentBlock.text =
             data.substring(0, cur.start.offset) +
             prefix + `[ ${data.substring(cur.start.offset, cur.end.offset +1) || meta.fname} ](${FILE_PROXY_SERVER + file} "${meta.fname}")` +
             data.substring(cur.end.offset +1);
-        else muya.editor.activeContentBlock.text = 
+        else muya.editor.activeContentBlock.text =
             prefix + `[ ${data || meta.fname} ](${FILE_PROXY_SERVER + file} "${meta.fname}")`;
         muya.editor.activeContentBlock.focusHandler();
         muya.focus();
@@ -472,7 +472,7 @@
             position: absolute;
             top: 2rem;
             right: 1rem;
-            z-index: 90;
+            z-index: 18;
 
             > *{
                 width: 100vw;
@@ -505,7 +505,7 @@
                         border-radius: .25rem;
                         padding: .35rem .65rem;
                         width: 50%;
-                        
+
                         &:focus{
                             border-color: #52b5f3;
                         }
@@ -525,7 +525,7 @@
                         margin: 0;
                     }
                 }
-                
+
             }
         }
 
@@ -540,5 +540,5 @@
 </style>
 
 <script lang="ts">
-    
+
 </script>
