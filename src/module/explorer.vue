@@ -1,7 +1,7 @@
 
 <script setup lang="ts">
     import type { FileOrDir, vDir } from '@/env';
-    import { computed, reactive, ref, watch, type Ref } from 'vue';
+    import { computed, nextTick, reactive, ref, watch, type Ref } from 'vue';
     import List from './list.vue';
     import { FACTION, UI, FS, Global, getConfig, getTree, loadPath, loadTree, openFile, regConfig, reloadTree, splitPath, type iDir, type iMixed, list_marked as marked, list_markmap as markmap } from '@/utils';
 
@@ -129,15 +129,16 @@
 </script>
 
 <script lang="ts">
+    nextTick(() =>
     regConfig('explorer', [
         {
             "type": "number",
-            "default": 60,
+            "default": UI.app_width.value - UI.fontSize.value * 15, 
             "key": "ui.filebar_size",
             "name": "路径框大小",
             "step": 1
         }
-    ]);
+    ]));
 </script>
 
 <template>
@@ -326,10 +327,14 @@
             box-sizing: border-box;
             display: flex;
             gap: 0.35rem;
-            padding: 2.5rem 0.35rem 0.35rem 0.35rem;
+            padding: 0 0.35rem 0.35rem 0.35rem;
             align-items: center;
             position: relative;
             flex-wrap: wrap;
+
+            @media screen and (min-width: 30rem) {
+                padding-top: 2.5rem;
+            }
 
             > .btn {
                 padding: .35rem;

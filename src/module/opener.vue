@@ -52,7 +52,7 @@
         position: fixed;
         top: -100vh;
         left: 50%;
-        width: 40vw;
+        width: 100vw;
         max-width: 20rem;
         border-radius: .5rem;
         background-color: rgb(240 244 253 / 80%);

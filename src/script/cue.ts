@@ -108,7 +108,7 @@ function parseParam(param: string):Array<string>{
 
     // 去除引号
     function unQuote(string: string): string{
-        const match = string.match(/^\s*(?:'|")([\w\W]+)(?:'|")\s*$/);
+        const match = string.match(/^\s*"(?:'|")"([\w\W]+)(?:'|")\s*$/);
         if(!match) return string;
         else return match[1];
     }
@@ -124,6 +124,7 @@ function parseParam(param: string):Array<string>{
     // 替换
     function findQuoted(quote: string, ignoreInQuoteText: boolean = false){
         let start = 0;
+        if(quote.length <= 1) return;
         while(true){
             const pos_start = param.indexOf(quote, start),
                 pos_end = param.indexOf(quote, pos_start +1);

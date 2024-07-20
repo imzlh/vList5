@@ -67,36 +67,14 @@
             }
         },
         methods: {
-            touch_start(ev:TouchEvent){
-                touch = {
-                    x: ev.touches[0].clientX,
-                    y: ev.touches[0].clientY,
-                    mx: ev.touches[0].clientX,
-                    my: ev.touches[0].clientY,
-                    time: new Date().getTime()
-                };
-            },
-            touch_move(ev: TouchEvent){
-                touch.mx = ev.touches[0].clientX,
-                touch.my = ev.touches[0].clientY;
-            },
-            touch_end(file: iMixed, el: TouchEvent){
-                if(Math.abs(touch.mx - touch.x) > 10 || Math.abs(touch.my - touch.y) > 10) return;
-                el.preventDefault();
-
-                marked.value = [file];
-
-                if(new Date().getTime() - touch.time <= 600) file.type == 'dir' ? this.folder(file) : openFile(file);
-                else this.ctxmenu(file, new MouseEvent('contextmenu', {
-                    "clientX": touch.mx,
-                    "clientY": touch.my
-                }))
-            },
+            
             drag_start(e: DragEvent, fd: iMixed){
                 if(!e.dataTransfer) return e.preventDefault();
 
                 e.dataTransfer.setData('application/json', JSON.stringify(toRaw(fd)));
-                e.dataTransfer.setData('text/plain', DRAG_TOKEN);
+                e.dataTransfer.setData('text/vtoken', DRAG_TOKEN);
+                e.dataTransfer.setData('text/uri-list', fd.url);
+                e.dataTransfer.setData('text/plain', fd.name);
                 e.dataTransfer.dropEffect = 'copy';
 
                 if(fd.icon){
@@ -118,7 +96,7 @@
                 // 去除高亮
                 (e.currentTarget as HTMLElement).classList.remove('moving');
                 // 只有满足vlist文件的才可以被拖拽
-                if(e.dataTransfer.getData('text/plain') == DRAG_TOKEN){
+                if(e.dataTransfer.getData('text/vtoken') == DRAG_TOKEN){
                     // 拖拽到原处不受理
                     const from_fd:iMixed = JSON.parse(e.dataTransfer.getData('application/json'));
                     if((from_fd.type == 'dir' ? from_fd.path : splitPath(from_fd).dir )== to_fd.path) return;
@@ -202,18 +180,19 @@
 <template>
     <div class="parent selectable" ref="parent"
         @dblclick.stop="folder()" @click.stop="markup($event, data)" @contextmenu.stop.prevent="ctxmenu(data, $event)"
-        @dragstart.stop="drag_start($event, data)" :draggable="(data).path != '/'" @drop.stop="drag_onto($event, data)"
+        @dragstart.stop="drag_start($event, data)" :draggable="(data).path != '/' && !(data as iDir).rename" @drop.stop="drag_onto($event, data)"
         @dragover.stop="drag_alert($event, data)"
         @dragleave.stop="($event.currentTarget as HTMLElement).classList.remove('moving')" :title="desc(data as any)"
-        @touchstart.passive.stop="touch_start" @touchmove.passive.stop="touch_move" @touchend.stop="touch_end(data, $event)"
+        v-touch
         v-into="markmap.includes(data.path)" tabindex="-1"
     >
         <div class="btn-hide" :show="data.show" @click.stop="folder()"></div>
         <img :src="data.icon" v-if="data.icon">
         <input v-if="data.rename" :value="data.name"
             @change="rename(data, ($event.currentTarget as HTMLInputElement).value)"
-            @blur="data.rename = false"
-            @mousedown.stop @pointerdown.stop @touchstart.passive.stop @dragstart.stop
+            @contextmenu="(data as iDir).rename = false"
+            @blur="(data as iDir).rename = false"
+            @keydown.stop @drop.stop.prevent
             v-focus
         >
         <span class="text" v-else>{{ data.dispName || data.name }}</span>
@@ -230,16 +209,17 @@
 
             <div v-else class="item selectable" :title="desc(child)" ref="elements"
                 @click.stop="markup($event, child)" @contextmenu.stop.prevent="ctxmenu(child, $event)"
-                @touchstart.stop="touch_start" @touchmove.stop="touch_move" @touchend.stop="touch_end(child as iFile, $event)"
-                @dblclick.stop="openFile(child as iFile)" @dragstart.stop="drag_start($event, child)" draggable="true"
+                v-touch
+                @dblclick.stop="openFile(child as iFile)" @dragstart.stop="drag_start($event, child)" :draggable="!(child as iFile).rename"
                 v-into="markmap.includes(child.path)" :process="(child as iFile).status"
                 :style="{ '--status': (child as iFile).status }" :type="child.type" tabindex="-1"
             >
                 <img :src="child.icon || DEFAULT_FILE_ICON">
                 <input v-if="(child as iFile).rename" :value="child.name"
                     @change="rename(child, ($event.currentTarget as HTMLInputElement).value)"
+                    @contextmenu="(child as iFile).rename = false"
                     @blur="(child as iFile).rename = false"
-                    @mousedown.stop @pointerdown.stop @touchstart.passive.stop @dragstart.stop
+                    @keydown.stop @drop.stop.prevent
                     v-focus
                 >
                 <span class="text" v-else>{{ child.dispName || child.name }}</span>
@@ -266,7 +246,8 @@
             border: solid .05rem transparent;
             border-radius: .2rem;
             min-height: 1rem;
-            margin: .07rem;
+            margin: .05rem;
+            padding: .1rem 0;
             overflow: hidden;
 
             outline: none;
@@ -292,7 +273,7 @@
             }
 
             &[type=file]{
-                padding-left: .95rem;
+                padding-left: 1rem;
             }
 
             > img {
@@ -324,7 +305,9 @@
 
             >.text {
                 font-size: .8rem;
-                font-weight: 400;
+                line-height: 1rem;
+                font-family: system-ui;
+                font-weight: 300;
                 flex-grow: 1;
                 pointer-events: none;
                 text-overflow: ellipsis;

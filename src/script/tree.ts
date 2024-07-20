@@ -47,7 +47,7 @@ export async function upload(e: FileList | Array<File> | DragEvent | boolean, to
         // 遍历
         const TREE = [] as Array<File>;
         async function add_to_tree(entry: FileSystemDirectoryEntry | FileSystemEntry, parent?: FileSystemDirectoryEntry) {
-            if (entry.isFile){
+            if (entry.isFile){ 
                 if(!parent) parent = await new Promise((rs, rj) => entry.getParent(rs as any, rj));
                 const file = await new Promise((rs, rj) => (parent as FileSystemDirectoryEntry).getFile(entry.fullPath, undefined, r => (r as FileSystemFileEntry).file(rs, rj), rj)) as xFile;
                 file.fullpath = entry.fullPath;
@@ -71,12 +71,17 @@ export async function upload(e: FileList | Array<File> | DragEvent | boolean, to
         }
 
         // 遍历为{文件：文件对象}
-        const root = e.dataTransfer.items[0].webkitGetAsEntry()?.filesystem.root;
-        if(root) await add_to_tree(root, root);
-        else for (const item of e.dataTransfer.items) {
+        // const root = e.dataTransfer.items[0].webkitGetAsEntry()?.filesystem.root;
+        // if(root) await add_to_tree(root, root);
+        // else for (const item of e.dataTransfer.items) {
+        //     const entry = item.webkitGetAsEntry();
+        //     if(!entry) continue;
+        //     await add_to_tree(entry);
+        // }
+
+        for (const item of e.dataTransfer.items) {
             const entry = item.webkitGetAsEntry();
-            if(!entry) continue;
-            await add_to_tree(entry);
+            entry && await add_to_tree(entry);
         }
 
         e = TREE;
@@ -115,106 +120,70 @@ export async function upload(e: FileList | Array<File> | DragEvent | boolean, to
     const repeated = [] as Array<vFile>,
         repeated_files = [] as Array<File>,
         uploaded = [] as Array<iFile>;
-    for (const file of e) await (async function(){
-        // 相对目录
-        let relative = to_fd as vDir;
-        
+    for (const file of e) {
         // 相对的文件
         if(file.webkitRelativePath || (file as xFile).fullpath){
             // 获取路径分层
-            const path = file.webkitRelativePath 
-                ? splitPath({ path: (file as xFile).fullpath as string }).dir.split('/')
-                : file.webkitRelativePath.split('/');
+            const path = splitPath({ path:
+                file.webkitRelativePath 
+                    ? file.webkitRelativePath
+                    : (file as xFile).fullpath as string
+                }),
+                parent = await loadPath(to_fd.path + path.dir);
 
-            for (let ii = 0 ; ii < path.length ; ii ++) {
+            const matched = parent.child?.filter(item => item.name == path.fname)[0];
+            if(matched && matched.type == 'file')
+                repeated.push(matched),repeated_files.push(file);
+            else if(matched && matched.type == 'dir') Global('ui.message').call({
+                    "title": "资源管理器",
+                    "content": {
+                        "title": "上传错误",
+                        "content": "前提条件错误：目标是一个文件夹"
+                    },
+                    "type": "error",
+                    "timeout": 10
+                } satisfies MessageOpinion);
+            else {
+                // 创建一个元素
+                const file_element = reactive({
+                    "ctime": Date.now(),
+                    "icon": getIcon(file.name, true),
+                    "name": file.name,
+                    "path": to_fd.path + ((file as xFile).fullpath || file.webkitRelativePath),
+                    "size": file.size,
+                    "type": 'file',
+                    "url": FILE_PROXY_SERVER + to_fd.path + ((file as xFile).fullpath || file.webkitRelativePath),
+                    "status": 1
+                } as iFile);
 
-                // 针对webkitRelativePath去除空层
-                if(path[ii] == '') path[ii] = file.name;
-
-                // 加载列表
-                if(!relative.child) try{
-                    await loadTree(relative);
-                }catch{
-                    try{
-                        await FS.mkdir(relative.path + path.slice(ii).join('/') + '/');
-                        break;
-                    }catch(e){
-                        return Global('ui.message').call({
-                            "title": "资源管理器",
-                            "content": {
-                                "title": "上传错误",
-                                "content": "前提条件错误：创建文件夹失败"
-                            },
-                            "type": "error",
-                            "timeout": 10
-                        } satisfies MessageOpinion);
-                    }
-                }
-
-                // 寻找文件夹是否存在
-                for (let i = 0; i < (relative.child as Array<iMixed>).length; i++){
-                    const child = (relative.child as Array<iMixed>)[i];
-                    // 文件夹存在
-                    if(child.name == path[i])
-                        if(child.type == 'dir')
-                            relative = child;
-
-                    // 文件存在
-                    if(ii < path.length && child.name == file.name)
-                        if(child.type == 'file')
-                            return repeated.push(child),repeated_files.push(file);
-                        else
-                            return Global('ui.message').call({
-                                "title": "资源管理器",
-                                "content": {
-                                    "title": "上传错误",
-                                    "content": "前提条件错误：目标是一个文件夹"
-                                },
-                                "type": "error",
-                                "timeout": 10
-                            } satisfies MessageOpinion);
+                // 直接开始上传
+                const id = (parent.child as Array<FileOrDir>).push(file_element);
+                try{
+                    onCreate && onCreate(file_element);
+                    await FS.write(
+                        to_fd.path + ((file as xFile).fullpath || file.webkitRelativePath),
+                        file,
+                        prog => file_element.status = prog.loaded / prog.total * 100
+                    );
+                    uploaded.push(file_element);
+                    file_element.status = undefined;
+                }catch(e){
+                    // 删除对应元素
+                    (parent.child as Array<FileOrDir>).splice(id -1, 1);
+                    // 抛出错误
+                    Global('ui.message').call({
+                        "title": "资源管理器",
+                        "content": {
+                            "title": "上传错误",
+                            "content": (e as Error).message
+                        },
+                        "type": "error",
+                        "timeout": 10
+                    } satisfies MessageOpinion);
                 }
             }
         }
-
-        // 创建一个元素
-        const file_element = reactive({
-            "ctime": Date.now(),
-            "icon": getIcon(file.name, true),
-            "name": file.name,
-            "path": to_fd.path + file.name,
-            "size": file.size,
-            "type": 'file',
-            "url": FILE_PROXY_SERVER + to_fd.path + file.name,
-            "status": 1
-        } as iFile);
-        onCreate && onCreate(file_element);
-
-        // 直接开始上传
-        const id = (relative.child as Array<FileOrDir>).push(file_element);
-        try{
-            await FS.write(
-                to_fd.path + ((file as xFile).fullpath || file.webkitRelativePath + '/' + file.name),
-                file,
-                prog => file_element.status = prog.loaded / prog.total * 100
-            );
-            uploaded.push(file_element);
-            file_element.status = undefined;
-        }catch(e){
-            // 删除对应元素
-            (relative.child as Array<FileOrDir>).splice(id -1, 1);
-            // 抛出错误
-            Global('ui.message').call({
-                "title": "资源管理器",
-                "content": {
-                    "title": "上传错误",
-                    "content": (e as Error).message
-                },
-                "type": "error",
-                "timeout": 10
-            } satisfies MessageOpinion);
-        }
-    })();
+    }
 
     // 完毕
     if(repeated.length > 0)
@@ -322,16 +291,24 @@ export async function loadPath(path: string){
         if(!name) continue;
         if(!current.child) await loadTree(current);
         const cur = (current.child as Array<FileOrDir>).filter(item => item.name == name && item.type == 'dir')[0] as vDir | undefined;
-        // 找不到就创建
-        if(!cur) current.child?.unshift(current = {
-            'type': 'dir',
-            'ctime': Date.now(),
-            'icon': DEFAULT_DIR_ICON,
-            'name': name,
-            'path': current.path + name + '/',
-            'url': current.url + name + '/'
-        });
-        else current = cur;
+        if(!cur){
+            // 存在，只是被隐藏了
+            try{
+                if((await FS.stat(current.path + name + '/')).type != 'dir')
+                    throw 1;
+                current.child?.unshift(current = {
+                    'type': 'dir',
+                    'ctime': Date.now(),
+                    'icon': DEFAULT_DIR_ICON,
+                    'name': name,
+                    'path': current.path + name + '/',
+                    'url': current.url + name + '/'
+                });
+            // 找不到就创建
+            }catch{
+                await FS.mkdir(current.path + name + '/');
+            }
+        }else current = cur;
     }
     if(!current.child) await loadTree(current);
     return current;

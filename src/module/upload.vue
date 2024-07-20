@@ -15,6 +15,9 @@
         }),
         event = defineEmits(['show', 'hide', 'close', 'select', 'upload', 'create']);
 
+    if(!dir)
+        throw new TypeError('Dir not defined');
+
     const drag = {
         start(e:DragEvent){
             mouse.show = true;

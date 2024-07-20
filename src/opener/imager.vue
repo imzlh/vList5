@@ -242,7 +242,7 @@
 
 <template>
     <div class="image-viewer" v-if="cfg.imgs[cfg.id]" ref="boxElem" tabindex="-1"
-        @wheel="scroll" @contextmenu.prevent="showCtx" @keydown.prevent="keyev"
+        @wheel="scroll" @contextmenu.prevent="showCtx" @keydown.stop.prevent="keyev"
     >
         <img ref="imgElem"
             :style="{
@@ -252,7 +252,7 @@
             :src="cfg.imgs[cfg.id].url"
             :alt="cfg.imgs[cfg.id].name"
             @load="cfg.loading = false" @loadstart="cfg.loading = true"
-            @pointerdown.prevent="moveStart"
+            @pointerdown.prevent="moveStart" @keydown.stop.prevent="keyev"
         >
         <div class="ctrl">
             <!-- 缩小 -->

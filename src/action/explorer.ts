@@ -132,7 +132,7 @@ EXP_REG.register(() => ({
                     "title": "覆盖或合并提示",
                     "message": "这些文件将会被合并/覆盖\n\n" +
                         over.map(item => item.name + '\t' + (item.type == 'dir' ? '文件夹' : size2str(item.size))),
-                    "callback": rs
+                    "callback": res => res && rs(true)
                 } satisfies AlertOpts));
         } catch { }
 

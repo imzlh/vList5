@@ -762,7 +762,7 @@
 
         > .side-overlay{
             background-color: #dedede49;
-            z-index: 18;
+            z-index: 39;
             position: absolute;
             inset: 0;
             backdrop-filter: blur( .2rem );
@@ -779,7 +779,7 @@
             max-width: 15rem;
             padding: 1rem;
             background-color: rgba(255, 255, 255, 0.9);
-            z-index: 20;
+            z-index: 40;
             transform: translateX(100%);
             transition: all .2s;
 

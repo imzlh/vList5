@@ -1,10 +1,23 @@
 <script setup lang="ts">
     import { Global } from '@/utils';
     import type { AlertOpts } from '@/env';
-    import { ref, shallowRef } from 'vue';
+    import { ref, shallowRef, type Directive } from 'vue';
 
     const item = shallowRef<AlertOpts>(),
-        dataref = ref();
+        dataref = ref(),
+        core = ref<HTMLElement>(),
+        vFocus = {
+            mounted(el: HTMLElement, dat){
+                if(dat.value)
+                    el.focus();
+            }
+        } satisfies Directive,
+        vBtn = {
+            mounted:(el: HTMLElement) =>
+                el.addEventListener('keydown', key => 
+                    key.code == 'Enter' && (key.preventDefault(), el.click())
+                )
+        } satisfies Directive;
 
     function call(role: string) {
         if (role == 'close') item.value = undefined;
@@ -12,33 +25,40 @@
     }
 
     Global('ui.alert').data = (d: AlertOpts) => {
-        item.value = d; dataref.value = '';
+        item.value = d; dataref.value = '';core.value && core.value.focus();
     };
 </script>
 
 <template>
-    <div :type="item.type" class="sys-alert" v-if="item">
+    <div :type="item.type" class="sys-alert" v-if="item" ref="core">
         <div class="basic">
             <h3 v-if="item.title">{{ item.title }}</h3>
             <span>{{ item.message }}</span>
 
-            <input type="text" v-model="dataref" v-if="item.type == 'prompt'">
+            <input type="text" v-model="dataref" v-if="item.type == 'prompt'" v-focus
+                @keydown="$event.key == 'Enter' && (item.callback(dataref.value), item = undefined)"
+            >
         </div>
         <div class="btns">
             <div style="flex-grow: 1;"></div>
             <template v-if="item.button">
                 <button v-for="btn in item.button" :style="{ backgroundColor: btn.color }"
-                    @click="call(btn.role);btn.click && btn.click(dataref)">
+                    @click="call(btn.role);btn.click && btn.click(dataref)"
+                >
                     {{ btn.content }}
                 </button>
             </template>
             <template v-else>
-                <button style="background-color: #e5e5e5"
-                    @click="item.type == 'confirm' && item.callback(dataref = false);item = undefined">
+                <button style="background-color: #e5e5e5" v-focus="item.type != 'prompt'"
+                    @click="item.type == 'confirm' && item.callback(dataref = false); item = undefined"
+                    v-btn    
+                >
                     取消
                 </button>
-                <button style="color: white;" @click="item.type == 'confirm' && (dataref = false); item.callback(dataref); item = undefined;
-                ">
+                <button style="color: white;"
+                    @click="item.type == 'confirm' && (dataref = true);item.callback(dataref); item = undefined;"
+                    v-btn
+                >
                     确定
                 </button>
             </template>

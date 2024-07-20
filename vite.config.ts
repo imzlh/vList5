@@ -26,7 +26,7 @@ export default defineConfig({
                     if(id.includes('monaco-editor') || id.includes('vscode.vue'))
                         return 'vscode';
                     // muya
-                    if(id.includes('muya') || id.includes('markdown.vue'))
+                    if((id.includes('muya') && !['prism' ,'mermaid', 'mindmap', 'vega', 'flowchart'].some(item => id.includes(item))) || id.includes('markdown.vue'))
                         return 'muya';
                     else if(id.includes('prism'))
                         return 'prism';

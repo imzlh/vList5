@@ -1,10 +1,10 @@
 <script setup lang="ts">
 	import { computed, onMounted, reactive, readonly, ref, watch, type Ref } from 'vue';
-	import type { CtxDispOpts, CtxMenuData } from './env';
+	import type { AlertOpts, CtxDispOpts, CtxMenuData } from './env';
 	import tabManager from './module/tabs.vue';
-	import Tree, { updated } from './module/tree.vue';
+	import Tree, { marked, markmap, updated } from './module/tree.vue';
 	import CtxMenu from './module/ctxmenu.vue';
-	import { APP_NAME, Global, TREE, getConfig, regConfig } from './utils';
+	import { APP_NAME, FS, Global, TREE, getConfig, regConfig, reloadTree, splitPath } from './utils';
 	import Opener from './module/opener.vue';
 	import Message from './module/message.vue';
 	import Chooser from './module/chooser.vue';
@@ -44,6 +44,14 @@
 				this.current --;
 			return this.elements.value[this.current] as HTMLElement;
 		},
+		_ensure(action: string):Promise<any>{
+			return new Promise(rs => Global('ui.alert').call({
+				"callback": res => res && rs(true),
+				"message": "真的要" + action + '吗?',
+				"title": "确认操作",
+				"type": "confirm"
+			} satisfies AlertOpts));
+		},
 		__handler(e: KeyboardEvent){
 			e.preventDefault();
 
@@ -58,6 +66,15 @@
 
 				case 'Enter':
 					this.elements.value[this.current].dispatchEvent(new MouseEvent('dblclick'));
+				break;
+
+				case 'Delete':
+					this._ensure('删除 ' + markmap.value.length + '个文件(夹)')
+						.then(() => {
+							const set = new Set(marked.value.map(item => splitPath(item).dir));
+							FS.delete(markmap.value);
+							reloadTree(Array.from(set));
+						});
 				break;
 
 				default:
@@ -175,7 +192,9 @@
 			</svg>
 			{{ APP_NAME }}
 		</div>
-		<div class="files vlist" ref="list_ele" tabindex="-1" @contextmenu.prevent @focus="tree_active = true" @blur="tree_active = false">
+		<div class="files vlist" ref="list_ele" tabindex="-1"
+			@contextmenu.prevent @focus="tree_active = true" @blur="tree_active = false"
+		>
 			<Tree :data="TREE" :active="tree_active" />
 		</div>
 	</div>
@@ -323,7 +342,7 @@
 			left: 0;
 			width: 100vw;
 			height: 100vh;
-			z-index: 50;
+			z-index: 57;
 		}
 	}
 

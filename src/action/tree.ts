@@ -136,7 +136,7 @@ TREE_REG.register(() => ({
                     "title": "覆盖或合并提示",
                     "message": "这些文件将会被合并/覆盖\n\n" +
                         over.map(item => item.name + '\t' + (item.type == 'dir' ? '文件夹' : size2str(item.size))),
-                    "callback": rs
+                    "callback": res => res && rs(true)
                 } satisfies AlertOpts));
         } catch { }
 
@@ -347,9 +347,9 @@ TREE_REG.register(() => ({
                     const info = splitPath(ordered[i]);
                     ordered[i].status = 1;
                     obj[ordered[i].path] = info.dir + (i + 1).toString().padStart(3, '0') + '.' + info.ext;
-                    if (reload.includes(info.dir)) reload.push(info.dir);
+                    if (!reload.includes(info.dir)) reload.push(info.dir);
                 }
-                FS.rename(obj).then(() => void reloadTree(reload))
+                FS.rename(obj).then(() => reloadTree(reload))
                     .catch((e: Error) => Global('ui.message').call({
                         "type": "error",
                         "title": "文件资源管理器",

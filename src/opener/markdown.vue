@@ -102,7 +102,8 @@
             'type': 'confirm',
             'title': '确认覆盖',
             'message': '可能会覆盖更改，确认重载吗',
-            'callback': async () => {
+            'callback': async res => {
+                if(!res) return;
                 const text = await (await fetch(input.url)).text();
                 muya?.setContent(text);
                 Global('ui.message').call({

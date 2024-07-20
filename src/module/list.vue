@@ -41,7 +41,7 @@
                 return [ ..._prop.list ].sort((a, b) => b.ctime - a.ctime)
             if(layout.orderBy == 'size')
                 return _prop.list.filter(item => item.type == 'dir')
-                    .concat((_prop.list.filter(item => item.type == 'file') as Array<vFile>).sort((a, b) => a.size - b.size))
+                    .concat((_prop.list.filter(item => item.type == 'file') as Array<vFile>).sort((a, b) => a.size - b.size) as any)
             if(layout.orderBy == 'size_rev')
                 return (_prop.list.filter(item => item.type == 'file') as Array<vFile>).sort((a, b) => b.size - a.size)
                     .concat(_prop.list.filter(item => item.type == 'dir') as any);
@@ -198,14 +198,14 @@
     <div class="fd-list" :data-empty="list.length == 0" :style="{
         overflowY: select.enable ? 'hidden' : 'auto',
         paddingRight: select.enable ? '.2rem' : '0'
-    }" v-bind="$attrs" ref="data">
+    }" v-bind="$attrs" ref="data" @contextmenu.prevent.stop="event('ctxroot', $event)">
         <!-- 默认输出 -->
         <div v-if="list.length == 0" style="width: auto;background-color: transparent;">
             此文件夹为空
         </div>
         <!-- 列表 -->
         <div class="view" v-else-if="_prop.mode == 'view'" tabindex="-1"
-            @pointerdown.stop.prevent="init_select" @click.prevent.stop="clear_selected()" @contextmenu.prevent.stop="event('ctxroot', $event)"
+            @pointerdown.stop.prevent="init_select" @click.prevent.stop="clear_selected()"
         >
             <template v-for="(fd,i) of flist" :key="fd.path">
                 <div :type="fd.type" ref="list_element" class="item" tabindex="2" @pointerdown.stop @pointermove.prevent
