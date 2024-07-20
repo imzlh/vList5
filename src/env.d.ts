@@ -15,7 +15,7 @@ interface FileAndDir {
     name: string,
     dispName?:string,
     ctime: number,
-    url: strings,
+    url: string,
     path: string,
     icon?:string
 }

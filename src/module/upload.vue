@@ -35,8 +35,8 @@
 
 <template>
     <div class="upload-wrapper" @dragover.prevent="drag.start" @drop.prevent="drag.end" @dragleave="mouse.show = false">
-        <div class="container" @click="upload(true, dir)">
-            <div v-for="item in eque" @click.stop="event('select', dir + '/' + item.name)">
+        <div class="container" @click="upload(true, dir, obj => eque.push(obj))">
+            <div v-for="item in eque" @click.stop="event('select', item.path)">
                 <img :src="getIcon(item.name)" :alt="item.icon">
                 <span class="name">{{ item.name }}</span>
                 <div :style="{

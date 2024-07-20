@@ -186,7 +186,7 @@
         //     this.obj.index = CFG.search_index;
         // },
         repAll(){
-            this.obj?.replace('next',{
+            this.obj?.replace(CFG.replace_text ,{
                 isSingle: false,
                 isRegexp: false
             });

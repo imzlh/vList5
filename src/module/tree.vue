@@ -1,6 +1,6 @@
 <script lang="ts">
     import type { MessageOpinion } from '@/env';
-    import { DEFAULT_FILE_ICON, FS, Global, loadTree, UI, openFile, reloadTree, size2str, splitPath } from '@/utils';
+    import { DEFAULT_FILE_ICON, FS, Global, loadTree, UI, openFile, reloadTree, size2str, splitPath, clipFName } from '@/utils';
     import { ref, shallowRef, toRaw, watch, type PropType } from 'vue';
     import { upload, type iDir, type iFile, type iMixed } from '@/script/tree';
     import { TREE_REG } from '@/action/tree';
@@ -74,7 +74,7 @@
                 e.dataTransfer.setData('application/json', JSON.stringify(toRaw(fd)));
                 e.dataTransfer.setData('text/vtoken', DRAG_TOKEN);
                 e.dataTransfer.setData('text/uri-list', fd.url);
-                e.dataTransfer.setData('text/plain', fd.name);
+                e.dataTransfer.setData('text/plain', `[ ${fd.name.replace(/[\[\]]/g, match => '\\' + match[0])} ](${encodeURI(fd.url)})`);
                 e.dataTransfer.dropEffect = 'copy';
 
                 if(fd.icon){
@@ -154,7 +154,10 @@
                 FS.rename({
                     [file.path]: val
                 }).then(() => (
-                    file.name = val,file.rename = false
+                    file.name = val ,
+                    file.url = file.url.substring(0, file.url.lastIndexOf('/', file.url.length -2) +1) + file.name,
+                    file.rename = false,
+                    file.ctime = Date.now()
                 )).catch((e: Error) => (Global('ui.message').call({
                     'type': 'error',
                     'content': {

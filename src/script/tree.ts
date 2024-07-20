@@ -122,65 +122,70 @@ export async function upload(e: FileList | Array<File> | DragEvent | boolean, to
         uploaded = [] as Array<iFile>;
     for (const file of e) {
         // 相对的文件
-        if(file.webkitRelativePath || (file as xFile).fullpath){
+        if (file.webkitRelativePath || (file as xFile).fullpath) {
             // 获取路径分层
-            const path = splitPath({ path:
-                file.webkitRelativePath 
-                    ? file.webkitRelativePath
-                    : (file as xFile).fullpath as string
-                }),
+            var path = splitPath({
+                path:
+                    file.webkitRelativePath
+                        ? file.webkitRelativePath
+                        : (file as xFile).fullpath as string
+            }),
                 parent = await loadPath(to_fd.path + path.dir);
+        } else {
+            var path = splitPath(to_fd),
+                parent = to_fd;
+        }
 
-            const matched = parent.child?.filter(item => item.name == path.fname)[0];
-            if(matched && matched.type == 'file')
-                repeated.push(matched),repeated_files.push(file);
-            else if(matched && matched.type == 'dir') Global('ui.message').call({
+        const matched = parent.child?.filter(item => item.name == path.fname)[0];
+        if (matched && matched.type == 'file') {
+            repeated.push(matched), repeated_files.push(file);
+        } else if (matched && matched.type == 'dir') {
+            Global('ui.message').call({
+                "title": "资源管理器",
+                "content": {
+                    "title": "上传错误",
+                    "content": "前提条件错误：目标是一个文件夹"
+                },
+                "type": "error",
+                "timeout": 10
+            } satisfies MessageOpinion);
+        } else {
+            // 创建一个元素
+            const file_element = reactive({
+                "ctime": Date.now(),
+                "icon": getIcon(file.name, true),
+                "name": file.name,
+                "path": to_fd.path + ((file as xFile).fullpath || file.webkitRelativePath || file.name),
+                "size": file.size,
+                "type": 'file',
+                "url": FILE_PROXY_SERVER + to_fd.path + ((file as xFile).fullpath || file.webkitRelativePath || file.name),
+                "status": 1
+            } as iFile);
+
+            // 直接开始上传
+            const id = (parent.child as Array<FileOrDir>).push(file_element);
+            try {
+                onCreate && onCreate(file_element);
+                await FS.write(
+                    file_element.path,
+                    file,
+                    prog => file_element.status = prog.loaded / prog.total * 100
+                );
+                uploaded.push(file_element);
+                file_element.status = undefined;
+            } catch (e) {
+                // 删除对应元素
+                (parent.child as Array<FileOrDir>).splice(id - 1, 1);
+                // 抛出错误
+                Global('ui.message').call({
                     "title": "资源管理器",
                     "content": {
                         "title": "上传错误",
-                        "content": "前提条件错误：目标是一个文件夹"
+                        "content": (e as Error).message
                     },
                     "type": "error",
                     "timeout": 10
                 } satisfies MessageOpinion);
-            else {
-                // 创建一个元素
-                const file_element = reactive({
-                    "ctime": Date.now(),
-                    "icon": getIcon(file.name, true),
-                    "name": file.name,
-                    "path": to_fd.path + ((file as xFile).fullpath || file.webkitRelativePath),
-                    "size": file.size,
-                    "type": 'file',
-                    "url": FILE_PROXY_SERVER + to_fd.path + ((file as xFile).fullpath || file.webkitRelativePath),
-                    "status": 1
-                } as iFile);
-
-                // 直接开始上传
-                const id = (parent.child as Array<FileOrDir>).push(file_element);
-                try{
-                    onCreate && onCreate(file_element);
-                    await FS.write(
-                        to_fd.path + ((file as xFile).fullpath || file.webkitRelativePath),
-                        file,
-                        prog => file_element.status = prog.loaded / prog.total * 100
-                    );
-                    uploaded.push(file_element);
-                    file_element.status = undefined;
-                }catch(e){
-                    // 删除对应元素
-                    (parent.child as Array<FileOrDir>).splice(id -1, 1);
-                    // 抛出错误
-                    Global('ui.message').call({
-                        "title": "资源管理器",
-                        "content": {
-                            "title": "上传错误",
-                            "content": (e as Error).message
-                        },
-                        "type": "error",
-                        "timeout": 10
-                    } satisfies MessageOpinion);
-                }
             }
         }
     }
