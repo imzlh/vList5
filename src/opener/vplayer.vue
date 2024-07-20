@@ -234,11 +234,11 @@
             break;
 
             case 'ArrowUp':
-                CFG.volume = CFG.volume < .1 ? 0 : CFG.volume - .1;
+                CFG.volume = CFG.volume > .9 ? 1 : CFG.volume + .1;
             break;
 
             case 'ArrowDown':
-                CFG.volume = CFG.volume > .9 ? 1 : CFG.volume + .1;
+                CFG.volume = CFG.volume < .1 ? 0 : CFG.volume - .1;
             break;
 
             case ' ':
