@@ -1,7 +1,8 @@
-import type { AlertOpts, FileOrDir, ListPredirect, vSimpleFileOrDir } from "@/env";
+import type { AlertOpts, FileOrDir, ListPredirect, vFile, vSimpleFileOrDir } from "@/env";
 import { APP_API, FILE_PROXY_SERVER, Global, getConfig } from "@/utils";
 import { type Ref } from "vue";
 import SHA from "jssha";
+import { getIcon } from "./icon";
 
 export class PermissionDeniedError extends Error{}
 export class LoginError extends Error{}
@@ -123,6 +124,8 @@ export const FS = {
      * @returns 列表
      */
     async list(path:string, predirect: ListPredirect | {} = {}){
+        if(/^vfs:\/\/([a-z0-9-]+)\/(.+)$/.test(path))
+            throw new TypeError('vfs is not accessable');
         (predirect as any).path = path[path.length -1] == '/' ? path : path + '/';
         const item = (await this.__request('list',predirect,true) as Array<string>)
             .map((item) => ({
@@ -139,6 +142,8 @@ export const FS = {
      * @returns 详细信息
      */
     async listall(path:string):Promise<Array<FileOrDir>>{
+        if(/^vfs:\/\/([a-z0-9-]+)\/(.+)$/.test(path))
+            throw new TypeError('vfs is not accessable');
         const item = (await this.__request('slist',{ path },true)).map((item:FileOrDir) => {
             item.url = FILE_PROXY_SERVER + path + item.name + (item.type == 'dir' ? '/' : '');
             item.path = path + item.name + (item.type == 'dir' ? '/' : '');
@@ -192,6 +197,9 @@ export const FS = {
     },
 
     stat(path:string):Promise<FileOrDir>{
+        let match: RegExpMatchArray | null;
+        if(match = path.match(/^vfs:\/\/([a-z0-9-]+)\/(.+)$/))
+            return new Promise(rs => match && rs(this.vfiles[match[1]]));
         return this.__request('stat',{ path }, true);
     },
 
@@ -264,6 +272,20 @@ export const FS = {
         if(!this.auth_key)
             this.auth_key = getConfig('基础').authkey;
 
+        // 虚拟文件系统
+        let match: RegExpMatchArray | null;
+        if(match = file.match(/^vfs:\/\/([a-z0-9-]+)\/(.+)$/))
+            return (async () => {
+                if(!match) throw 1;  // TypeScript Check
+
+                const obj = this.vfiles[match[1]],
+                    write = await obj.vHandle.createWritable({
+                        "keepExistingData": false
+                    });
+                await write.write(content);
+                return 'OK';
+            })();
+
         return new Promise(async (rs,rj) => {
             // 预检
             let _pre;
@@ -302,6 +324,21 @@ export const FS = {
                 xhr.setRequestHeader('Authorization', await encrypto(content.size, this.auth_key.value, file));
             xhr.send(content);
         });
+    },
+    vfiles: {} as Record<string, vFile & { vHandle: FileSystemFileHandle }>,
+    async create( handle: FileSystemFileHandle ){
+        const uuid = crypto.randomUUID(),
+            file = await handle.getFile();
+        return this.vfiles[uuid] = {
+            "ctime": file.lastModified,
+            "name": handle.name,
+            "size": file.size,
+            "icon": getIcon(file.name, true),
+            "path": "vfs://" + uuid + '/' + file.name,
+            "type": "file",
+            "url": URL.createObjectURL(file),
+            vHandle: handle
+        };
     }
 }
 

@@ -10,6 +10,8 @@ import I_MUYA from '/app/muya.webp';
 import I_VPLAYER from '/app/vplayer.webp';
 import I_IMAGER from '/app/imager.webp';
 import I_DESIGNER from '/app/desginer.webp';
+import I_MEDIA from '/app/video.webp';
+
 import Imager from './opener/imager.vue';
 import Browser from './opener/browser.vue';
 import Vplayer from './opener/vplayer.vue';
@@ -136,9 +138,6 @@ export const OPENER:Array<OpenerOption> = [
             "webm",
             "mkv",
             "ogv",
-            "flv",
-            "m3u8",
-            "ts",
             "mpg"
         ],
         async open(file) {
@@ -172,6 +171,40 @@ export const OPENER:Array<OpenerOption> = [
                 "content": Vlite,
                 "icon": I_VLITE,
                 "name": "vLite",
+                "option": file
+            }, file);
+        },
+    },
+    // avPlayer <- libmedia
+    // https://github.com/zhaohappy/libmedia/
+    {
+        "name": "avPlayer",
+        "type": "media/*",
+        "typeDesc": "播放任何视频，基于ffmpeg",
+        "icon": I_MEDIA,
+        "format":[
+            "webm",
+            "mka",
+            "mkv",
+            "mp4",
+            "m4a",
+            "ogv",
+            "ogg",
+            "opus",
+            "mp3",
+            "flac",
+            "pcm",
+            "flv",
+            "mov",
+            "m2ts",
+            "ivf",
+            "wav"
+        ],
+        async open(file) {
+            Global('ui.window.add').call({
+                "content": (await import('@/opener/avplayer.vue')).default,
+                "icon": I_MEDIA,
+                "name": file.name ,
                 "option": file
             }, file);
         },

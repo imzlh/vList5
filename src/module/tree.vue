@@ -12,12 +12,18 @@
     // DRAG的口令，用于鉴别
     const DRAG_TOKEN = Math.floor(Math.random() * 100000000).toString(36);
 
-    let touch = {
-        x: 0,
-        y: 0,
-        mx: 0,
-        my: 0,
-        time: 0
+    export function acceptDrag(elem: HTMLElement, callback: (file: iFile) => void){
+        elem.addEventListener('dragover',function(e){
+            if(!e.dataTransfer) return;
+            e.dataTransfer.dropEffect = 'copy';
+            e.preventDefault();
+        });
+        elem.addEventListener('drop', function(e){
+            if(!e.dataTransfer) return;
+            e.preventDefault();
+            if(e.dataTransfer.getData('text/vtoken') == DRAG_TOKEN)
+                callback(JSON.parse(e.dataTransfer.getData('application/json')));
+        });
     }
 
     export default {

@@ -6,8 +6,8 @@ export const DEFAULT_FILE_ICON = I_File;
 export const DEFAULT_DIR_ICON = I_DIR;
 export const APP_API = import.meta.env.DEV
     ? 'http://192.168.1.1:81/@api/' 
-    : '/@api/';
+    : location.protocol + '//' + location.host + '/@api/';
 export const FILE_PROXY_SERVER = import.meta.env.DEV 
     ? 'http://192.168.1.1:81/' 
-    : '';
+    : location.protocol + '//' + location.host + '/';
 export const APP_ROOT = location.protocol + '//' + location.host + location.pathname;

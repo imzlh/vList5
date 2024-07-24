@@ -211,7 +211,7 @@
                 <div :type="fd.type" ref="list_element" class="item" tabindex="2" @pointerdown.stop @pointermove.prevent
                     @click.stop="node_select($event.currentTarget as HTMLElement, !$event.shiftKey);" @dblclick.prevent="event('open', fd)"
                     @contextmenu.prevent="event('ctxmenu', fd, $event)"
-                    :data-id="i"
+                    :data-id="i" v-touch
                 >
                     <!-- 图标 -->
                     <img :src="getIcon(fd)" />
@@ -240,7 +240,7 @@
                 <template v-for="(fd,i) of flist" :key="fd.path">
                     <tr :type="fd.type" ref="list_element" class="item" tabindex="2" @pointerdown.stop @pointermove.prevent
                         @click.stop="node_select($event.currentTarget as HTMLElement, !$event.shiftKey);" @dblclick.prevent="event('open', fd)"
-                        @contextmenu.prevent="event('ctxmenu', fd, $event)"
+                        @contextmenu.prevent="event('ctxmenu', fd, $event)" v-touch
                         :data-id="i" :style="{
                             '--icon': `url('${getIcon(fd)}')`
                         }"

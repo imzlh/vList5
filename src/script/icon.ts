@@ -1,6 +1,6 @@
-import { FileNamePattern } from '../../vendor/icon';
-import fileIcon from '../../vendor/fileIcons';
-import dirIcon from '../../vendor/folderIcons';
+import { FileNamePattern } from '@/utils/icon';
+import fileIcon from '@/utils/fileIcons';
+import dirIcon from '@/utils/folderIcons';
 import I_DIR from '/icon/dir.webp';
 import I_File from '/icon/file.webp';
 import { APP_ROOT } from '/config';

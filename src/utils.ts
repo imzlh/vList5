@@ -67,7 +67,7 @@ export * from './script/fs';
 export * from './script/openfile';
 export * from './script/tree';
 export * from './script/config';
-export { marked as list_marked, markmap as list_markmap } from './module/tree.vue';
+export { marked as list_marked, markmap as list_markmap, acceptDrag } from './module/tree.vue';
 export { FACTION } from './action/action';
 export * from './App.vue';
 

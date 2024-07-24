@@ -8,6 +8,7 @@ interface TabWindow {
     onLeave?: Function,
     content: Component,
     icon: string,
+    uuid: string,
     option?: any
 }
 

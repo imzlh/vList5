@@ -39,7 +39,7 @@
         </div>
         <div class="btns" style="flex-direction: row-reverse;">
             <button @click="cfg.display = false;cfg.selected = -1;">取消</button>
-            <button :disabled="-1 === cfg.selected" @click="callback && callback(OPENER[cfg.selected])">确定</button>
+            <button :disabled="-1 === cfg.selected" @click="callback && callback(OPENER[cfg.selected]);cfg.display = false;">确定</button>
         </div>
     </div>
     <div class="opener-cover" @click="cfg.display = false" v-show="cfg.display"></div>

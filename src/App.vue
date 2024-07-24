@@ -7,7 +7,7 @@
 	import { APP_NAME, FS, Global, TREE, getConfig, regConfig, reloadTree, splitPath } from './utils';
 	import Opener from './module/opener.vue';
 	import Message from './module/message.vue';
-	import Chooser from './module/chooser.vue';
+	import Chooser from './module/fileframe.vue';
 	import Alert from './module/alert.vue';
 	import './opener';
 
@@ -174,7 +174,10 @@
 		fontSize: UIMAIN['layout.fontSize'] as Ref<number>,
 		width_total: size_w,
 		height_total: size_h,
-		app_width: computed(() => size_w.value - UIMAIN['layout.left'].value -3),
+		app_width: computed(() => fullscreen.value
+			? size_w.value
+			: size_w.value - UIMAIN['layout.left'].value -3
+		),
 		filelist_width: UIMAIN['layout.left'] as Ref<number>,
 		fullscreen
 	};

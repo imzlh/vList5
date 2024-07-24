@@ -1,9 +1,9 @@
 <script setup lang="ts">
     import type { MessageOpinion, vSimpleFileOrDir } from '@/env';
     import { regSelf } from '@/opener';
-    import { FS, Global, UI, clipFName, regConfig, reqFullscreen, splitPath } from '@/utils';
+    import { FS, Global, UI, acceptDrag, clipFName, regConfig, reqFullscreen, splitPath } from '@/utils';
     import ASS from 'assjs';
-    import { onMounted, onUnmounted, shallowReactive, shallowRef, watch } from 'vue';
+    import { onMounted, onUnmounted, ref, shallowReactive, shallowRef, watch } from 'vue';
     // import { extract } from '../../vendor/mkvtool';
     // import type { mkvFile } from 'vendor/mkvtool';
 
@@ -23,6 +23,7 @@
 
     const opts_ = defineProps(['option']),
         file = opts_['option'] as vSimpleFileOrDir,
+        root = ref<HTMLElement>(),
         CFG = shallowReactive({
             // 信息条
             alert: '',
@@ -119,12 +120,12 @@
 
         // 偏移设置
         if(CFG.sub_offset)
-            requestAnimationFrame(() => init_sub_delay(parseFloat(CFG.sub_offset), parseFloat(CFG.sub_offset)));
+            CFG.sub_offset = '0';   // 还原默认
     });
 
     // 调整字幕显示状况
     watch(() => CFG.disp_sub,function(val){
-        if(!CFG.subtitle[CFG.sub_current]) return;
+        if(!CFG.subtitle[CFG.sub_current]) return ass && ass.hide();
 
         // ASS需要初始化
         if(CFG.subtitle[CFG.sub_current].sub_type == 'ass'){
@@ -163,10 +164,13 @@
         CFG.time = '0:00';
         CFG.timeprog = 0;
         CFG.error = false;
+
         // 字幕设置
+        ass && ass.destroy();   // 销毁ASS
         CFG.subtitle = val.subtitle;
         if(CFG.subtitle.length > 0) CFG.sub_current = 0;
         else CFG.sub_current = -1;
+
         // 视频设置
         video.value.src = val.url;
         video.value.play();
@@ -196,7 +200,6 @@
         const vid = video.value;
         vid.crossOrigin = 'anonymous';
 
-
         function time2str(time:number){
             const min = Math.floor(time / 60),
                 sec = Math.floor(time % 60);
@@ -219,6 +222,8 @@
                 cached.value.push([vid.buffered.start(i) / vid.duration,vid.buffered.end(i) / vid.duration]);
         }
         vid.oncanplay = () => vid.playbackRate = CFG.vid_rate;
+
+        root.value && acceptDrag(root.value, pl => CTRL.play(pl));
     });
 
     function keyev(kbd:KeyboardEvent){
@@ -340,7 +345,7 @@
         pick_sub() {
             const subnow = CFG.subtitle.map(each => each.name),
                 subfor = CFG.current;
-            Global('util.choose').call(this.dir)
+            Global('ui.choose').call(this.dir)
                 .then((items: Array<vSimpleFileOrDir>) => items.forEach(each => {
                     // 已经包含
                     if (subnow.includes(each.name)) return;
@@ -498,7 +503,7 @@
 <template>
     <div class="vpf_container" :active="CFG.active"  tabindex="-1"
         @dblclick="CFG.playing ? video?.pause() : video?.play()"
-        @pointermove="mouse" @click="mouse"
+        @pointermove="mouse" @click="mouse" ref="root"
         @keydown="keyev"
     >
         <div class="video" :width="CFG.vid_state"

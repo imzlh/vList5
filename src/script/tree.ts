@@ -5,7 +5,7 @@ import { reactive } from "vue";
 import { getIcon } from "./icon";
 import { DEFAULT_DIR_ICON, FILE_PROXY_SERVER } from "/config";
 import { FS, splitPath } from "./fs";
-import { Global } from "@/utils";
+import { Global, openFile } from "@/utils";
 
 export interface iFile extends vFile{
     rename?: boolean,
@@ -323,10 +323,24 @@ window.addEventListener('hashchange',async function(ev){
     const hash = this.location.hash.substring(1);
     if(hash[0] != '/') return;
 
-    const file = await FS.stat(hash);
+    try{
+        var file = await FS.stat(hash);
+    }catch(e){
+        return Global('ui.message').call({
+            'title': '文件资源管理器',
+            'content': {
+                'title': '文件打开失败',
+                'content': (e as Error).message
+            },
+            'timeout': 5,
+            'type': 'error'
+        } satisfies MessageOpinion);
+    }
     if(file.type == 'dir') await loadPath(hash);
-    else await loadPath(splitPath({ 'path' : hash }).dir);
-
+    else{
+        openFile(file);
+        await loadPath(splitPath({ 'path' : hash }).dir);
+    }
 });
 
 window.addEventListener('load', function(){

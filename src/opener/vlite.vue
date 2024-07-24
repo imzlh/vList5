@@ -2,9 +2,9 @@
     import type { vSimpleFileOrDir } from '@/env';
     import { regSelf } from '@/opener';
     import parseCue from '@/script/cue';
-    import { FILE_PROXY_SERVER, FS, Global, splitPath } from '@/utils';
+    import { acceptDrag, FILE_PROXY_SERVER, FS, Global, splitPath } from '@/utils';
     import { Lrc, Runner, type Lyric } from 'lrc-kit';
-    import { nextTick, onUnmounted, ref, shallowReactive, watch } from 'vue';
+    import { nextTick, onMounted, onUnmounted, ref, shallowReactive, watch } from 'vue';
 
     interface Music {
         name: string,
@@ -20,6 +20,7 @@
 
     const props = defineProps(['option']),
         data = props['option'] as vSimpleFileOrDir,
+        root = ref<HTMLElement>(),
         CFG = shallowReactive({
             playlist: [] as Array<Music>,
             currentID: -1,
@@ -64,6 +65,9 @@
             "ogg"
         ]
     }
+
+    // 挂载后
+    onMounted(() => root.value && acceptDrag(root.value, play));
 
     // 声音大小
     watch(
@@ -383,7 +387,7 @@
 </script>
 
 <template>
-    <div class="vlite-container" tabindex="-1" @keydown.prevent="keyev">
+    <div class="vlite-container" tabindex="-1" @keydown.prevent="keyev" ref="root">
         <div class="left" :single="!CFG.lrc.length">
             <div class="cover" :style="{ backgroundImage: current.cover ? `url('${current.cover}')` : undefined }">
             </div>

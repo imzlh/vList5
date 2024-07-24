@@ -103,66 +103,10 @@ export function parseTime(string:string,offset:number = 0):number{
 }
 
 function parseParam(param: string):Array<string>{
-    const quoted:Array<[number,number]> = [],
-        res:Array<string> = [];
-
-    // 去除引号
-    function unQuote(string: string): string{
-        const match = string.match(/^\s*"(?:'|")"([\w\W]+)(?:'|")\s*$/);
-        if(!match) return string;
-        else return match[1];
-    }
-
-    // 在引号中间
-    function inQuote(pos: number){
-        for (let i = 0; i < quoted.length; i++)
-            if(pos >= quoted[i][0] && pos <= quoted[i][1])
-                return true;
-        return false;
-    }
-
-    // 替换
-    function findQuoted(quote: string, ignoreInQuoteText: boolean = false){
-        let start = 0;
-        if(quote.length <= 1) return;
-        while(true){
-            const pos_start = param.indexOf(quote, start),
-                pos_end = param.indexOf(quote, pos_start +1);
-            
-            // 找不到开头
-            if(pos_start == -1)
-                return;
-
-            // 起始引号在其他引号块中
-            if(ignoreInQuoteText && inQuote(pos_start)){
-                start = pos_start;
-                continue;
-            }
-
-            // 找不到结束引号
-            if(pos_end == -1)
-                throw new ParseError('Unmatched quote found');
-
-            // 载入
-            quoted.push([pos_start,pos_end]);
-            start = pos_end +1;
-        }
-    }
-
-    // 找到
-    findQuoted('"');
-    findQuoted("'",true);
-
-    // 寻找空白
-    let start = 0;
-    for(const blank of param.matchAll(/\s+/g)){
-        if(inQuote(blank.index)) continue;
-        res.push(unQuote(param.substring(start, blank.index)));
-        start = blank.index + blank[0].length;
-    }
-
-    res.push(inQuote(start +1) ? unQuote(param.substring(start)) : param.substring(start));
-    return res;
+    const alias = [] as Array<string>;
+    return param.replace(/\".+\"/g, item => '$.' + (alias.push(item.substring(1, item.length -1)) -1))
+        .split(/[\s]+/)
+        .map(item => item.startsWith('$.') ? alias[parseInt(item.substring(2))] : item);
 }
 
 export interface CueItem{

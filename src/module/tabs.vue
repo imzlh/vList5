@@ -1,7 +1,7 @@
 <script setup lang="ts">
 	import type { CtxDispOpts, TabWindow } from '@/env';
 	import { Global } from '@/utils';
-	import { ref, reactive, toRaw } from 'vue';
+	import { ref, reactive, toRaw, markRaw } from 'vue';
 	import I_OFF from "/icon/off.webp";
 
 	const tabs = reactive<Array<TabWindow>>([]),
@@ -16,7 +16,10 @@
 		},
 
 		add(item: TabWindow) {
-			return current.value = tabs.push(item) - 1;
+			return current.value = tabs.push(markRaw({
+				...item,
+				uuid: crypto.randomUUID()
+			})) - 1;
 		}
 	};
 
@@ -44,7 +47,7 @@
 
 <template>
 	<div class="tab" v-bind="$attrs">
-		<template v-for="(data, i) in tabs">
+		<template v-for="(data, i) in tabs" :key="data.uuid">
 			<div v-if="data" @click="current = i" @contextmenu.prevent="ctxMenu($event, i)"
 				:active="current == i"
 			>
@@ -55,7 +58,7 @@
 		</template>
 	</div>
 
-	<template v-for="(data, i) in tabs">
+	<template v-for="(data, i) in tabs" :key="data.uuid">
 		<div v-if="data" :key="data.name + i" class="app" v-show="i == current">
 			<div class="app-meta-header" @click="current = i">
 				<img :src="data.icon" onerror="this.style.display = 'none';" class="icon">
