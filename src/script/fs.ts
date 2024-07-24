@@ -327,7 +327,7 @@ export const FS = {
     },
     vfiles: {} as Record<string, vFile & { vHandle: FileSystemFileHandle }>,
     async create( handle: FileSystemFileHandle ){
-        const uuid = crypto.randomUUID(),
+        const uuid = Math.floor(Math.random() * Number.MAX_SAFE_INTEGER).toString(36),
             file = await handle.getFile();
         return this.vfiles[uuid] = {
             "ctime": file.lastModified,

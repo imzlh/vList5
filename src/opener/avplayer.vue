@@ -133,7 +133,9 @@
 <template>
     <div class="av-container" ref="root">
         <div class="video" ref="videoel"></div>
-        <div class="bar" v-if="player">
+        <div class="bar" v-if="player" :style="{
+            pointerEvents: player.time.total == 0 ? 'none' : 'all'
+        }">
             <div class="time">
                 <div class="current">{{ time2str(player.time.current) }}</div>
                 <div class="timebar" @click="player.func.seek = $event.offsetX / ($event.currentTarget as HTMLElement).clientWidth * player.time.total">

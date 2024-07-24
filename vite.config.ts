@@ -143,8 +143,8 @@ export default defineConfig({
                 manualChunks(id) {
                     // core
                     if(
-                        (!id.includes('node_modules') || ['vue'].some(item => id.includes(item)))
-                        && !['markdown.vue', 'aplayer.vue', 'artplayer.vue', 'vscode.vue', 'avplayer.vue'].some(item => id.includes(item))
+                        (!id.includes('node_modules') || ['vue', 'avplayer'].some(item => id.includes(item)))
+                        && !['markdown.vue', 'aplayer.vue', 'artplayer.vue', 'vscode.vue'].some(item => id.includes(item))
                     ) return 'main';
                     // monaco
                     if(id.includes('monaco-editor') || id.includes('vscode.vue'))
@@ -152,7 +152,7 @@ export default defineConfig({
                     // muya
                     if((id.includes('muya') && !['prism' ,'mermaid', 'mindmap', 'vega', 'flowchart'].some(item => id.includes(item))) || id.includes('markdown.vue'))
                         return 'muya';
-                    else if(id.includes('prism'))
+                    if(id.includes('prism'))
                         return 'prism';
                 },
             },

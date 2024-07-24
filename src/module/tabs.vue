@@ -18,7 +18,7 @@
 		add(item: TabWindow) {
 			return current.value = tabs.push(markRaw({
 				...item,
-				uuid: crypto.randomUUID()
+				uuid: Math.floor(Math.random() * Number.MAX_SAFE_INTEGER).toString(36)
 			})) - 1;
 		}
 	};

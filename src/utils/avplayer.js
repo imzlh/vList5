@@ -20,29 +20,11 @@ import VP9_WASM from 'libmedia/dist/decode/vp9-atomic.wasm?url';
 import RSP_WASM from 'libmedia/dist/resample/resample-atomic.wasm?url';
 import SP_WASM from 'libmedia/dist/stretchpitch/stretchpitch-atomic.wasm?url';
 import { markRaw, reactive, watch } from 'vue';
-import _DIR_ from 'libmedia/dist/avplayer/avplayer?url';
+import AVPLAYER_SRC from 'libmedia/dist/avplayer/avplayer?url';
 
-// const Func = await (await fetch(_DIR_)).text(),
-//     _G = globalThis;
-// (function(){
-//     const globalThis = {
-//             document: {
-//                 currentScript: {
-//                     src: _DIR_
-//                 }
-//             },
-//             Math: _G.Math,
-//             URL: _G.URL,
-//             parseFloat: _G.parseFloat,
-//             parseInt: _G.parseInt,
-//             navigator: _G.navigator
-//         },
-//         window = globalThis;
-//     eval(Func);
-// })();
 // 初始化avPlayer
 const script = document.createElement('script');
-script.src = _DIR_;
+script.src = AVPLAYER_SRC;
 document.body.append(script);
 await new Promise(rs => script.onload = rs);
 AVPlayer.level = 3; // WARN LEVEL
