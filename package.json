@@ -1,11 +1,11 @@
 {
   "name": "vlist",
-  "version": "5.4",
+  "version": "5.5",
   "private": true,
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "run-p type-check \"build-only {@}\" -- && cp node_modules/libmedia/dist/avplayer/*.avplayer.js dist/assets/ || copy node_modules/libmedia/dist/avplayer/*.avplayer.js dist/assets/",
+    "build": "run-p type-check \"build-only {@}\" -- && cp node_modules/libmedia/dist/avplayer/*.avplayer.js dist/assets/ || copy node_modules\\libmedia\\dist\\avplayer\\*.avplayer.js dist/assets/",
     "preview": "vite preview",
     "build-only": "vite build",
     "type-check": "vue-tsc --build --force"
