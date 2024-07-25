@@ -5,20 +5,20 @@
  * @copyright izGroup
  */
 
-import PCM_WASM from 'libmedia/dist/decode/pcm-atomic.wasm?url';
-import H264_WASM from 'libmedia/dist/decode/h264-atomic.wasm?url';
-import AAC_WASM from 'libmedia/dist/decode/aac-atomic.wasm?url';
-import MP3_WASM from 'libmedia/dist/decode/mp3-atomic.wasm?url';
-import HEVC_WASM from 'libmedia/dist/decode/hevc-atomic.wasm?url';
-import VVC_WASM from 'libmedia/dist/decode/vvc-atomic.wasm?url';
-import MP4_WASM from 'libmedia/dist/decode/mpeg4-atomic.wasm?url';
-import AV1_WASM from 'libmedia/dist/decode/av1-atomic.wasm?url';
-import OPUS_WASM from 'libmedia/dist/decode/opus-atomic.wasm?url';
-import FLAC_WASM from 'libmedia/dist/decode/flac-atomic.wasm?url';
-import OGG_WASM from 'libmedia/dist/decode/vorbis-atomic.wasm?url';
-import VP9_WASM from 'libmedia/dist/decode/vp9-atomic.wasm?url';
-import RSP_WASM from 'libmedia/dist/resample/resample-atomic.wasm?url';
-import SP_WASM from 'libmedia/dist/stretchpitch/stretchpitch-atomic.wasm?url';
+import PCM_WASM from 'libmedia/dist/decode/pcm-simd.wasm?url';
+import H264_WASM from 'libmedia/dist/decode/h264-simd.wasm?url';
+import AAC_WASM from 'libmedia/dist/decode/aac-simd.wasm?url';
+import MP3_WASM from 'libmedia/dist/decode/mp3-simd.wasm?url';
+import HEVC_WASM from 'libmedia/dist/decode/hevc-simd.wasm?url';
+import VVC_WASM from 'libmedia/dist/decode/vvc-simd.wasm?url';
+import MP4_WASM from 'libmedia/dist/decode/mpeg4-simd.wasm?url';
+import AV1_WASM from 'libmedia/dist/decode/av1-simd.wasm?url';
+import OPUS_WASM from 'libmedia/dist/decode/opus-simd.wasm?url';
+import FLAC_WASM from 'libmedia/dist/decode/flac-simd.wasm?url';
+import OGG_WASM from 'libmedia/dist/decode/vorbis-simd.wasm?url';
+import VP9_WASM from 'libmedia/dist/decode/vp9-simd.wasm?url';
+import RSP_WASM from 'libmedia/dist/resample/resample-simd.wasm?url';
+import SP_WASM from 'libmedia/dist/stretchpitch/stretchpitch-simd.wasm?url';
 import { markRaw, reactive, watch } from 'vue';
 import AVPLAYER_SRC from 'libmedia/dist/avplayer/avplayer?url';
 
