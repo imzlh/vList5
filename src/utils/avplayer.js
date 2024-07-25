@@ -19,7 +19,7 @@ import OGG_WASM from 'libmedia/dist/decode/vorbis-simd.wasm?url';
 import VP9_WASM from 'libmedia/dist/decode/vp9-simd.wasm?url';
 import RSP_WASM from 'libmedia/dist/resample/resample-simd.wasm?url';
 import SP_WASM from 'libmedia/dist/stretchpitch/stretchpitch-simd.wasm?url';
-import { markRaw, reactive, watch } from 'vue';
+import { markRaw, reactive, readonly, watch } from 'vue';
 import AVPLAYER_SRC from 'libmedia/dist/avplayer/avplayer?url';
 
 // 初始化avPlayer
@@ -171,7 +171,7 @@ const AVMEDIA_TYPE_VIDEO = 0,
     AVMEDIA_TYPE_DATA = 2,
     AVMEDIA_TYPE_SUBTITLE = 3;
 
-export default function(el){
+export default function create(el){
     const player = new globalThis.AVPlayer({
         "container": el,
         "enableHardware": true,
@@ -212,7 +212,7 @@ export default function(el){
         ended: false,
         play: false,
         stop: false,
-        destroy: false,
+        destroy: readonly(() => player.destroy()),
         status: player.stats,
         display: {
             fill: false,
@@ -259,7 +259,6 @@ export default function(el){
     watch(() => refs.tracks.audioTrack, id => player.selectAudio(id));
     watch(() => refs.tracks.videoTrack, id => player.selectVideo(id));
     watch(() => refs.tracks.subTrack, id => player.selectSubtitle(id));
-    watch(() => refs.destroy, val => val && player.destroy());
     watch(() => refs.display.fill, fill => player.setRenderMode(fill ? 1 : 0));
     watch(() => refs.display.rotate, rotate => player.setRotate(rotate));
     watch(() => refs.display.flip.horizontal, flip => player.enableHorizontalFlip(flip));
@@ -269,6 +268,17 @@ export default function(el){
 
     player.on('ended', () => refs.ended = true);
     player.on('time', pts => refs.time.current = Number(pts));
+
+    // 欺骗ASS.js
+    el.videoHeight = el.videoWidth = 
+    el.currentTime = 0;
+    el.paused = true;
+
+    watch(() => refs.time.total, total => el.duration = total / 1000);
+    watch(() => refs.time.current, current => el.currentTime = current / 1000);
+    watch(() => refs.play, play => el.dispatchEvent(new Event((el.paused = !play) ? 'pause' : 'play')));
+    watch(() => refs.play, play => play && (el.videoWidth = refs.status.width, el.videoHeight = refs.status.height));
+    watch(() => refs.func.seek, time => time > 0 && el.dispatchEvent(new Event('seeking')));
 
     return refs;
 }

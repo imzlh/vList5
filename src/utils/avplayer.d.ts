@@ -1,3 +1,5 @@
+import type ASS from "assjs"
+
 export default class Stat {
     channels: number
     sampleRate: number
@@ -74,7 +76,7 @@ export interface Export {
     ended: boolean,
     play: boolean,
     stop: boolean,
-    destroy: boolean,
+    destroy: () => void,
     status: Stat,
     display: {
         fill: boolean,

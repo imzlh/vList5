@@ -1,9 +1,10 @@
 <script lang="ts" setup>
     import { onMounted, onUnmounted, reactive, ref, watch } from 'vue';
-    import play, { type Export } from '@/utils/avplayer';
+    import createAV, { type Export } from '@/utils/avplayer';
     import type { MessageOpinion, vFile, vSimpleFileOrDir } from '@/env';
     import { reqFullscreen, UI } from '@/App.vue';
     import { acceptDrag, FS, Global, splitPath } from '@/utils';
+import ASS from 'assjs';
 
     const CONFIG = {
         seek_time: 10,
@@ -51,10 +52,10 @@
 
     const player = ref<Export>();
     onMounted(function(){
-        player.value = play(videoel.value as HTMLDivElement);
+        player.value = createAV(videoel.value as HTMLDivElement);
         CTRL.play(file);
     });
-    onUnmounted(() => player.value && (player.value.destroy = true));
+    onUnmounted(() => player.value?.destroy());
 
     const CTRL = {
         dir: '?',
@@ -62,6 +63,7 @@
         async play(file: vSimpleFileOrDir) {
             const dir = splitPath(file)['dir'];
             let id: number | undefined;
+            if(this.ass) this.ass.destroy();
             if (this.dir == dir) {
                 // 找到ID
                 for (let i = 0; i < ui.videos.length; i++)
@@ -110,15 +112,34 @@
             if(ui.videoID == 0)
                 ui.videoID = ui.videos.length -1;
             else ui.videoID --;
+        },
+        ass: undefined as undefined | ASS,
+        async createASS(file: vFile){
+            if(this.ass) this.ass.destroy();
+            const fctx = await (await fetch(file.url)).text();
+            this.ass = new ASS(fctx, videoel.value as any, {
+                container: videoel.value,
+                resampling: 'script_width'
+            });
+            Global('ui.message').call({
+                'type': 'info',
+                'title': 'AVPlayer',
+                'content': {
+                    'title': '成功',
+                    'content': '字母轨道成功渲染'
+                },
+                'timeout': 3
+            } satisfies MessageOpinion);
         }
     };
+
     watch(() => ui.videos[ui.videoID], function(vid){
         if(!vid || !player.value) return;
         player.value.url = vid.url;
     });
 
     watch(root, val => acceptDrag(val as HTMLElement, f => 
-        CTRL.play(f)
+        f.name.endsWith('.ass') ? CTRL.createASS(f) : CTRL.play(f)
     ));
     watch(UI.app_width, w => player.value && (player.value.func.resize = [w, UI.height_total.value]));
 </script>
@@ -320,15 +341,16 @@
         position: relative;
 
         > .video{
-            // position: absolute;
-            // top: 50%;
-            // left: 50%;
-            // transform: translate(-50%, -50%);
-
-            // max-width: 100%;
-            // max-height: 100%;
             height: 100%;
             width: 100%;
+            position: relative;
+
+            > canvas{
+                position: absolute;
+                top: 0;
+                left: 0;
+                height: 100%;
+            }
         }
 
         > .bar{
