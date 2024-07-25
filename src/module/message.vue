@@ -3,10 +3,13 @@
     import { Global } from '@/utils';
     import { nextTick, reactive } from 'vue';
 
-    const message = reactive<Array<MessageOpinion>>([]);
+    const message = reactive<Array<MessageOpinion & { uuid: string }>>([]);
 
     function postMessage(msg: MessageOpinion) {
-        const i = message.push(msg) - 1;
+        const i = message.push({
+            ...msg,
+            uuid: Math.floor(Math.random() * Number.MAX_SAFE_INTEGER).toString(36)
+        }) - 1;
         if (msg.timeout) setTimeout(() => message.splice(i, 1), msg.timeout * 1000);
     }
     function msg_destroy(i: number) {
@@ -20,7 +23,7 @@
 <template>
     <div class="messages">
         <!-- 消息列表 -->
-        <template v-for="(item, i) of message" :key="i">
+        <template v-for="(item, i) of message" :key="item.uuid">
             <div v-if="item" class="msg" :data-active="item.hidden ? null : ''" @click.stop>
                 <header v-if="item.title">
                     <img v-if="item.icon" :src="item.icon">
@@ -55,6 +58,14 @@
         right: 1rem;
         z-index: 25;
 
+        @keyframes pushin {
+            from{
+                transform: translateX(-150%);
+            }to{
+                transform: 0;
+            }
+        }
+
         .msg {
             background-color: rgba(219, 224, 233, 0.9);
             border: solid 0.05rem #c5c2c2;
@@ -63,6 +74,11 @@
             margin: 1em 0 !important;
             animation: msg_fadein .35s;
             gap: 0;
+            transition: all .2s;
+
+            &:active{
+                transform: scale(.9);
+            }
 
             >header {
                 display: flex;

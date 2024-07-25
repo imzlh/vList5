@@ -9,7 +9,6 @@
 	import Message from './module/message.vue';
 	import Chooser from './module/fileframe.vue';
 	import Alert from './module/alert.vue';
-	import './opener';
 
 	const ctxconfig = reactive({
 			item: [] as Array<CtxMenuData>,

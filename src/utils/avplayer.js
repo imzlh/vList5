@@ -65,72 +65,105 @@ fn main(
 }`;
 
 // 测试WebGPU是否可用
+// @link https://mdn.github.io/dom-examples/webgpu-render-demo/script.js
 try{
-    const device = await (await navigator.gpu.requestAdapter()).requestDevice();
+    const clearColor = { r: 0.0, g: 0.5, b: 1.0, a: 1.0 },
+        vertices = new Float32Array([
+            0.0,  0.6, 0, 1, 1, 0, 0, 1,
+            -0.5, -0.6, 0, 1, 0, 1, 0, 1,
+            0.5, -0.6, 0, 1, 0, 0, 1, 1
+        ]),shaders = `
+struct VertexOut {
+  @builtin(position) position : vec4f,
+  @location(0) color : vec4f
+}
 
-    const shaderModule = device.createShaderModule({code: shader});
-    const output = device.createBuffer({
-            size: BUFFER_SIZE,
-            usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC
-        }),
-        stagingBuffer = device.createBuffer({
-            size: BUFFER_SIZE,
-            usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST
-        });
+@vertex
+fn vertex_main(@location(0) position: vec4f,
+               @location(1) color: vec4f) -> VertexOut
+{
+  var output : VertexOut;
+  output.position = position;
+  output.color = color;
+  return output;
+}
 
-    const bindGroupLayout = device.createBindGroupLayout({
-        entries: [
-            {
-                binding: 0,
-                visibility: GPUShaderStage.COMPUTE,
-                buffer: {
-                    type: "storage"
-                }
-            }
-        ]
+@fragment
+fn fragment_main(fragData: VertexOut) -> @location(0) vec4f
+{
+  return fragData.color;
+}
+`;
+    const adapter = await navigator.gpu.requestAdapter(),
+        device = await adapter.requestDevice(),
+        shaderModule = device.createShaderModule({ code: shaders });
+
+    const canvas = document.createElement('canvas'),
+        context = canvas.getContext('webgpu');
+
+    context.configure({
+        device,
+        format: navigator.gpu.getPreferredCanvasFormat(),
+        alphaMode: 'premultiplied'
     });
 
-    const bindGroup = device.createBindGroup({
-        layout: bindGroupLayout,
-        entries: [{
-        binding: 0,
-        resource: {
-            buffer: output,
-        }
-        }]
+    const vertexBuffer = device.createBuffer({
+        size: vertices.byteLength,
+        usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
     });
 
-    const computePipeline = device.createComputePipeline({
-        layout: device.createPipelineLayout({
-            bindGroupLayouts: [bindGroupLayout]
-        }),
-        compute: {
-            module: shaderModule,
-            entryPoint: 'main'
-        }
-    });
+    device.queue.writeBuffer(vertexBuffer, 0, vertices, 0, vertices.length);
 
-    const passEncoder = device.createCommandEncoder().beginComputePass();
-    passEncoder.setPipeline(computePipeline);
-    passEncoder.setBindGroup(0, bindGroup);
-    passEncoder.dispatchWorkgroups(Math.ceil(BUFFER_SIZE / 64));
+    const vertexBuffers = [{
+            attributes: [{
+                shaderLocation: 0, // position
+                offset: 0,
+                format: 'float32x4'
+            }, {
+                shaderLocation: 1, // color
+                offset: 16,
+                format: 'float32x4'
+            }],
+            arrayStride: 32,
+            stepMode: 'vertex'
+        }],pipelineDescriptor = {
+            vertex: {
+                module: shaderModule,
+                entryPoint: 'vertex_main',
+                buffers: vertexBuffers
+            },
+            fragment: {
+                module: shaderModule,
+                entryPoint: 'fragment_main',
+                targets: [{
+                    format: navigator.gpu.getPreferredCanvasFormat()
+                }]
+            },
+            primitive: {
+                topology: 'triangle-list'
+            },
+            layout: 'auto'
+        };
+
+    const renderPipeline = device.createRenderPipeline(pipelineDescriptor),
+        commandEncoder = device.createCommandEncoder(),
+        renderPassDescriptor = {
+            colorAttachments: [{
+            clearValue: clearColor,
+            loadOp: 'clear',
+            storeOp: 'store',
+            view: context.getCurrentTexture().createView()
+            }]
+        },
+        passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
+
+    passEncoder.setPipeline(renderPipeline);
+    passEncoder.setVertexBuffer(0, vertexBuffer);
+    passEncoder.draw(3);
     passEncoder.end();
-
-    commandEncoder.copyBufferToBuffer(
-        output, 0,
-        stagingBuffer,
-        0, BUFFER_SIZE
-    );
     device.queue.submit([commandEncoder.finish()]);
-
-    await stagingBuffer.mapAsync(
-        GPUMapMode.READ,
-        0,
-        BUFFER_SIZE
-    );
-    webgpu = true;
-}catch{
-    console.log('Your device doesnot support WebGPU. Maybe not support DX12?');
+}catch(e){
+    console.warn('Your device doesnot support WebGPU.');
 }
 
 const AVMEDIA_TYPE_VIDEO = 0,
@@ -226,7 +259,7 @@ export default function(el){
     watch(() => refs.tracks.audioTrack, id => player.selectAudio(id));
     watch(() => refs.tracks.videoTrack, id => player.selectVideo(id));
     watch(() => refs.tracks.subTrack, id => player.selectSubtitle(id));
-    watch(() => refs.destroy, val => val == false && player.destroy());
+    watch(() => refs.destroy, val => val && player.destroy());
     watch(() => refs.display.fill, fill => player.setRenderMode(fill ? 1 : 0));
     watch(() => refs.display.rotate, rotate => player.setRotate(rotate));
     watch(() => refs.display.flip.horizontal, flip => player.enableHorizontalFlip(flip));

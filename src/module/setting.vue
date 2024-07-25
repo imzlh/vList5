@@ -119,11 +119,11 @@
         }
 
         > .main{
-            padding: 1rem;
+            padding: .5rem 2rem;
             padding-top: 5rem;
 
             > h1{
-                margin: 1rem 0;
+                margin: .5rem 0;
                 font-size: 1.5rem;
                 font-weight: 500;
                 margin-left: .5rem;

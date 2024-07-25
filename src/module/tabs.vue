@@ -108,6 +108,16 @@
 			display: none;
 		}
 
+		@keyframes tab_jumpin {
+			from{
+				transform: translateY(-5rem) scale(0);
+				opacity: 0;
+			}to{
+				transform: none;
+				opacity: 1;
+			}
+		}
+
 		>div {
 			border-radius: .25rem;
 			padding: 0 .65rem;
@@ -125,6 +135,7 @@
 			transition: all .2s;
 			position: relative;
 			font-size: .85rem;
+			animation: jumpin .3s linear forwards;
 
 			&[active=true]::before {
 				content: '';

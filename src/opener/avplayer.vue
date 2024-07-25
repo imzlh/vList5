@@ -65,7 +65,7 @@
             if (this.dir == dir) {
                 // 找到ID
                 for (let i = 0; i < ui.videos.length; i++)
-                    if (ui.videos[i].name == file.name) {
+                    if (ui.videos[i].path == file.path) {
                         id = i;
                         break;
                     }

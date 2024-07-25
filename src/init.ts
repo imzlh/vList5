@@ -1,6 +1,3 @@
-import { createApp, ref, type Ref } from 'vue';
-import App from './App.vue';
-
 /**
  * vList5 Entry Script(Main Interface)
  * Copyright (c) 2024 izGroup
@@ -29,6 +26,17 @@ import App from './App.vue';
  * @author iz
  * @link https://hi.imzlh.top/2024/06/16.cgi
  */
+
+import { createApp, ref, type Ref } from 'vue';
+
+// PWA服务
+// import './utils/pwa';
+
+// 打开方式注册
+import './opener';
+
+// 主要的应用入口
+import App from './App.vue';
 
 interface Touch{
     x: number,

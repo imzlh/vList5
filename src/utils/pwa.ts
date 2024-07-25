@@ -1,4 +1,4 @@
-import { type vFile } from "@/env";
+import type { MessageOpinion, vFile } from "@/env";
 import { FS, Global, openFile } from "@/utils";
 
 // @function 加载外部文件
@@ -29,3 +29,20 @@ if ("launchQueue" in globalThis) {
                 }
     });
 }
+
+// @function 使用系统通知
+// try{
+//     const prom = await Notification.requestPermission();
+//     const raw = Global('ui.message').data;
+//     Global('ui.message').data = function(data: MessageOpinion){
+//         if(!data.title && !data.content?.content)
+//             return raw(data);
+
+//         const msg = new Notification(data.title as string,{
+//             "body": data.content?.content
+//         });
+//         navigator.not.
+//     }
+// }catch{
+//     console.log('通知被禁用或不支持')
+// }
