@@ -110,16 +110,77 @@
     </div>
 </template>
 <style lang="scss">
-    @import '../public/menu.scss';
-    @import '../public/button.scss';
-
     .ctx-menu{
         display: none;
-        @include ui_menu();
         font-size: .85rem;
         z-index: 58;
         user-select: none;
         position: fixed;
+
+        padding: .125em 0;
+        border-radius: .25em;
+        box-shadow: 0.1em 0.2em 0.5em rgb(83, 77, 77, .45);
+        background-color: rgba(255, 255, 255, .6);
+        backdrop-filter: blur(1rem);
+        width: 12rem;
+
+        >div {
+            padding: 0.375em;
+            font-weight: normal;
+            border-radius: 0.2em;
+            margin: 0.125em 0.25em;
+            position: relative;
+
+            display: flex;
+            align-items: center;
+
+            cursor: pointer;
+
+            transition: all .2s;
+
+            >.icon {
+                width: 1.25em;
+                height: 1.25em;
+                margin: 0 .5em;
+                flex-shrink: 0;
+            }
+
+            >.text {
+                text-overflow: clip;
+                text-align: start;
+
+                flex-grow: 1;
+                line-height: 1.25em;
+                min-width: 8em;
+            }
+
+            > .keyboard {
+                min-width: 5em;
+                font-size: .8em;
+                font-weight: 400;
+                color: rgb(126, 118, 118);
+                overflow: hidden;
+            }
+
+            >.child{
+                transform: translateX(100%);
+            }
+
+            &:hover,&:focus{
+                background-color: rgba(201, 199, 199, 0.5);
+            }
+
+            &:focus >.child{
+                display: block;
+            }
+        }
+
+        >span{
+            margin: .25rem;
+            height: .1rem;
+            display: block;
+            background-color: rgba(206, 191, 191, 0.2);
+        }
 
         > ul{
             list-style: none;

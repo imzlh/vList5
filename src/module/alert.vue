@@ -67,7 +67,6 @@
 </template>
 
 <style lang="scss">
-    @import '../public/button.scss';
 
     @keyframes fadein {
         from {
@@ -137,16 +136,41 @@
 
         .btns {
             background-color: rgb(249 249 249);
-            @include ui_btn-group();
             padding: 0.75rem 1rem;
+            display: flex;
+            gap: .35rem;
 
-            button {
+            > *{
+                flex-shrink: 0;
+            }
+            
+            > .gap{
+                flex-grow: 1;
+            }
+
+            > button {
                 background-color: rgb(139 191 234);
                 padding: 0.5rem 1.25rem;
                 margin: 0 .25rem;
                 font-size: .8rem;
                 flex-shrink: 0;
                 cursor: pointer;
+
+                border: solid 0.1rem #cecece;
+                border-radius: 0.3rem;
+                line-height: 1rem;
+                min-width: 4.5rem;
+                text-align: center;
+                font-weight: 400;
+                user-select: none;
+
+                &:hover{
+                    background-color: #d6cece;
+                }
+
+                &:focus{
+                    border-color: rgb(137,148,205);
+                }
             }
         }
     }

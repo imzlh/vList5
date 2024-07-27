@@ -19,7 +19,7 @@ import OGG_WASM from 'libmedia/dist/decode/vorbis-simd.wasm?url';
 import VP9_WASM from 'libmedia/dist/decode/vp9-simd.wasm?url';
 import RSP_WASM from 'libmedia/dist/resample/resample-simd.wasm?url';
 import SP_WASM from 'libmedia/dist/stretchpitch/stretchpitch-simd.wasm?url';
-import { markRaw, reactive, readonly, watch } from 'vue';
+import { markRaw, reactive, watch } from 'vue';
 import AVPLAYER_SRC from 'libmedia/dist/avplayer/avplayer?url';
 
 // 初始化avPlayer
@@ -79,7 +79,7 @@ struct VertexOut {
 }
 
 @vertex
-fn vertex_main(@location(0) position: vec4f,
+fn vertex(@location(0) position: vec4f,
                @location(1) color: vec4f) -> VertexOut
 {
   var output : VertexOut;
@@ -89,7 +89,7 @@ fn vertex_main(@location(0) position: vec4f,
 }
 
 @fragment
-fn fragment_main(fragData: VertexOut) -> @location(0) vec4f
+fn fragment(fragData: VertexOut) -> @location(0) vec4f
 {
   return fragData.color;
 }
@@ -134,13 +134,13 @@ fn fragment_main(fragData: VertexOut) -> @location(0) vec4f
             },
             fragment: {
                 module: shaderModule,
-                entryPoint: 'fragment_main',
+                entryPoint: 'fragment',
                 targets: [{
                     format: navigator.gpu.getPreferredCanvasFormat()
                 }]
             },
             primitive: {
-                topology: 'triangle-list'
+                topology: 'triangle'
             },
             layout: 'auto'
         };
@@ -168,7 +168,6 @@ fn fragment_main(fragData: VertexOut) -> @location(0) vec4f
 
 const AVMEDIA_TYPE_VIDEO = 0,
     AVMEDIA_TYPE_AUDIO = 1,
-    AVMEDIA_TYPE_DATA = 2,
     AVMEDIA_TYPE_SUBTITLE = 3;
 
 export default function create(el){
@@ -212,7 +211,7 @@ export default function create(el){
         ended: false,
         play: false,
         stop: false,
-        destroy: readonly(() => player.destroy()),
+        destroy: () => player.destroy(),
         status: player.stats,
         display: {
             fill: false,
@@ -229,27 +228,32 @@ export default function create(el){
         }
     });
 
-    watch(() => refs.url, url => url && player.load(url).then(function(){
-        // 加载完毕
-        refs.time.total = Number(player.getDuration());
-        // 轨道分离
-        refs.tracks.audio = [];
-        refs.tracks.video = [];
-        refs.tracks.subtitle = [];
-        for (const stream of player.getStreams()){
-            if(stream.type == AVMEDIA_TYPE_AUDIO)
-                refs.tracks.audio.push(markRaw(stream));
-            else if(stream.type == AVMEDIA_TYPE_VIDEO)
-                refs.tracks.video.push(markRaw(stream));
-            else if(stream.type == AVMEDIA_TYPE_SUBTITLE)
-                refs.tracks.subtitle.push(markRaw(stream));
+    watch(() => refs.url, async (url, old) => {
+        refs.time.total = 0;
+        old && await player.stop();
+        url && player.load(url).then(function(){
+            // 加载完毕
+            refs.time.total = Number(player.getDuration());
+            // 轨道分离
+            refs.tracks.audio = [];
+            refs.tracks.video = [];
+            refs.tracks.subtitle = [];
+            for (const stream of player.getStreams()){
+                if(stream.type == AVMEDIA_TYPE_AUDIO)
+                    refs.tracks.audio.push(markRaw(stream));
+                else if(stream.type == AVMEDIA_TYPE_VIDEO)
+                    refs.tracks.video.push(markRaw(stream));
+                else if(stream.type == AVMEDIA_TYPE_SUBTITLE)
+                    refs.tracks.subtitle.push(markRaw(stream));
+            }
+            if(refs.tracks.subtitle.length > 0) refs.tracks.subTrack = refs.tracks.subtitle[0].track;
+            if(refs.tracks.video.length > 0) refs.tracks.videoTrack = refs.tracks.video[0].track;
+            if(refs.tracks.audio.length > 0) refs.tracks.audioTrack = refs.tracks.audio[0].track;
+            refs.ended = false;
+            refs.tracks.videoTrack = refs.tracks.audioTrack = refs.tracks.subTrack = 0;
+            player.play();
         }
-        if(refs.tracks.subtitle.length > 0) refs.tracks.subTrack = 0;
-        if(refs.tracks.video.length > 0) refs.tracks.videoTrack = 0;
-        if(refs.tracks.audio.length > 0) refs.tracks.audioTrack = 0;
-        refs.ended = false;
-        refs.tracks.videoTrack = refs.tracks.audioTrack = refs.tracks.subTrack = 0;
-    }));
+    )});
     watch(() => refs.stop, res => res ? player.resume() : player.stop())
     watch(() => refs.playBackRate, rate => player.setPlaybackRate(rate));
     watch(() => refs.loop, loop => player.setLoop(loop));

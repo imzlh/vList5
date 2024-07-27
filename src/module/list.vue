@@ -297,6 +297,7 @@
         &[data-empty=false] {
             padding: .25rem;
             overflow: hidden;
+            position: relative;
 
             // 网格
             > div.view{
@@ -307,8 +308,6 @@
                 align-items: flex-start;
                 width: 100%;
             }
-
-            position: relative;
         }
 
         > .view{

@@ -117,7 +117,7 @@
 </template>
 
 <style lang="scss">
-    @import '../public/icon.scss';
+    @import '@/icon.scss';
 
     .widget-chooser{
         position: fixed;

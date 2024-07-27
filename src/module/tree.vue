@@ -158,7 +158,7 @@
             },
             rename(file: iMixed, val: string){
                 FS.rename({
-                    [file.path]: val
+                    [file.path]: splitPath(file).dir + val
                 }).then(() => (
                     file.name = val ,
                     file.url = file.url.substring(0, file.url.lastIndexOf('/', file.url.length -2) +1) + file.name,
@@ -210,6 +210,7 @@
     <div v-if="data.child" class="child" v-show="data.show"
         @contextmenu.stop.prevent="ctxmenu(data, $event)"
         @dragover.stop="drag_alert($event, data)" @drop.stop="drag_onto($event, data)"
+        @dragleave.stop="($event.currentTarget as HTMLElement).classList.remove('moving')"
         @click.stop="markmap = [];marked = [];"
     >
         <template v-for="child in data.child" :key="child.name">

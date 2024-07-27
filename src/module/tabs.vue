@@ -88,7 +88,7 @@
 
 
 <style lang="scss">
-	@import '../public/icon.scss';
+	@import '@/icon.scss';
 
 	.tab {
 		padding: .45rem;

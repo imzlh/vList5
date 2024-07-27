@@ -241,7 +241,7 @@
 </template>
 
 <style lang="scss">
-	@import './public/font.scss';
+	@import './font.scss';
 
 	body {
 		margin: 0;

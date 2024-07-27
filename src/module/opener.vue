@@ -46,8 +46,6 @@
 </template>
 
 <style lang="scss">
-    @import '../public/button.scss';
-
     .opener-chooser{
         position: fixed;
         top: -100vh;
@@ -126,9 +124,45 @@
 
         // 按钮组
         .btns{
-            @include ui_btn-group($bg: #d6cece);
             background-color: #efefef;
             padding: 0.5rem 0.85rem;
+            display: flex;
+            gap: .35rem;
+
+            > *{
+                flex-shrink: 0;
+            }
+
+            > button{
+                padding: 0.35rem;
+                margin: 0.1rem 0.25rem;
+                border: solid 0.05rem transparent;
+                border-radius: 0.3rem;
+                font-size: 0.9rem;
+                line-height: 1rem;
+                min-width: 4.5rem;
+                text-align: center;
+                font-weight: 400;
+                user-select: none;
+                border: solid .1em rgb(212, 212, 212);
+
+                &:not([disabled]):hover{
+                    background-color: rgb(213, 204, 204);
+                }
+
+                &:not([disabled]):focus{
+                    border-color: rgb(137,148,205);
+                }
+
+                &[disabled]{
+                    pointer-events: none;
+                    opacity: .6;
+                }
+            }
+            
+            > .gap{
+                flex-grow: 1;
+            }
 
             button{
                 padding: .45rem;

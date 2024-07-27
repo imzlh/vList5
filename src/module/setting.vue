@@ -83,7 +83,7 @@
 </template>
 
 <style lang="scss">
-    @import '../public/icon.scss';
+    @import '@/icon.scss';
     .setting-container {
         position: relative;
         height: 100%;

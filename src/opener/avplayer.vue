@@ -1,10 +1,10 @@
 <script lang="ts" setup>
-    import { onMounted, onUnmounted, reactive, ref, watch } from 'vue';
+    import { onMounted, onUnmounted, reactive, ref, watch, type Directive } from 'vue';
     import createAV, { type Export } from '@/utils/avplayer';
     import type { MessageOpinion, vFile, vSimpleFileOrDir } from '@/env';
     import { reqFullscreen, UI } from '@/App.vue';
     import { acceptDrag, FS, Global, splitPath } from '@/utils';
-import ASS from 'assjs';
+    import ASS from 'assjs';
 
     const CONFIG = {
         seek_time: 10,
@@ -27,7 +27,14 @@ import ASS from 'assjs';
             "ivf",
             "wav"
         ]
-    }
+    },vSpeed = {
+        mounted(el, bind){
+            watch(() => player.value?.playBackRate, val => 
+                el.setAttribute('active', val == bind.value ? 'true' : 'false')
+            );
+            el.onclick = () => player.value && (player.value.playBackRate = bind.value);
+        }
+    } satisfies Directive<HTMLElement, number>;
 
     const videoel = ref<HTMLDivElement>(),
         _prop = defineProps(['option']),
@@ -36,6 +43,7 @@ import ASS from 'assjs';
             about: false,
             track: false,
             playlist: false,
+            speed: false,
             videos: [] as Array<vSimpleFileOrDir & { name: string }>,
             videoID: 0
         }),
@@ -152,7 +160,9 @@ import ASS from 'assjs';
 </script>
 
 <template>
-    <div class="av-container" ref="root">
+    <div class="av-container" ref="root" v-touch
+        @dblclick="player && (player.play = !player.play)"
+    >
         <div class="video" ref="videoel"></div>
         <div class="bar" v-if="player" :style="{
             pointerEvents: player.time.total == 0 ? 'none' : 'all'
@@ -167,8 +177,15 @@ import ASS from 'assjs';
             
             <div class="icons">
 
+                <!-- 播放列表 -->
+                <div small @click="ui.playlist = !ui.playlist">
+                    <svg viewBox="0 0 16 16">
+                        <path fill-rule="evenodd" d="M2.5 12a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5zm0-4a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5zm0-4a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5z"/>
+                    </svg>
+                </div>
+
                 <!-- 速度 -->
-                <div small>
+                <div small @click="ui.speed = !ui.speed">
                     <svg viewBox="0 0 16 16">
                         <path
                             d="M8.515 1.019A7 7 0 0 0 8 1V0a8 8 0 0 1 .589.022l-.074.997zm2.004.45a7.003 7.003 0 0 0-.985-.299l.219-.976c.383.086.76.2 1.126.342l-.36.933zm1.37.71a7.01 7.01 0 0 0-.439-.27l.493-.87a8.025 8.025 0 0 1 .979.654l-.615.789a6.996 6.996 0 0 0-.418-.302zm1.834 1.79a6.99 6.99 0 0 0-.653-.796l.724-.69c.27.285.52.59.747.91l-.818.576zm.744 1.352a7.08 7.08 0 0 0-.214-.468l.893-.45a7.976 7.976 0 0 1 .45 1.088l-.95.313a7.023 7.023 0 0 0-.179-.483zm.53 2.507a6.991 6.991 0 0 0-.1-1.025l.985-.17c.067.386.106.778.116 1.17l-1 .025zm-.131 1.538c.033-.17.06-.339.081-.51l.993.123a7.957 7.957 0 0 1-.23 1.155l-.964-.267c.046-.165.086-.332.12-.501zm-.952 2.379c.184-.29.346-.594.486-.908l.914.405c-.16.36-.345.706-.555 1.038l-.845-.535zm-.964 1.205c.122-.122.239-.248.35-.378l.758.653a8.073 8.073 0 0 1-.401.432l-.707-.707z" />
@@ -182,13 +199,6 @@ import ASS from 'assjs';
                 <div small @click="ui.track = !ui.track">
                     <svg viewBox="0 0 16 16">
                         <path d="M14 4.577v6.846L8 15V1l6 3.577zM8.5.134a1 1 0 0 0-1 0l-6 3.577a1 1 0 0 0-.5.866v6.846a1 1 0 0 0 .5.866l6 3.577a1 1 0 0 0 1 0l6-3.577a1 1 0 0 0 .5-.866V4.577a1 1 0 0 0-.5-.866L8.5.134z"/>
-                    </svg>
-                </div>
-
-                <!-- 播放列表 -->
-                <div small @click="ui.playlist = !ui.playlist">
-                    <svg viewBox="0 0 16 16">
-                        <path fill-rule="evenodd" d="M2.5 12a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5zm0-4a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5zm0-4a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5z"/>
                     </svg>
                 </div>
 
@@ -247,6 +257,16 @@ import ASS from 'assjs';
                 </div>
             </div>
             
+        </div>
+        <div class="frame speed" v-show="ui.speed">
+            <h1>播放速度</h1>
+            <ul class="select">
+                <li v-speed=".75">0.75x</li>
+                <li v-speed="1">1x</li>
+                <li v-speed="1.25">1.25x</li>
+                <li v-speed="1.5">1.5x</li>
+                <li v-speed="2">2x</li>
+            </ul>
         </div>
         <div class="about frame" v-show="ui.about">
             <h1>统计信息</h1>
@@ -339,6 +359,7 @@ import ASS from 'assjs';
         height: 100%;
         background-color: black;
         position: relative;
+        user-select: none;
 
         > .video{
             height: 100%;
@@ -472,7 +493,7 @@ import ASS from 'assjs';
             padding: 1rem;
             border-radius: .5rem;
             color: white;
-            max-width: 100vw;
+            max-width: 90%;
             box-sizing: border-box;
 
             h1{
@@ -482,6 +503,30 @@ import ASS from 'assjs';
                 font-weight: 200;
                 color: #9ed1fe;
                 padding-left: .5rem;
+            }
+
+            > .select{
+                padding: 0;
+                display: flex;
+                border-radius: .25rem;
+                overflow: hidden;
+                border: solid .1rem #ffffffb8;
+
+                > *{
+                    padding: .3rem;
+                    flex-grow: 1;
+                    text-align: center;
+                    color: white;
+                    transition: all .2s;
+                    min-width: 3rem;
+                    list-style: none;
+                    user-select: none;
+
+                    &[active=true]{
+                        background-color: #ffffffb8;
+                        color: rgb(66, 62, 62);
+                    }
+                }
             }
         }
 
@@ -522,6 +567,7 @@ import ASS from 'assjs';
 
             h1{
                 font-size: 1.25rem;
+                line-height: 2rem;
             }
 
             > ul{
@@ -531,6 +577,9 @@ import ASS from 'assjs';
 
                 > li{
                     list-style: none;
+                    font-size: .85rem;
+                    padding: .25rem .5rem;
+                    position: relative;
 
                     &[active=true]{
                         @include hover();

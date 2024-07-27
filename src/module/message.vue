@@ -46,7 +46,7 @@
 </template>
 
 <style lang="scss">
-    @import '../public/icon.scss';
+    @import '@/icon.scss';
 
     .messages {
         // overflow: hidden;
