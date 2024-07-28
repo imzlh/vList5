@@ -222,8 +222,11 @@ export default function create(el){
             }
         },
         func: {
-            snapshot: false,
-            seek: 0,
+            snapshot: (type = 'webp') => player.canvas.toBlob(data => {
+                let url = URL.createObjectURL(data);
+                window.open(url).onbeforeunload = () => URL.revokeObjectURL(url);
+            }, 'image/' + type, 1),
+            seek: time => player.seek(time),
             resize: markRaw([0, 0])
         }
     });
@@ -257,7 +260,6 @@ export default function create(el){
     watch(() => refs.stop, res => res ? player.resume() : player.stop())
     watch(() => refs.playBackRate, rate => player.setPlaybackRate(rate));
     watch(() => refs.loop, loop => player.setLoop(loop));
-    watch(() => refs.func.seek, seek => seek > 0 && (player.seek(seek), refs.func.seek = -1));
     watch(() => refs.volume, vol => player.setVolume(vol));
     watch(() => refs.play, state => state ? player.play() : player.pause());
     watch(() => refs.tracks.audioTrack, id => player.selectAudio(id));
@@ -267,7 +269,6 @@ export default function create(el){
     watch(() => refs.display.rotate, rotate => player.setRotate(rotate));
     watch(() => refs.display.flip.horizontal, flip => player.enableHorizontalFlip(flip));
     watch(() => refs.display.flip.vertical, flip => player.enableVerticalFlip(flip));
-    watch(() => refs.func.snapshot, val => val && (player.snapshot('webp'), val = false));
     watch(() => refs.func.resize, size => player.resize(size[0], size[1]));
 
     player.on('ended', () => refs.ended = true);

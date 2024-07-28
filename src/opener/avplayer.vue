@@ -1,7 +1,7 @@
 <script lang="ts" setup>
     import { onMounted, onUnmounted, reactive, ref, watch, type Directive } from 'vue';
     import createAV, { type Export } from '@/utils/avplayer';
-    import type { MessageOpinion, vFile, vSimpleFileOrDir } from '@/env';
+    import type { CtxDispOpts, MessageOpinion, vFile, vSimpleFileOrDir } from '@/env';
     import { reqFullscreen, UI } from '@/App.vue';
     import { acceptDrag, FS, Global, splitPath } from '@/utils';
     import ASS from 'assjs';
@@ -141,6 +141,75 @@
         }
     };
 
+    function ctxmenu(e: MouseEvent){
+        Global('ui.ctxmenu').call({
+            'pos_x': e.clientX,
+            'pos_y': e.clientY,
+            'content': [
+                {
+                    "text": "播放速度",
+                    handle: () => ui.speed = true
+                },{
+                    "text": "播放列表",
+                    handle: () => ui.playlist = true
+                },{
+                    "text": "视频轨道",
+                    handle: () => ui.track = true
+                },{
+                    "text": "截图",
+                    "child": [
+                        {
+                            text: 'webp',
+                            handle: () => player.value?.func.snapshot('webp')
+                        },{
+                            text: 'png',
+                            handle: () => player.value?.func.snapshot('png')
+                        },{
+                            text: 'jpg/jpeg',
+                            handle: () => player.value?.func.snapshot('jpeg')
+                        }
+                    ]
+                },{
+                    text: "校准轨道",
+                    handle: () => player.value?.func.seek(player.value.time.current +1)
+                },'---',{
+                    "text": "统计信息",
+                    handle: () => ui.about = true
+                }
+            ]
+        } satisfies CtxDispOpts);
+    }
+
+    function basicKbdHandle(e: KeyboardEvent){
+        if(!player.value || player.value.time.total == 0) return;
+        switch(e.key){
+            case 'ArrowRight':
+                player.value.func.seek(player.value.time.current + 10 * 1000);
+            break;
+
+            case 'ArrowLeft':
+                player.value.func.seek(player.value.time.current - 10 * 1000);
+            break;
+
+            case 'ArrowUp':
+                player.value.volume <= 0.9
+                    ? player.value.volume += .1
+                    : player.value.volume = 1;
+            break;
+
+            case 'ArrowDown':
+                player.value.volume <= 0.1
+                    ? player.value.volume -= .1
+                    : player.value.volume = 0;
+            break;
+
+            case ' ':
+            case 'Enter':
+                player.value.play = !player.value.play;
+            break;
+        }
+    }
+
     watch(() => ui.videos[ui.videoID], function(vid){
         if(!vid || !player.value) return;
         player.value.url = vid.url;
@@ -160,8 +229,9 @@
 </script>
 
 <template>
-    <div class="av-container" ref="root" v-touch
-        @dblclick="player && (player.play = !player.play)"
+    <div class="av-container" ref="root" v-touch tabindex="-1"
+        @contextmenu.prevent="ctxmenu" @keydown.prevent.stop="basicKbdHandle"
+        @dblclick.prevent="player && (player.play = !player.play)"
     >
         <div class="video" ref="videoel"></div>
         <div class="bar" v-if="player" :style="{
@@ -169,7 +239,7 @@
         }">
             <div class="time">
                 <div class="current">{{ time2str(player.time.current) }}</div>
-                <div class="timebar" @click="player.func.seek = $event.offsetX / ($event.currentTarget as HTMLElement).clientWidth * player.time.total">
+                <div class="timebar" @click="player.func.seek($event.offsetX / ($event.currentTarget as HTMLElement).clientWidth * player.time.total)">
                     <div :style="{ width: player.time.current / player.time.total * 100 + '%' }"></div>
                 </div>
                 <div class="total">{{ time2str(player.time.total) }}</div>
@@ -237,7 +307,7 @@
                 </div>
 
                 <!-- 截图 -->
-                <div>
+                <div @click="player.func.snapshot()">
                     <svg viewBox="0 0 16 16">
                         <path d="M15 12a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h1.172a3 3 0 0 0 2.12-.879l.83-.828A1 1 0 0 1 6.827 3h2.344a1 1 0 0 1 .707.293l.828.828A3 3 0 0 0 12.828 5H14a1 1 0 0 1 1 1v6zM2 4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-1.172a2 2 0 0 1-1.414-.586l-.828-.828A2 2 0 0 0 9.172 2H6.828a2 2 0 0 0-1.414.586l-.828.828A2 2 0 0 1 3.172 4H2z"/>
                         <path d="M8 11a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5zm0 1a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7zM3 6.5a.5.5 0 1 1-1 0 .5.5 0 0 1 1 0z"/>

@@ -4,8 +4,6 @@
     import { FS, Global, UI, acceptDrag, clipFName, regConfig, reqFullscreen, splitPath } from '@/utils';
     import ASS from 'assjs';
     import { onMounted, onUnmounted, ref, shallowReactive, shallowRef, watch } from 'vue';
-    // import { extract } from '../../vendor/mkvtool';
-    // import type { mkvFile } from 'vendor/mkvtool';
 
     interface subOption {
         name: string,
@@ -60,11 +58,16 @@
             // 字母偏移
             sub_offset: '0',
             // 错误提示
-            error: false
+            error: false,
+            // 当前时间
+            datetime: new Date()
         }),
         video = shallowRef<HTMLVideoElement>(),
         cached = shallowRef<Array<[number,number]>>([]),
         ev = defineEmits(['show']);
+
+    // 时间栏
+    const timer = setInterval(() => CFG.datetime = new Date(), 350);
 
     // 信息栏监听器
     let alert_timer = false as any;
@@ -437,31 +440,6 @@
 
             if (id !== undefined){
                 CFG.current = id;
-                // --------------- WARNING -------------------
-                // 以下代码实现了mkv内解压字幕，但是实在是太慢且消耗带宽，建议注释掉
-                // -------------------------------------------
-                // if(MKV_EXTRACT.includes(splitPath(config.playlist[id]).ext)){
-                //     const sub = await extract(config.playlist[id].url) as Array<mkvFile>;
-
-                //     function merge(arr:Array<Uint8Array>){
-                //         let require = 0;
-                //         arr.forEach(item => require += item.length);
-                //         const mem = new Uint8Array(require);
-                //         let fill = 0;
-                //         arr.forEach(item => mem.set(item, fill += item.length));
-                //         return new TextDecoder().decode(mem);
-                //     }
-
-                //     config.subtitle.push(...sub
-                //         .map(item => ({
-                //             'name': '<mkv>' + item.type,
-                //             'sub_type': item.type == 'ass' ? 'ass' : 'vtt',
-                //             'url': URL.createObjectURL(new Blob([item.data],{
-                //                 type: 'text/plain'
-                //             }))
-                //         } satisfies subOption))
-                //     );
-                // }
             }else Global('ui.message').call({
                 "type": "error",
                 "title": "vPlayer",
@@ -494,7 +472,10 @@
         CTRL.play(f);
         ev('show');
     });
-    onUnmounted(cancel);
+    onUnmounted(() => {
+        cancel();
+        clearInterval(timer);
+    });
 
     // 初始化文件
     CTRL.play(file);
@@ -504,7 +485,7 @@
     <div class="vpf_container" :active="CFG.active"  tabindex="-1"
         @dblclick="CFG.playing ? video?.pause() : video?.play()"
         @pointermove="mouse" @click="mouse" ref="root"
-        @keydown="keyev"
+        @keydown="keyev" v-touch 
     >
         <div class="video" :width="CFG.vid_state"
             @touchstart.stop.prevent="touch.start" @touchmove.stop.prevent="touch.move" @touchend.stop.prevent="touch.end"
@@ -520,6 +501,12 @@
                     <path d="M7.002 12a1 1 0 1 1 2 0 1 1 0 0 1-2 0zM7.1 5.995a.905.905 0 1 1 1.8 0l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995z"/>
                 </svg>
             </div>
+        </div>
+        <!-- 时间小工具 -->
+        <div class="time">
+            <span> {{ CFG.datetime.getHours().toString().padStart(2, '0') }}</span>
+            :<span>{{ CFG.datetime.getMinutes().toString().padStart(2, '0') }}</span>
+            :<span>{{ CFG.datetime.getSeconds().toString().padStart(2, '0') }}</span>
         </div>
         <!-- 顶部 -->
         <div class="top" v-if="CFG.playlist[CFG.current]">
@@ -829,6 +816,21 @@
                         black 2px -2px 0,
                         black -2px 2px 0;
                 }
+            }
+        }
+
+        > .time{
+            position: absolute;
+            font-size: min(5vw, 8vh, 2.5rem);
+            top: 5%;
+            right: 5%;
+            color: rgb(243 243 243 / 60%);
+            font-family: 'Barlow';
+
+            > span{
+                display: inline-block;
+                width: .6em;
+                text-align: right;
             }
         }
 

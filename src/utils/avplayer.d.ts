@@ -60,7 +60,7 @@ export interface Export {
     url: string,
     playBackRate: number,
     loop: boolean,
-    volume: 1,
+    volume: number,
     time: {
         total: number,
         current: number
@@ -80,15 +80,15 @@ export interface Export {
     status: Stat,
     display: {
         fill: boolean,
-        rotate: 0,
+        rotate: number,
         flip: {
             vertical: boolean,
             horizontal: boolean
         }
     },
     func: {
-        snapshot: boolean,
-        seek: number,
+        snapshot: (type?: string) => void,
+        seek: (time: number) => void,
         resize: [number, number]
     }
 }
