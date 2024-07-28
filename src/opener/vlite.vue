@@ -4,7 +4,7 @@
     import parseCue from '@/script/cue';
     import { acceptDrag, FILE_PROXY_SERVER, FS, Global, splitPath } from '@/utils';
     import { Lrc, Runner, type Lyric } from 'lrc-kit';
-    import { nextTick, onMounted, onUnmounted, ref, shallowReactive, watch } from 'vue';
+    import { computed, nextTick, onMounted, onUnmounted, ref, shallowReactive, watch } from 'vue';
 
     interface Music {
         name: string,
@@ -35,10 +35,7 @@
             cue_until: 0,
 
             show_playlist: false
-        }), current = ref({
-            "name": "未在播放",
-            "url": ''
-        } as Music),
+        }), current = computed(() => CFG.playlist[CFG.currentID]),
         audio = new Audio(data.url),
         lrc_elem = ref<Array<HTMLElement>>([]),
         ev = defineEmits(['show']);
@@ -76,24 +73,24 @@
         { immediate: true }
     );
 
-    // 曲目
-    let cur = -1;
-    watch(() => CFG.currentID, n => {
+    // 监听ID变化
+    watch(() => CFG.currentID, (n, on) => {
         if(CFG.playlist.length == 0) return;
         // 最后一个了
         else if(n >= CFG.playlist.length) return CFG.currentID = 0;
         // 第一个了
         else if(n < 0) return CFG.currentID = CFG.playlist.length -1;
         // 还是那个
-        if(cur == n) {
+        if(on == n) {
             if(CFG.playlist[n].start) audio.currentTime = CFG.playlist[n].start as number;
             return audio.play();
         }
-        cur = n;
     },{
         immediate: true
     });
-    watch(() => CFG.playlist[CFG.currentID],item => {
+
+    // 监听曲目变化
+    watch(current, (item, old) => {
         // 刷新播放状态
         CFG.playing = false;
         CFG.totalTime = '-:-';
@@ -101,30 +98,34 @@
         CFG.progress = 0;
 
         // 音频设置
-        if(current.value.path != item.path){
+        if(!old || old.url != item.url){
             audio.src = item.url;
             audio.load();
         }
-        current.value = item;
 
         // cue设置
-        if(current.value.start != undefined){
+        if(item.start != undefined){
+            const cur = CFG.currentID;
             // 接下来的还是cue
-            if(CFG.playlist[cur +1].start){
+            if(CFG.playlist[cur +1] && CFG.playlist[cur +1].start && CFG.playlist[cur +1].url == item.url){
                 CFG.cue_until = CFG.playlist[cur +1].start as number;
-                CFG.totalTime = time2str(CFG.playlist[cur +1].start as number - current.value.start);
+                CFG.totalTime = time2str(CFG.playlist[cur +1].start as number - item.start);
             // 直到结束
             }else{
                 CFG.cue_until = -1;
-                audio.addEventListener('durationchange',() =>
-                    CFG.totalTime = time2str(audio.duration - (current.value.start as number))
+                // 长度直接可用
+                if(old && item.url == old.url)
+                    CFG.totalTime = time2str(audio.duration - (item.start as number));
+                // 等待加载完毕可以得到
+                else audio.addEventListener('durationchange',() =>
+                    CFG.totalTime = time2str(audio.duration - (item.start as number))
                 ,{ once: true });
             }
             // seek到起点
             if(audio.duration > 0)
-                audio.currentTime = current.value.start as number;
+                audio.currentTime = item.start as number;
             else audio.addEventListener('loadedmetadata',() =>
-                    audio.currentTime = current.value.start as number
+                    audio.currentTime = item.start as number
                 ,{ once: true });
         // 常规media
         }else{
@@ -196,7 +197,11 @@
 
         // 更新歌词
         if(runner){
-            runner.timeUpdate(audio.currentTime);
+            runner.timeUpdate(
+                current.value.start == undefined
+                    ? audio.currentTime
+                    : audio.currentTime - current.value.start
+            );
             const now =  runner.curIndex();
             if(CFG.lrc_now != now){
                 CFG.lrc_now = now;
@@ -215,7 +220,10 @@
         // 更新状态
         CFG.progress = current.value.start == undefined
             ? audio.currentTime / audio.duration
-            : (audio.currentTime - (current.value.start as number)) / (CFG.cue_until - (current.value.start as number));
+            : (audio.currentTime - (current.value.start as number)) / (
+                (CFG.cue_until == -1 ? audio.duration : CFG.cue_until)
+                 - (current.value.start as number)
+            );
         CFG.playing = true;
     }
     audio.onvolumechange = () => CFG.volume = audio.volume;
@@ -275,10 +283,14 @@
         }[CFG.loop] as 'one'|'random'|'all';
     }
 
+    // 根据进度条seek
     function seekTo(pct: number){
         audio.currentTime = current.value.start === undefined
             ? audio.duration * pct
-            : (current.value.start as number) + (CFG.cue_until - (current.value.start as number)) * pct
+            : ((current.value.start as number) 
+                + (CFG.cue_until == -1 ? audio.duration : CFG.cue_until)
+                - (current.value.start as number) 
+              )* pct
     }
 
     let cur_dir = '';
@@ -388,7 +400,7 @@
 
 <template>
     <div class="vlite-container" tabindex="-1" @keydown.prevent="keyev" ref="root">
-        <div class="left" :single="!CFG.lrc.length">
+        <div class="left" :single="!CFG.lrc.length" v-if="current">
             <div class="cover" :style="{ backgroundImage: current.cover ? `url('${current.cover}')` : undefined }">
             </div>
             <h3>{{ current.name }}</h3>
