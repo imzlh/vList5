@@ -442,8 +442,8 @@
             }
 
             > div{
-                @include btn_div();
                 position: relative;
+                @include btn_div();
 
                 > div.after{
                     position: absolute;
