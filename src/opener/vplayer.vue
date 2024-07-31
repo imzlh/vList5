@@ -102,6 +102,7 @@
     // 字幕监听
     let ass:ASS|undefined;
     function load_sub(sub: subOption):Promise<ASS>{
+        if(ass) ass.destroy(), ass = undefined;
         return new Promise(function(rs, rj){
             if(sub.url){
                 const xhr = new XMLHttpRequest();
@@ -829,7 +830,7 @@
 
             > span{
                 display: inline-block;
-                width: .6em;
+                width: .8em;
                 text-align: right;
             }
         }
@@ -876,6 +877,7 @@
             bottom: 0;left: 0;right: 0;z-index: 10;
             transform: translateY(100%);
             background-image: linear-gradient(transparent,#424242c7,black);
+            user-select: none;
 
             > .time{
                 position: absolute;

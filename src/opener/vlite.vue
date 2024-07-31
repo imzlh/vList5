@@ -400,73 +400,75 @@
 
 <template>
     <div class="vlite-container" tabindex="-1" @keydown.prevent="keyev" ref="root">
-        <div class="left" :single="!CFG.lrc.length" v-if="current">
-            <div class="cover" :style="{ backgroundImage: current.cover ? `url('${current.cover}')` : undefined }">
-            </div>
-            <h3>{{ current.name }}</h3>
-            <span>{{ current.composer || '未知' }}</span>
-            <div class="time">
-                <span>{{ CFG.currentTime }}</span>
-                <div class="timebar" @click="
-                    seekTo($event.offsetX / ($event.currentTarget as HTMLElement).clientWidth)
-                ">
-                    <div class="proc" :style="{ width: CFG.progress * 100 + '%' }"></div>
+        <div class="container">
+            <div class="left" :single="!CFG.lrc.length" v-if="current">
+                <div class="cover" :style="{ backgroundImage: current.cover ? `url('${current.cover}')` : undefined }">
                 </div>
-                <span>{{ CFG.totalTime }}</span>
-            </div>
-            <div class="btns">
-                <!--音量-->
-                <div tabindex="-1" class="volume-c" size="small">
-                    <svg viewBox="0 0 16 16" fill="currentColor">
-                        <path
-                            d="M9 4a.5.5 0 0 0-.812-.39L5.825 5.5H3.5A.5.5 0 0 0 3 6v4a.5.5 0 0 0 .5.5h2.325l2.363 1.89A.5.5 0 0 0 9 12V4zm3.025 4a4.486 4.486 0 0 1-1.318 3.182L10 10.475A3.489 3.489 0 0 0 11.025 8 3.49 3.49 0 0 0 10 5.525l.707-.707A4.486 4.486 0 0 1 12.025 8z" />
-                    </svg>
-                    <div class="after volume"
-                        @click.stop.prevent="audio.volume = $event.offsetX / ($event.currentTarget as HTMLElement).clientWidth">
-                        <div :style="{ width: CFG.volume * 100 + '%' }"></div>
+                <h3>{{ current.name }}</h3>
+                <span>{{ current.composer || '未知' }}</span>
+                <div class="time">
+                    <span>{{ CFG.currentTime }}</span>
+                    <div class="timebar" @click="
+                        seekTo($event.offsetX / ($event.currentTarget as HTMLElement).clientWidth)
+                    ">
+                        <div class="proc" :style="{ width: CFG.progress * 100 + '%' }"></div>
+                    </div>
+                    <span>{{ CFG.totalTime }}</span>
+                </div>
+                <div class="btns">
+                    <!--音量-->
+                    <div tabindex="-1" class="volume-c" size="small">
+                        <svg viewBox="0 0 16 16" fill="currentColor">
+                            <path
+                                d="M9 4a.5.5 0 0 0-.812-.39L5.825 5.5H3.5A.5.5 0 0 0 3 6v4a.5.5 0 0 0 .5.5h2.325l2.363 1.89A.5.5 0 0 0 9 12V4zm3.025 4a4.486 4.486 0 0 1-1.318 3.182L10 10.475A3.489 3.489 0 0 0 11.025 8 3.49 3.49 0 0 0 10 5.525l.707-.707A4.486 4.486 0 0 1 12.025 8z" />
+                        </svg>
+                        <div class="after volume"
+                            @click.stop.prevent="audio.volume = $event.offsetX / ($event.currentTarget as HTMLElement).clientWidth">
+                            <div :style="{ width: CFG.volume * 100 + '%' }"></div>
+                        </div>
+                    </div>
+                    <!--上一个-->
+                    <div @click.stop="CFG.currentID--">
+                        <svg viewBox="0 0 16 16" fill="currentColor">
+                            <path
+                                d="M4 4a.5.5 0 0 1 1 0v3.248l6.267-3.636c.54-.313 1.232.066 1.232.696v7.384c0 .63-.692 1.01-1.232.697L5 8.753V12a.5.5 0 0 1-1 0V4z" />
+                        </svg>
+                    </div>
+                    <!--播放/暂停-->
+                    <div size="large" @click.stop="audio.paused ? audio.play() : audio.pause()">
+                        <svg viewBox="0 0 16 16" fill="currentColor" v-show="!CFG.playing">
+                            <path
+                                d="m11.596 8.697-6.363 3.692c-.54.313-1.233-.066-1.233-.697V4.308c0-.63.692-1.01 1.233-.696l6.363 3.692a.802.802 0 0 1 0 1.393z" />
+                        </svg>
+                        <svg viewBox="0 0 16 16" fill="currentColor" v-show="CFG.playing">
+                            <path
+                                d="M5.5 3.5A1.5 1.5 0 0 1 7 5v6a1.5 1.5 0 0 1-3 0V5a1.5 1.5 0 0 1 1.5-1.5zm5 0A1.5 1.5 0 0 1 12 5v6a1.5 1.5 0 0 1-3 0V5a1.5 1.5 0 0 1 1.5-1.5z" />
+                        </svg>
+
+                    </div>
+                    <!--下一个-->
+                    <div @click.stop="CFG.currentID++">
+                        <svg viewBox="0 0 16 16" fill="currentColor">
+                            <path
+                                d="M12.5 4a.5.5 0 0 0-1 0v3.248L5.233 3.612C4.693 3.3 4 3.678 4 4.308v7.384c0 .63.692 1.01 1.233.697L11.5 8.753V12a.5.5 0 0 0 1 0V4z" />
+                        </svg>
+                    </div>
+                    <!-- 侧栏 -->
+                    <div size="small" @click="CFG.show_playlist = true">
+                        <svg viewBox="0 0 16 16" fill="currentColor">
+                            <path d="M12 13c0 1.105-1.12 2-2.5 2S7 14.105 7 13s1.12-2 2.5-2 2.5.895 2.5 2z"/>
+                            <path fill-rule="evenodd" d="M12 3v10h-1V3h1z"/>
+                            <path d="M11 2.82a1 1 0 0 1 .804-.98l3-.6A1 1 0 0 1 16 2.22V4l-5 1V2.82z"/>
+                            <path fill-rule="evenodd" d="M0 11.5a.5.5 0 0 1 .5-.5H4a.5.5 0 0 1 0 1H.5a.5.5 0 0 1-.5-.5zm0-4A.5.5 0 0 1 .5 7H8a.5.5 0 0 1 0 1H.5a.5.5 0 0 1-.5-.5zm0-4A.5.5 0 0 1 .5 3H8a.5.5 0 0 1 0 1H.5a.5.5 0 0 1-.5-.5z"/>
+                        </svg>
                     </div>
                 </div>
-                <!--上一个-->
-                <div @click.stop="CFG.currentID--">
-                    <svg viewBox="0 0 16 16" fill="currentColor">
-                        <path
-                            d="M4 4a.5.5 0 0 1 1 0v3.248l6.267-3.636c.54-.313 1.232.066 1.232.696v7.384c0 .63-.692 1.01-1.232.697L5 8.753V12a.5.5 0 0 1-1 0V4z" />
-                    </svg>
-                </div>
-                <!--播放/暂停-->
-                <div size="large" @click.stop="audio.paused ? audio.play() : audio.pause()">
-                    <svg viewBox="0 0 16 16" fill="currentColor" v-show="!CFG.playing">
-                        <path
-                            d="m11.596 8.697-6.363 3.692c-.54.313-1.233-.066-1.233-.697V4.308c0-.63.692-1.01 1.233-.696l6.363 3.692a.802.802 0 0 1 0 1.393z" />
-                    </svg>
-                    <svg viewBox="0 0 16 16" fill="currentColor" v-show="CFG.playing">
-                        <path
-                            d="M5.5 3.5A1.5 1.5 0 0 1 7 5v6a1.5 1.5 0 0 1-3 0V5a1.5 1.5 0 0 1 1.5-1.5zm5 0A1.5 1.5 0 0 1 12 5v6a1.5 1.5 0 0 1-3 0V5a1.5 1.5 0 0 1 1.5-1.5z" />
-                    </svg>
-
-                </div>
-                <!--下一个-->
-                <div @click.stop="CFG.currentID++">
-                    <svg viewBox="0 0 16 16" fill="currentColor">
-                        <path
-                            d="M12.5 4a.5.5 0 0 0-1 0v3.248L5.233 3.612C4.693 3.3 4 3.678 4 4.308v7.384c0 .63.692 1.01 1.233.697L11.5 8.753V12a.5.5 0 0 0 1 0V4z" />
-                    </svg>
-                </div>
-                <!-- 侧栏 -->
-                <div size="small" @click="CFG.show_playlist = true">
-                    <svg viewBox="0 0 16 16" fill="currentColor">
-                        <path d="M12 13c0 1.105-1.12 2-2.5 2S7 14.105 7 13s1.12-2 2.5-2 2.5.895 2.5 2z"/>
-                        <path fill-rule="evenodd" d="M12 3v10h-1V3h1z"/>
-                        <path d="M11 2.82a1 1 0 0 1 .804-.98l3-.6A1 1 0 0 1 16 2.22V4l-5 1V2.82z"/>
-                        <path fill-rule="evenodd" d="M0 11.5a.5.5 0 0 1 .5-.5H4a.5.5 0 0 1 0 1H.5a.5.5 0 0 1-.5-.5zm0-4A.5.5 0 0 1 .5 7H8a.5.5 0 0 1 0 1H.5a.5.5 0 0 1-.5-.5zm0-4A.5.5 0 0 1 .5 3H8a.5.5 0 0 1 0 1H.5a.5.5 0 0 1-.5-.5z"/>
-                    </svg>
-                </div>
             </div>
-        </div>
-        <div class="right" v-if="CFG.lrc.length">
-            <div ref="lrc_elem" v-for="(lrc,i) in CFG.lrc" :active="i == CFG.lrc_now"
-                @click="audio.currentTime = lrc.timestamp">
-                {{ lrc.content }}
+            <div class="right" v-if="CFG.lrc.length">
+                <div ref="lrc_elem" v-for="(lrc,i) in CFG.lrc" :active="i == CFG.lrc_now"
+                    @click="audio.currentTime = lrc.timestamp">
+                    {{ lrc.content }}
+                </div>
             </div>
         </div>
         <div class="side-overlay" v-if="CFG.show_playlist" @click="CFG.show_playlist = false"></div>
@@ -504,274 +506,280 @@
 
 <style lang="scss">
     .vlite-container{
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background-color: #58706d;
         height: 100%;
-        gap: 1rem;
 
-        > .left{
+        > .container{
             display: flex;
-            flex-direction: column;
-            box-sizing: border-box;
+            align-items: center;
+            justify-content: center;
+            background-color: #58706d;
+            height: 100%;
+            gap: 1rem;
+            transform: translate(0);
 
-            @media screen and (max-width: 30rem) {
-                position: absolute;
-                bottom: 0;
-                left: .5rem;
-                right: .5rem;
-                background-color: #58706d;
-                display: block;
-                max-width: none !important;
-                width: unset !important;
-                z-index: 0;
+            > .left{
+                display: flex;
+                flex-direction: column;
+                box-sizing: border-box;
+                
+
+                @media screen and ((max-width: 30rem) or (max-height: 25rem)){
+                    position: absolute;
+                    bottom: 0;
+                    left: .5rem;
+                    right: .5rem;
+                    background-color: #58706d;
+                    display: block;
+                    max-width: none !important;
+                    width: unset !important;
+                    z-index: 0;
+
+                    > .cover{
+                        position: fixed;
+                        inset: 0;
+                        z-index: -1;
+                        filter: brightness(0.5);
+                    }
+
+                    > .time{
+                        width: 100%;
+                    }
+                }
+
+                &[single=false]{
+                    min-width: 25%;
+                    width: 45vh;
+                    max-width: 45%;
+                    max-height: 85%;
+                }
+
+                &[single=true]{
+                    max-width: 60%;
+                    max-height: 90%;
+                    width: 50vh;
+                }
 
                 > .cover{
-                    position: fixed;
-                    inset: 0;
-                    z-index: -1;
-                    filter: brightness(0.6);
-                }
-
-                > .time{
-                    width: 100%;
-                }
-            }
-
-            &[single=false]{
-                min-width: 25%;
-                width: 45vh;
-                max-width: 45%;
-                max-height: 70%;
-            }
-
-            &[single=true]{
-                max-width: 60%;
-                max-height: 90%;
-                width: 50vh;
-            }
-
-            > .cover{
-                flex-grow: 1;
-                padding-top: 100%;
-                background-position: center;
-                background-size: cover;
-                background-repeat: no-repeat;
-                background-color: #ffffffad;
-                border-radius: .3rem;
-            }
-
-            > .btns{
-                display: flex;
-                justify-content: center;
-                align-items: center;
-                color: rgba(255, 255, 255, 0.6);
-
-                > div{
-                    padding: .2rem;
-                    margin: 0 .25rem;
+                    flex-grow: 1;
+                    padding-top: 100%;
+                    background-position: center;
+                    background-size: cover;
+                    background-repeat: no-repeat;
+                    background-color: #ffffffad;
                     border-radius: .3rem;
-                    transition: all .2s;
-                    position: relative;
+                }
 
-                    > svg{
-                        width: 1.6rem;
-                        height: 1.6rem;
-                        display: block;
-                    }
+                > .btns{
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    color: rgba(255, 255, 255, 0.6);
 
-                    &:hover{
-                        background-color: rgba(193, 186, 186, 0.2);
-                    }
-
-                    &:not([btn-after]):active{
-                        transform: scale(.9);
-                    }
-
-                    &[size=small]{
-                        padding: .15rem;
-                        border-radius: .2rem;
-                        height: 1.2rem;
-                        width: 1.2rem;
+                    > div{
+                        padding: .2rem;
+                        margin: 0 .25rem;
+                        border-radius: .3rem;
                         transition: all .2s;
-                        overflow: hidden;
+                        position: relative;
 
                         > svg{
-                            width: 1.2rem;
+                            width: 1.6rem;
+                            height: 1.6rem;
+                            display: block;
+                        }
+
+                        &:hover{
+                            background-color: rgba(193, 186, 186, 0.2);
+                        }
+
+                        &:not([btn-after]):active{
+                            transform: scale(.9);
+                        }
+
+                        &[size=small]{
+                            padding: .15rem;
+                            border-radius: .2rem;
                             height: 1.2rem;
-                            opacity: .4;
-                        }
-
-                        &:hover svg{
-                            opacity: .8;
-                        }
-
-                        &[active=true]{
-                            overflow: visible;
+                            width: 1.2rem;
+                            transition: all .2s;
+                            overflow: hidden;
 
                             > svg{
+                                width: 1.2rem;
+                                height: 1.2rem;
+                                opacity: .4;
+                            }
+
+                            &:hover svg{
+                                opacity: .8;
+                            }
+
+                            &[active=true]{
+                                overflow: visible;
+
+                                > svg{
+                                    opacity: 1;
+                                }
+                            }
+                        }
+
+                        &[size=large]{
+                            padding: .25rem;
+                            margin: 0 .25rem;
+                            border-radius: .4rem;
+
+                            > svg{
+                                width: 2rem;
+                                height: 2rem;
+                            }
+                        }
+
+                        &.volume-c:focus{
+                            overflow: visible;
+                            transition: none;
+                            transform: none;
+
+                            svg{
                                 opacity: 1;
                             }
                         }
-                    }
 
-                    &[size=large]{
-                        padding: .25rem;
-                        margin: 0 .25rem;
-                        border-radius: .4rem;
-
-                        > svg{
-                            width: 2rem;
-                            height: 2rem;
+                        > .after{
+                            width: 7.5rem;
+                            height: .8rem;
+                            padding: .3rem .5rem;
+                            position: absolute;
+                            left: 2rem;
+                            top: 0;
+                            background-color: #6c7171;
+                            z-index: 1;
                         }
-                    }
 
-                    &.volume-c:focus{
-                        overflow: visible;
-                        transition: none;
-                        transform: none;
-
-                        svg{
-                            opacity: 1;
-                        }
-                    }
-
-                    > .after{
-                        width: 7.5rem;
-                        height: .8rem;
-                        padding: .3rem .5rem;
-                        position: absolute;
-                        left: 2rem;
-                        top: 0;
-                        background-color: #6c7171;
-                        z-index: 1;
-                    }
-
-                    > .volume{
-                        border-radius: 2rem;
-                        background-color: rgba(92, 233, 184, 0.4);
-                        height: .75rem;
-                        top: 50%;
-                        transform: translate(-.5rem, -50%);
-                        padding: 0;
-
-                        > div{
+                        > .volume{
                             border-radius: 2rem;
-                            height: 100%;
-                            background-color: #5ce9b8;
+                            background-color: rgba(92, 233, 184, 0.4);
+                            height: .75rem;
+                            top: 50%;
+                            transform: translate(-.5rem, -50%);
+                            padding: 0;
+
+                            > div{
+                                border-radius: 2rem;
+                                height: 100%;
+                                background-color: #5ce9b8;
+                            }
                         }
                     }
                 }
-            }
 
-            > h3{
-                margin: .5rem 0 0 0;
-                font-size: 1.25rem;
-                color: rgb(241, 241, 241);
-                padding-left: .5rem;
-            }
-
-            > span{
-                color: rgb(229, 227, 227);
-                font-size: .9rem;
-                margin: 0 0 .5rem 0;
-                padding-left: .5rem;
-            }
-
-            > h3, > span{
-                width: 100%;
-                white-space: nowrap;
-                overflow: hidden;
-                text-overflow: ellipsis;
-            }
-
-            > .time{
-                display: flex;
-                align-items: center;
-                font-size: .85rem;
-                color: white;
-                font-family: 'Barlow';
-
-                > *{
-                    flex-shrink: 0;
-                    min-width: 3em;
-                    text-align: center;
+                > h3{
+                    margin: .5rem 0 0 0;
+                    font-size: 1.25rem;
+                    color: rgb(241, 241, 241);
+                    padding-left: .5rem;
                 }
 
-                > .timebar{
-                    flex-grow: 1;
-                    margin: 0 .25rem;
-                    background-color: rgba(240, 255, 255, 0.6);
-                    height: .2rem;
-                    border-radius: .1rem;
+                > span{
+                    color: rgb(229, 227, 227);
+                    font-size: .9rem;
+                    margin: 0 0 .5rem 0;
+                    padding-left: .5rem;
+                }
 
-                    &:hover > div::after{
-                        content: '';
+                > h3, > span{
+                    width: 100%;
+                    white-space: nowrap;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                }
+
+                > .time{
+                    display: flex;
+                    align-items: center;
+                    font-size: .85rem;
+                    color: white;
+                    font-family: 'Barlow';
+
+                    > *{
+                        flex-shrink: 0;
+                        min-width: 3em;
+                        text-align: center;
                     }
 
-                    > div{
-                        background-color: white;
+                    > .timebar{
+                        flex-grow: 1;
+                        margin: 0 .25rem;
+                        background-color: rgba(240, 255, 255, 0.6);
                         height: .2rem;
                         border-radius: .1rem;
-                        position: relative;
 
-                        &::after{
-                            float: right;
-                            position: absolute;
-                            top: -.2rem;
-                            right: -.3rem;
-                            height: .6rem;
-                            width: .6rem;
-                            border-radius: .3rem;
+                        &:hover > div::after{
+                            content: '';
+                        }
+
+                        > div{
                             background-color: white;
+                            height: .2rem;
+                            border-radius: .1rem;
+                            position: relative;
+
+                            &::after{
+                                float: right;
+                                position: absolute;
+                                top: -.2rem;
+                                right: -.3rem;
+                                height: .6rem;
+                                width: .6rem;
+                                border-radius: .3rem;
+                                background-color: white;
+                            }
                         }
                     }
                 }
             }
-        }
 
-        > .right{
-            overflow: hidden scroll;
-            height: 100%;
-            width: 50%;
-            scroll-behavior: smooth;
-
-            @media screen and (max-width: 30rem) {
-                width: unset;height: unset;
-                z-index: 0;
-                position: fixed;
-                margin: 0;
-                top: 0;left: .75rem;
-                right: .75rem;bottom: 7rem;
-            }
-
-            &::-webkit-scrollbar{
-                display: none;
-            }
-
-            > div{
-                box-sizing: border-box;
-                width: 100%;
-                padding: .35rem;
-                font-size: 1.2rem;
-                border-radius: .3rem;
+            > .right{
+                overflow: hidden scroll;
+                height: 100%;
+                width: 50%;
                 scroll-behavior: smooth;
-                overflow: hidden auto;
 
-                color: rgba(255, 255, 255, 0.6);
-                transition: all .2s;
-
-                display: flex;
-                flex-direction: column;
-                justify-items: center;
-
-                &[active=true]{
-                    color: white;
+                @media screen and ((max-width: 30rem) or (max-height: 25rem)) {
+                    width: unset;height: unset;
+                    z-index: 0;
+                    position: absolute;
+                    margin: 0;
+                    top: 0;left: .75rem;
+                    right: .75rem;bottom: 7rem;
                 }
 
-                &:hover{
-                    background-color: rgba(237, 234, 234, 0.2);
+                &::-webkit-scrollbar{
+                    display: none;
+                }
+
+                > div{
+                    box-sizing: border-box;
+                    width: 100%;
+                    padding: .35rem;
+                    font-size: 1.2rem;
+                    border-radius: .3rem;
+                    scroll-behavior: smooth;
+                    overflow: hidden auto;
+
+                    color: rgba(255, 255, 255, 0.6);
+                    transition: all .2s;
+
+                    display: flex;
+                    flex-direction: column;
+                    justify-items: center;
+
+                    &[active=true]{
+                        color: white;
+                    }
+
+                    &:hover{
+                        background-color: rgba(237, 234, 234, 0.2);
+                    }
                 }
             }
         }
