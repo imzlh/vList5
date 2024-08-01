@@ -1,5 +1,5 @@
 import type { AlertOpts, FileOrDir, ListPredirect, vFile, vSimpleFileOrDir } from "@/env";
-import { APP_API, FILE_PROXY_SERVER, Global, getConfig } from "@/utils";
+import { APP_API, FILE_PROXY_SERVER, Global, getConfig, listByTree } from "@/utils";
 import { type Ref } from "vue";
 import SHA from "jssha";
 import { getIcon } from "./icon";
@@ -120,6 +120,7 @@ export const FS = {
 
     /**
      * 列举一个文件夹
+     * @deprecated 请使用`FS.listall()`
      * @param dir 文件夹路径
      * @returns 列表
      */
@@ -138,10 +139,11 @@ export const FS = {
 
     /**
      * 列举一个文件夹，并且返回详细信息
+     * @deprecated 请使用`FS.listall()`
      * @param path 路径
      * @returns 详细信息
      */
-    async listall(path:string):Promise<Array<FileOrDir>>{
+    async __listall(path:string):Promise<Array<FileOrDir>>{
         if(/^vfs:\/\/([a-z0-9-]+)\/(.+)$/.test(path))
             throw new TypeError('vfs is not accessable');
         const item = (await this.__request('slist',{ path },true)).map((item:FileOrDir) => {
@@ -151,6 +153,16 @@ export const FS = {
         }) as Array<FileOrDir>;
         return item.filter(item => item.type == 'dir').sort((a, b) => a.name.localeCompare(b.name))
             .concat(item.filter(item => item.type == 'file').sort((a, b) => a.name.localeCompare(b.name)) as any);
+    },
+
+    /**
+     * （带缓存功能，响应式）
+     * 列举一个文件夹，并且返回子项目详细信息
+     * @param path 路径
+     * @returns 子项目数组
+     */
+    async listall(path:string):Promise<Array<FileOrDir>>{
+        return (await listByTree(path)).child as Array<FileOrDir>;
     },
 
     /**

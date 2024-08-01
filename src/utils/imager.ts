@@ -347,6 +347,7 @@ export class ImageManager{
 
     private __touch(e: TouchEvent){
         if((e.target as HTMLElement).tagName.toLowerCase() != 'img') return;
+        e.preventDefault();
 
         // 重置图片旋转
         this.images[1].style.transform = 'rotate(0deg)';
@@ -393,9 +394,10 @@ export class ImageManager{
         document.addEventListener('touchmove', handleTouch, {
             passive: false
         });
-        document.addEventListener('touchend', () => {
+        document.addEventListener('touchend', e => {
+            e.preventDefault();
             document.removeEventListener('touchmove', handleTouch);
-        });
+        }, { passive: false, once: true });
     }
 
     /**
@@ -513,7 +515,7 @@ export class ImageManager{
         this.element.addEventListener('wheel', e => this.__wheel(e));
         this.element.addEventListener('keydown', e => this.__keydown(e));
         this.element.addEventListener('mousedown', e => this.__mouse(e));
-        this.element.addEventListener('touchstart', e => this.__touch(e));
+        this.element.addEventListener('touchstart', e => this.__touch(e), { passive: false });
         this.element.addEventListener('contextmenu', e => this.__contextmenu(e));
     }
 

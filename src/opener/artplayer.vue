@@ -1,5 +1,5 @@
 <script setup lang="ts">
-    import type { MessageOpinion, vSimpleFileOrDir } from '@/env';
+    import type { MessageOpinion, vFile } from '@/env';
     import ArtPlayer from 'artplayer';
     import { onMounted, onUnmounted, ref } from 'vue';
     import { FS, Global, clipFName, getConfig, regConfig, splitPath } from '@/utils';
@@ -12,7 +12,7 @@
             "type": Object,
             "required": true
         }
-    }),file = props['option'] as vSimpleFileOrDir,
+    }),file = props['option'] as vFile,
     ev = defineEmits(['show']);
 
     var art: ArtPlayer | undefined,
@@ -44,8 +44,8 @@
         current: 0,
         loop: false,
         dir: '?',
-        subtitles: [] as Array<vSimpleFileOrDir>,
-        videos: [] as Array<vSimpleFileOrDir>,
+        subtitles: [] as Array<vFile>,
+        videos: [] as Array<vFile>,
         set(i:number){
             if(!art) return;
             if(!this.videos[i]) return console.error('Video#' + i + ' not found');
@@ -107,7 +107,7 @@
             else
                 this.set(this.current -1);
         },
-        async play(file:vSimpleFileOrDir) {
+        async play(file:vFile) {
             if(!art) return;
 
             const dir = splitPath(file)['dir'];
@@ -121,7 +121,7 @@
                     }
             }else{
                 // 更新列表
-                const list = await FS.list(dir || '/');
+                const list = (await FS.listall(dir || '/')).filter(item => item.type == 'file');
                 this.videos = [];this.subtitles = [];
                 let i = 0;
                 list.forEach(item => {

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-    import type { vSimpleFileOrDir } from '@/env';
+    import type { vFile } from '@/env';
     import { regSelf } from '@/opener';
     import { FS, getConfig, regConfig, splitPath } from '@/utils';
     import APlayer, { addMusicPlugin } from 'aplayer-ts';
@@ -7,10 +7,10 @@
 
     const dom = ref<HTMLElement>(),
         props = defineProps(['option']),
-        data = props['option'] as vSimpleFileOrDir,
+        data = props['option'] as vFile,
         ev = defineEmits(['show']);
     var ap = APlayer() .use(addMusicPlugin),
-        list:Array<vSimpleFileOrDir & {lrc?:vSimpleFileOrDir,cover?:vSimpleFileOrDir}> = [],
+        list:Array<vFile & {lrc?:vFile,cover?:vFile}> = [],
         cur = -1;
 
     const IMAGE = [
@@ -22,7 +22,7 @@
         "bmp"
     ],THEME = getConfig('aplayer')['theme'];
 
-    async function play(file:vSimpleFileOrDir){
+    async function play(file:vFile){
         // 找到ID
         for (let i = 0; i < list.length; i++)
             if(list[i].path == file.path)
@@ -30,8 +30,8 @@
 
         // 不在列表中
         const info = splitPath(file),
-            dir = await FS.list(info['dir']);
-        let cover: undefined | vSimpleFileOrDir, lrc: undefined | vSimpleFileOrDir;
+            dir = (await FS.listall(info['dir'])).filter(item => item.type == 'file');
+        let cover: undefined | vFile, lrc: undefined | vFile;
         // 找到文件
         for (const file of dir) {
             const inf = splitPath(file),
@@ -232,9 +232,6 @@
         width: 1.4rem;
     }
 
-    .aplayer .aplayer-info {
-    }
-
     .aplayer .aplayer-info .aplayer-music {
         position: absolute;
         border: .2rem;
@@ -354,7 +351,6 @@
 
     .aplayer .aplayer-info .aplayer-controller .aplayer-volume-wrap {
         position: relative;
-        display: inline-block;
         margin-left: .15rem;
         cursor: pointer!important;
         float: right;

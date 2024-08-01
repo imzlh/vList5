@@ -1,5 +1,5 @@
 <script setup lang="ts">
-    import type { MessageOpinion, vSimpleFileOrDir } from '@/env';
+    import type { MessageOpinion, vFile } from '@/env';
     import { regSelf } from '@/opener';
     import { FS, Global, UI, acceptDrag, clipFName, regConfig, reqFullscreen, splitPath } from '@/utils';
     import ASS from 'assjs';
@@ -12,7 +12,7 @@
         sub_type: 'ass' | 'vtt'
     }
 
-    interface videoOption extends vSimpleFileOrDir {
+    interface videoOption extends vFile {
         vid_name: string,
         subtitle: Array<subOption>
     }
@@ -20,7 +20,7 @@
     const MKV_EXTRACT = ['mkv','webm'];
 
     const opts_ = defineProps(['option']),
-        file = opts_['option'] as vSimpleFileOrDir,
+        file = opts_['option'] as vFile,
         root = ref<HTMLElement>(),
         CFG = shallowReactive({
             // 信息条
@@ -350,7 +350,7 @@
             const subnow = CFG.subtitle.map(each => each.name),
                 subfor = CFG.current;
             Global('ui.choose').call(this.dir)
-                .then((items: Array<vSimpleFileOrDir>) => items.forEach(each => {
+                .then((items: Array<vFile>) => items.forEach(each => {
                     // 已经包含
                     if (subnow.includes(each.name)) return;
                     // 字幕太大
@@ -387,7 +387,7 @@
                 }));
         },
         temp_url: null as null|string,
-        async play(file: vSimpleFileOrDir) {
+        async play(file: vFile) {
             //  清理URL
             if(this.temp_url)
                 URL.revokeObjectURL(this.temp_url),this.temp_url = null;
@@ -403,7 +403,7 @@
                     }
             } else {
                 // 更新列表
-                const list = await FS.list(dir || '/'),
+                const list = (await FS.listall(dir || '/')).filter(item => item.type == 'file'),
                     subs = {} as Record<string, Array<subOption>>;
                 CFG.playlist = []; CFG.subtitle = [];
                 let i = 0;

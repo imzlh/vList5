@@ -1,9 +1,10 @@
 <script setup lang="ts">
-    import type { vSimpleFileOrDir } from '@/env';
+    import type { vFile } from '@/env';
     import { regSelf } from '@/opener';
     import parseCue from '@/script/cue';
     import { acceptDrag, FILE_PROXY_SERVER, FS, Global, splitPath } from '@/utils';
     import { Lrc, Runner, type Lyric } from 'lrc-kit';
+import { idText } from 'typescript';
     import { computed, nextTick, onMounted, onUnmounted, ref, shallowReactive, watch } from 'vue';
 
     interface Music {
@@ -19,7 +20,7 @@
     }
 
     const props = defineProps(['option']),
-        data = props['option'] as vSimpleFileOrDir,
+        data = props['option'] as vFile,
         root = ref<HTMLElement>(),
         CFG = shallowReactive({
             playlist: [] as Array<Music>,
@@ -294,7 +295,7 @@
     }
 
     let cur_dir = '';
-    async function play(file: vSimpleFileOrDir) {
+    async function play(file: vFile) {
         const dir = splitPath(file)['dir'];
         let id: number | undefined;
         if (cur_dir == dir) {
@@ -306,10 +307,7 @@
                 }
         } else {
             // 更新列表
-            const list = await FS.list(dir || '/', {
-                    "select": "type",
-                    "type": "file"
-                }),
+            const list = (await FS.listall(dir || '/')).filter(item => item.type == 'file'),
                 lrcs = {} as Record<string,string>,
                 covers = {} as Record<string,string>,
                 default_cover = [] as Array<string>;
@@ -739,7 +737,7 @@
             }
 
             > .right{
-                overflow: hidden scroll;
+                overflow: hidden;
                 height: 100%;
                 width: 50%;
                 scroll-behavior: smooth;

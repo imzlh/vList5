@@ -246,7 +246,13 @@ export const TREE = reactive<vDir>({
 
 export async function loadTree(input: vDir){
     try{
-        const item = await FS.listall(input.path);
+        const _item = (await FS.__request('slist',{ path: input.path },true)).map((item:FileOrDir) => {
+                item.url = FILE_PROXY_SERVER + input.path + item.name + (item.type == 'dir' ? '/' : '');
+                item.path = input.path + item.name + (item.type == 'dir' ? '/' : '');
+                return item;
+            }) as Array<FileOrDir>,
+            item = _item.filter(item => item.type == 'dir').sort((a, b) => a.name.localeCompare(b.name))
+                .concat(_item.filter(item => item.type == 'file').sort((a, b) => a.name.localeCompare(b.name)) as any) as Array<FileOrDir>;
         item.forEach(each => each.icon = getIcon(each.name, each.type == 'file'));
         input.child = reactive(item);
     }catch(e){
@@ -319,6 +325,10 @@ export async function loadPath(path: string){
     return current;
 }
 
+export async function listByTree(path: string):Promise<iDir>{
+    return await loadPath(path);
+}
+
 window.addEventListener('hashchange',async function(ev){
     const hash = this.location.hash.substring(1);
     if(hash[0] != '/') return;
@@ -345,4 +355,4 @@ window.addEventListener('hashchange',async function(ev){
 
 window.addEventListener('load', function(){
     this.dispatchEvent(new HashChangeEvent('hashchange'));
-})
+});

@@ -1,7 +1,7 @@
 <script lang="ts" setup>
     import { onMounted, onUnmounted, reactive, ref, watch, type Directive } from 'vue';
     import createAV, { type Export } from '@/utils/avplayer';
-    import type { CtxDispOpts, MessageOpinion, vFile, vSimpleFileOrDir } from '@/env';
+    import type { CtxDispOpts, MessageOpinion, vFile } from '@/env';
     import { reqFullscreen, UI } from '@/App.vue';
     import { acceptDrag, FS, Global, splitPath } from '@/utils';
     import ASS from 'assjs';
@@ -44,7 +44,7 @@
             track: false,
             playlist: false,
             speed: false,
-            videos: [] as Array<vSimpleFileOrDir & { name: string }>,
+            videos: [] as Array<vFile & { name: string }>,
             videoID: 0
         }),
         root = ref<HTMLElement>();
@@ -68,7 +68,7 @@
     const CTRL = {
         dir: '?',
         temp_url: null as null|string,
-        async play(file: vSimpleFileOrDir) {
+        async play(file: vFile) {
             const dir = splitPath(file)['dir'];
             let id: number | undefined;
             if(this.ass) this.ass.destroy();
@@ -81,7 +81,7 @@
                     }
             } else {
                 // 更新列表
-                const list = await FS.list(dir || '/');
+                const list = (await FS.listall(dir || '/')).filter(item => item.type == 'file');
                 ui.videos = [];
                 let i = 0;
                 list.forEach(item => {
