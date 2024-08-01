@@ -4,7 +4,7 @@ import type { AlertOpts, FileOrDir, MessageOpinion, vDir, vFile } from "@/env";
 import { reactive } from "vue";
 import { getIcon } from "./icon";
 import { DEFAULT_DIR_ICON, FILE_PROXY_SERVER } from "/config";
-import { FS, splitPath } from "./fs";
+import { clearPath, FS, splitPath } from "./fs";
 import { Global, openFile } from "@/utils";
 
 export interface iFile extends vFile{
@@ -282,18 +282,25 @@ export function reloadTree(dir:Array<string>){
     return subTree(TREE);
 }
 
-export function getTree(dir: string):vDir | undefined{
-    function subTree(tree:vDir){
-        // 是当前目录
-        if(dir == tree.path)
-            return tree;
-
-        // 遍历子元素
+export function getTree(dir: string):vDir{
+    function getInTree(tree:vDir, name: string): vDir{
         if(tree.child)
             for (const fd of tree.child)
-                if(fd.type == 'dir') return subTree(fd);
+                if(fd.name == name && fd.type == 'dir') return fd;
+        throw new Error('Folder not found');
     }
-    return subTree(TREE);
+
+    const paths = clearPath(dir).split('/');
+    let current = TREE;
+    for (const name of paths) {
+        if(!name) continue;
+        if(!current.child) throw new Error('Folder not found');
+        const cur = (current.child as Array<FileOrDir>)
+           .filter(item => item.name == name && item.type == 'dir')[0];
+        if(!cur) throw new Error('Folder not found');
+        current = cur as vDir;
+    }
+    return current;
 }
 
 export async function loadPath(path: string){

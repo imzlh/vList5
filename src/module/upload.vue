@@ -51,6 +51,25 @@
                 <span>拖拽或点击选取上传</span>
             </div>
         </div>
+
+        <!-- 右下侧小工具 -->
+        <div class="tools">
+            <!-- 清空 -->
+            <div @click="eque = []">
+                <svg viewBox="0 0 16 16">
+                    <path fill-rule="evenodd" d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2v1z"/>
+                    <path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466z"/>
+                </svg>
+            </div>
+
+            <!-- 添加上传文件 -->
+            <div @click="upload(true, dir, obj => eque.push(obj))">
+                <svg viewBox="0 0 16 16">
+                    <path fill-rule="evenodd" d="M8 2a.5.5 0 0 1 .5.5v5h5a.5.5 0 0 1 0 1h-5v5a.5.5 0 0 1-1 0v-5h-5a.5.5 0 0 1 0-1h5v-5A.5.5 0 0 1 8 2Z"/>
+                </svg>
+            </div>
+        </div>
+
         <div class="preview" v-show="mouse.show" :style="{
             left: mouse.x + 'px',
             top: mouse.y + 'px'
@@ -133,6 +152,38 @@
                         word-break: break-all;
                         text-align: center;
                     }
+                }
+            }
+        }
+
+        > .tools{
+            position: absolute;
+            bottom: 5%;
+            right: 5%;
+            display: flex;
+            flex-direction: column;
+            gap: .15rem;
+            padding: .15rem;
+            background-color: white;
+            border-radius: .4rem;
+            border: solid .1rem rgb(212, 212, 212);
+            z-index: 10;
+
+            > div{
+                border-radius: .35rem;
+                cursor: pointer;
+                padding: .35rem;
+                transition: all .2s;
+
+                &:hover{
+                    background-color: #e9e9e9;
+                }
+
+                > svg{
+                    display: block  ;
+                    fill: #a49e9e;
+                    width: 1.2rem;
+                    height: 1.2rem;
                 }
             }
         }
