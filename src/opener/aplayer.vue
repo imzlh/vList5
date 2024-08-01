@@ -30,7 +30,7 @@
 
         // 不在列表中
         const info = splitPath(file),
-            dir = (await FS.listall(info['dir'])).filter(item => item.type == 'file');
+            dir = (await FS.listall(info['dir'])).filter(item => item.type == 'file') as vFile[];
         let cover: undefined | vFile, lrc: undefined | vFile;
         // 找到文件
         for (const file of dir) {

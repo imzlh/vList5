@@ -81,7 +81,7 @@
                     }
             } else {
                 // 更新列表
-                const list = (await FS.listall(dir || '/')).filter(item => item.type == 'file');
+                const list = (await FS.listall(dir || '/')).filter(item => item.type == 'file') as vFile[];
                 ui.videos = [];
                 let i = 0;
                 list.forEach(item => {
