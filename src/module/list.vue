@@ -378,7 +378,8 @@
                 position: sticky;
                 top: -.45rem;
                 z-index: 1;
-                background-color: white;
+                background-color: #f6f6f6ab;
+                backdrop-filter: blur(.3rem);
 
                 th{
                     text-align: left;

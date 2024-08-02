@@ -1,15 +1,24 @@
 <script setup lang="ts">
     import type { FileOrDir } from '@/env';
-    import { FS, Global, type iMixed } from '@/utils';
-    import { ref, shallowRef, watch } from 'vue';
+    import { FS, Global, openFile, type iMixed } from '@/utils';
+    import { reactive, ref, shallowRef, watch } from 'vue';
     import List from './list.vue';
+    import type { CtxDispOpts } from '@/env';
+    import { marked, markmap } from './tree.vue';
+    import I_LIST from '/icon/viewinfo.webp';
+    import I_ICON from '/icon/viewlarge.webp';
 
     const display = ref(false),
         history = ref([] as Array<string>),
         data = shallowRef<Array<FileOrDir>>([]),
         current = ref(-1),
         showPath = ref(false),
-        path = ref('');
+        path = ref(''),
+        displaymode = ref('list'),
+        layout = reactive({
+            table: [60, 20, 20],
+            orderBy: 'name' as 'name' | 'name_rev' | 'date' | 'date_rev' | 'size' | 'size_rev'
+        });
 
     let exports = [] as Array<FileOrDir>;
 
@@ -48,6 +57,68 @@
     function submit(){
         resolver && resolver(exports);
         resolver = undefined;display.value = false;
+    }
+
+    function ctxmenu(item: FileOrDir, e: MouseEvent){
+        Global('ui.ctxmenu').call({
+            pos_x: e.clientX,
+            pos_y: e.clientY,
+            content: [
+                {
+                    "text": '打开',
+                    "handle": () => item.type == 'dir' ? switchTo(item.path) : openFile(item)
+                },{
+                    "text": "在文件管理器中展示",
+                    "handle": () => (marked.value.push(item), markmap.value.push(item.path))
+                }
+            ]
+        } satisfies CtxDispOpts);
+    }
+
+    function ctxmenu2(e: MouseEvent){
+        Global('ui.ctxmenu').call({
+            pos_x: e.clientX,
+            pos_y: e.clientY,
+            content: [
+                {
+                    "text": "显示为",
+                    "child": [
+                        {
+                            "text": "图标",
+                            "icon": I_ICON,
+                            "handle": () => displaymode.value = 'view'
+                        },{
+                            "text": "列表",
+                            "icon": I_LIST,
+                            "handle": () => displaymode.value = 'list'
+                        }
+                    ]
+                },{
+                    "text": "排序方式",
+                    "child": [
+                        {
+                            text: "名称",
+                            handle: () => layout.orderBy = 'name'
+                        },{
+                            text: "名称(逆序)",
+                            handle: () => layout.orderBy = 'name_rev'
+                        },{
+                            text: "日期",
+                            handle: () => layout.orderBy = 'date'
+                        },{
+                            text: "日期(逆序)",
+                            handle: () => layout.orderBy = 'date_rev'
+                        },{
+                            text: "大小",
+                            handle: () => layout.orderBy = 'size'
+                        },{
+                            text: "大小(逆序)",
+                            handle: () => layout.orderBy = 'size_rev'
+                        }
+                    ]
+                }
+            ]
+        } satisfies CtxDispOpts);
     }
 
     watch(current,() => history.value[current.value] &&
@@ -109,8 +180,9 @@
             </div>
         </div>
         <!-- 列表 -->
-        <List :list="data" style="padding-top: 3.5rem;"
-            @open="(file:FileOrDir) => file.type == 'dir' ? switchTo(file.path) : null"
+        <List :list="data" style="padding-top: 4rem;" :mode="displaymode" :layout="layout"
+            @ctxmenu="ctxmenu" @ctxroot="ctxmenu2"
+            @open="(file:FileOrDir) => file.type == 'dir' ? switchTo(file.path) : submit()"
             @select="(data :iMixed) => exports.push(data)" @clear="() => exports = []"
         ></List>
     </div>
@@ -133,7 +205,7 @@
         max-height: 25rem;
         background-color: #f3f3f3;
         border: solid .1rem #8080804a;
-        z-index: 58;
+        z-index: 56;
 
         // 针对list
         --size: 5rem;
@@ -165,6 +237,7 @@
                     text-align: center;
                     font-size: .9rem;
                     padding-bottom: .35rem;
+                    pointer-events: none;
                 }
 
                 > div{
@@ -247,7 +320,7 @@
                         max-width: 50%;
 
                         &:hover{
-                            background-color: rgb(236, 241, 241);
+                            color: black;
                         }
                     }
                 }

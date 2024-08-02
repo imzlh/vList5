@@ -23,8 +23,9 @@ export class CtxMenuRegister{
                 pre.push(item[0](pos.indir));
                 actived ++;
             }
-            if(this.items.length -1 != i && actived) pre.push('---');
+            if(actived) pre.push('---');
         }
+        if(pre[pre.length - 1] == '---') pre.pop();
         Global('ui.ctxmenu').call({
             'pos_x': pos.x,
             'pos_y': pos.y,
