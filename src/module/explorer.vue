@@ -278,7 +278,7 @@
                 </div>
             </div>
             <!-- 伸缩 -->
-            <div class="resize" @pointerdown.prevent.stop="resize"></div>
+            <div class="resize" @pointerdown.prevent.stop="resize" v-touch></div>
             <!-- 搜索 -->
             <div class="search" :style="{
                 width: search_size + 'px'

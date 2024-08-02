@@ -105,11 +105,13 @@
                 if(e.dataTransfer.getData('text/vtoken') == DRAG_TOKEN){
                     // 拖拽到原处不受理
                     const from_fd:iMixed = JSON.parse(e.dataTransfer.getData('application/json'));
-                    if((from_fd.type == 'dir' ? from_fd.path : splitPath(from_fd).dir )== to_fd.path) return;
+                    if((from_fd.type == 'dir' ? from_fd.path : splitPath(from_fd).dir ) == to_fd.path)
+                        return;
 
                     FS.move(from_fd.path, to_fd.path)
+                        // 重新加载来源文件夹和目标文件夹
                         .then(() => reloadTree([
-                            from_fd.type == 'dir' ? from_fd.path : splitPath(from_fd)['dir'],
+                            splitPath(from_fd)['dir'],
                             to_fd.path
                         ]))
                         .catch(e => Global('ui.message').call({
@@ -175,6 +177,8 @@
                 } satisfies MessageOpinion), file.rename = false));
             },
             ctxmenu(fd: iMixed, e: MouseEvent) {
+                if(!e.shiftKey) marked.value = [],markmap.value = [];
+                marked.value.push(fd), markmap.value.push(fd.path);
                 if (marked.value.length == 0) marked.value = [fd];
                 TREE_REG.display({
                     x: e.clientX,
@@ -244,6 +248,13 @@
         display: block;
         pointer-events: all;
         font-weight: 200;
+
+        input{
+            border: solid .1rem #3695d3;
+            outline: none;
+            border-radius: .15rem;
+            background-color: #ffffffb5;
+        }
 
         .moving{
             background-color: rgb(217, 246, 233);

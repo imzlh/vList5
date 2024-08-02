@@ -310,6 +310,12 @@
 			background-color: rgb(195, 191, 191);
 			cursor: ew-resize;
 			position: relative;
+			transition: background-color .2s;
+
+			&:hover{
+				background-color: #65b6c6;
+				transition-delay: .3s;
+			}
 
 			&::before{
 				content: '';

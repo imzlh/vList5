@@ -70,18 +70,22 @@ export async function upload(e: FileList | Array<File> | DragEvent | boolean, to
             }
         }
 
-        // 遍历为{文件：文件对象}
-        // const root = e.dataTransfer.items[0].webkitGetAsEntry()?.filesystem.root;
-        // if(root) await add_to_tree(root, root);
-        // else for (const item of e.dataTransfer.items) {
-        //     const entry = item.webkitGetAsEntry();
-        //     if(!entry) continue;
-        //     await add_to_tree(entry);
-        // }
-
         for (const item of e.dataTransfer.items) {
             const entry = item.webkitGetAsEntry();
-            entry && await add_to_tree(entry);
+            if(!entry) continue;
+
+            // 文件：遍历FileSystem
+            if(entry.isFile){
+                const root = entry.filesystem.root;
+                if(root) await add_to_tree(root, root);
+                else for (const item of e.dataTransfer.items) {
+                    const entry = item.webkitGetAsEntry();
+                    if(!entry) continue;
+                    await add_to_tree(entry);
+                }
+            }
+            // 文件夹：上传这个文件夹
+            else await add_to_tree(entry);
         }
 
         e = TREE;
@@ -244,21 +248,12 @@ export const TREE = reactive<vDir>({
     "path": "/"
 });
 
+/**
+ * 加载文件夹树
+ * @param input 源文件夹
+ */
 export async function loadTree(input: vDir){
     try{
-        // 获取所有打开的子文件夹
-        function getOpenedFolder(tree:vDir): Array<string>{
-            const cache = [];
-            if(tree.child)
-                for (const fd of tree.child)
-                    if(fd.type == 'dir' && fd.child)
-                        cache.push(fd.path, ...getOpenedFolder(fd));
-                        
-            return cache;
-        }
-        // 排除重复项
-        let opened = getOpenedFolder(input);
-        opened.filter(item => opened.every(item2 => item == item2 || !item.startsWith(item2)));
         // 加载父文件夹
         const _item = (await FS.__request('slist',{ path: input.path },true)).map((item:FileOrDir) => {
                 item.url = FILE_PROXY_SERVER + input.path + item.name + (item.type == 'dir' ? '/' : '');
@@ -269,10 +264,7 @@ export async function loadTree(input: vDir){
                 .concat(_item.filter(item => item.type == 'file').sort((a, b) => a.name.localeCompare(b.name)) as any) as Array<FileOrDir>;
         item.forEach(each => each.icon = getIcon(each.name, each.type == 'file'));
         input.child = reactive(item);
-        // 依次加载子文件夹
-        for(const fd of opened) try{
-            await loadPath(fd, false);
-        }catch{}
+        
     }catch(e){
         return Global('ui.message').call({
             "type": "error",
@@ -286,10 +278,35 @@ export async function loadTree(input: vDir){
     }
 }
 
+/**
+ * 重新加载文件夹树
+ * @param dir 文件夹路径
+ */
 export async function reloadTree(dir:Array<string>){
     // 剔除子目录
     dir = dir.filter(item => dir.every(item2 => item == item2 || !item.startsWith(item2)));
-    for (const each of dir) await loadTree(getTree(each));
+    for (const each of dir){
+        const dir = getTree(each);
+        // 获取所有打开的子文件夹
+        function getOpenedFolder(tree:vDir): Array<string>{
+            const cache = [];
+            if(tree.child)
+                for (const fd of tree.child)
+                    if(fd.type == 'dir' && fd.child)
+                        cache.push(fd.path, ...getOpenedFolder(fd));
+                        
+            return cache;
+        }
+        // 排除重复项
+        let opened = getOpenedFolder(dir);
+        opened.filter(item => opened.every(item2 => item == item2 || !item.startsWith(item2)));
+        // 重新加载目录
+        await loadTree(dir);
+        // 依次加载子文件夹
+        for(const fd of opened) try{
+            await loadPath(fd, false);
+        }catch{}
+    }
 }
 
 export function getTree(dir: string):vDir{
@@ -313,6 +330,12 @@ export function getTree(dir: string):vDir{
     return current;
 }
 
+/**
+ * 按照路径加载文件夹并返回文件夹
+ * @param path 文件路径
+ * @param create 是否自动创建不存在的目录
+ * @returns 目录对象
+ */
 export async function loadPath(path: string, create = false, ){
     let current = TREE;
     for (const name of path.split('/')) {
