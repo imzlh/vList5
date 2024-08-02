@@ -374,18 +374,18 @@ export class ImageManager{
             // 双手指 => 缩放图片
             }else if(e.touches.length == 2){
                 const image = this.images[1];
-                const x1 = ev.touches[0].clientX,
-                    y1 = ev.touches[0].clientY,
-                    x2 = e.touches[1].clientX,
-                    y2 = e.touches[1].clientY;
+                const raw_distance = Math.sqrt(
+                    (e.touches[0].clientX - e.touches[1].clientX) ** 2 +
+                    (e.touches[0].clientY - e.touches[1].clientY) ** 2
+                ),current_distance = Math.sqrt(
+                    (e.touches[1].clientX - e.touches[0].clientX) ** 2 +
+                    (e.touches[1].clientY - e.touches[0].clientY) ** 2
+                );
 
-                const distance = Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2);
-
-                if(this.custom_ratio){
-                    this.custom_ratio = this.custom_ratio * (distance / image.width);
-                }else{
-                    this.custom_ratio = image.width / distance;
-                }
+                this.custom_ratio = current_distance / raw_distance * (
+                    this.custom_ratio ||
+                    image.width / image.naturalWidth
+                );
 
                 this.__resize();
             }

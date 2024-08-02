@@ -1,10 +1,10 @@
 <script setup lang="ts">
     import type { vFile } from '@/env';
     import { regSelf } from '@/opener';
-    import parseCue from '@/script/cue';
+    import parseCue from '@/utils/cue';
     import { acceptDrag, FILE_PROXY_SERVER, FS, Global, splitPath } from '@/utils';
     import { Lrc, Runner, type Lyric } from 'lrc-kit';
-import { idText } from 'typescript';
+    import { idText } from 'typescript';
     import { computed, nextTick, onMounted, onUnmounted, ref, shallowReactive, watch } from 'vue';
 
     interface Music {

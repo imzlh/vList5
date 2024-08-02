@@ -2,7 +2,7 @@
     import type { MessageOpinion } from '@/env';
     import { DEFAULT_FILE_ICON, FS, Global, loadTree, UI, openFile, reloadTree, size2str, splitPath, clipFName } from '@/utils';
     import { ref, shallowRef, toRaw, watch, type PropType } from 'vue';
-    import { upload, type iDir, type iFile, type iMixed } from '@/script/tree';
+    import { upload, type iDir, type iFile, type iMixed } from '@/utils/tree';
     import { TREE_REG } from '@/action/tree';
 
     export const marked = shallowRef<Array<iMixed>>([]),

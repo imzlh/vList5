@@ -63,12 +63,13 @@ class ReactiveData{
 }
 
 export * from '../config';
-export * from './script/fs';
-export * from './script/openfile';
-export * from './script/tree';
-export * from './script/config';
+export * from './utils/fs';
+export * from './utils/openfile';
+export * from './utils/tree';
+export * from './utils/config';
 export { marked as list_marked, markmap as list_markmap, acceptDrag } from './module/tree.vue';
 export { FACTION } from './action/action';
 export * from './App.vue';
+export * from './utils/icon';
 
 import "./action/tree";

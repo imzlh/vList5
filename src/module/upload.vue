@@ -3,7 +3,7 @@
     import { upload, type iFile } from '@/utils';
 
     import type { vDir } from '@/env';
-    import { getIcon } from '@/script/icon';
+    import { getIcon } from '@/utils';
 
     const prop = defineProps(['option']),
         dir = prop['option'] as vDir,

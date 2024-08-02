@@ -268,18 +268,26 @@ export async function loadTree(input: vDir){
     }
 }
 
-export function reloadTree(dir:Array<string>){
-    async function subTree(tree:vDir){
-        // 当前目录需要刷新
-        if(dir.includes(tree.path ))
-            await loadTree(tree);
-
-        // 遍历子元素
-        if(tree.child)
-            for (const fd of tree.child)
-                if(fd.type == 'dir') subTree(fd);
+export async function reloadTree(dir:Array<string>){
+    // 剔除子目录
+    dir = dir.filter(item => dir.every(item2 => item2 != item && !item.startsWith(item2)));
+    // 获取所有需要重加载的子目录
+    const childs = [] as Array<vDir>;
+    function getChilds(dir: vDir){
+        if(dir.child)
+            for (const fd of dir.child)
+                if(fd.type == 'dir' && fd.child) childs.push(fd);
     }
-    return subTree(TREE);
+    // 重加载
+    for (const child of dir){
+        try{
+            const fd = getTree(child);
+            await loadTree(fd);
+        }catch{}
+    }
+    for (const child of childs) try{
+        await loadTree(child);
+    }catch{}
 }
 
 export function getTree(dir: string):vDir{
