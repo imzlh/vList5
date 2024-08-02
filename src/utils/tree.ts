@@ -246,6 +246,20 @@ export const TREE = reactive<vDir>({
 
 export async function loadTree(input: vDir){
     try{
+        // 获取所有打开的子文件夹
+        function getOpenedFolder(tree:vDir): Array<string>{
+            const cache = [];
+            if(tree.child)
+                for (const fd of tree.child)
+                    if(fd.type == 'dir' && fd.child)
+                        cache.push(fd.path, ...getOpenedFolder(fd));
+                        
+            return cache;
+        }
+        // 排除重复项
+        let opened = getOpenedFolder(input);
+        opened.filter(item => opened.every(item2 => item == item2 || !item.startsWith(item2)));
+        // 加载父文件夹
         const _item = (await FS.__request('slist',{ path: input.path },true)).map((item:FileOrDir) => {
                 item.url = FILE_PROXY_SERVER + input.path + item.name + (item.type == 'dir' ? '/' : '');
                 item.path = input.path + item.name + (item.type == 'dir' ? '/' : '');
@@ -255,6 +269,10 @@ export async function loadTree(input: vDir){
                 .concat(_item.filter(item => item.type == 'file').sort((a, b) => a.name.localeCompare(b.name)) as any) as Array<FileOrDir>;
         item.forEach(each => each.icon = getIcon(each.name, each.type == 'file'));
         input.child = reactive(item);
+        // 依次加载子文件夹
+        for(const fd of opened) try{
+            await loadPath(fd, false);
+        }catch{}
     }catch(e){
         return Global('ui.message').call({
             "type": "error",
@@ -270,24 +288,8 @@ export async function loadTree(input: vDir){
 
 export async function reloadTree(dir:Array<string>){
     // 剔除子目录
-    dir = dir.filter(item => dir.every(item2 => item2 != item && !item.startsWith(item2)));
-    // 获取所有需要重加载的子目录
-    const childs = [] as Array<vDir>;
-    function getChilds(dir: vDir){
-        if(dir.child)
-            for (const fd of dir.child)
-                if(fd.type == 'dir' && fd.child) childs.push(fd);
-    }
-    // 重加载
-    for (const child of dir){
-        try{
-            const fd = getTree(child);
-            await loadTree(fd);
-        }catch{}
-    }
-    for (const child of childs) try{
-        await loadTree(child);
-    }catch{}
+    dir = dir.filter(item => dir.every(item2 => item == item2 || !item.startsWith(item2)));
+    for (const each of dir) await loadTree(getTree(each));
 }
 
 export function getTree(dir: string):vDir{
@@ -311,7 +313,7 @@ export function getTree(dir: string):vDir{
     return current;
 }
 
-export async function loadPath(path: string){
+export async function loadPath(path: string, create = false, ){
     let current = TREE;
     for (const name of path.split('/')) {
         if(!name) continue;
@@ -332,7 +334,8 @@ export async function loadPath(path: string){
                 });
             // 找不到就创建
             }catch{
-                await FS.mkdir(current.path + name + '/');
+                if(create) await FS.mkdir(current.path + name + '/');
+                else throw new Error('Folder not found');
             }
         }else current = cur;
     }
