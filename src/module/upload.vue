@@ -1,13 +1,13 @@
 <script setup lang="ts">
     import { reactive } from 'vue';
-    import { upload, type iFile } from '@/utils';
+    import { upload } from '@/utils';
 
-    import type { vDir } from '@/env';
+    import type { vDir, vFile } from '@/env';
     import { getIcon } from '@/utils';
 
     const prop = defineProps(['option']),
         dir = prop['option'] as vDir,
-        eque = reactive([] as Array<iFile>),
+        eque = reactive([] as Array<vFile>),
         mouse = reactive({
             'x': 0,
             'y': 0,
@@ -40,8 +40,8 @@
                 <img :src="getIcon(item.name)" :alt="item.icon">
                 <span class="name">{{ item.name }}</span>
                 <div :style="{
-                    width: (item.status || 100) + '%',
-                    backgroundColor: item.status == undefined ? '#d9f7de' : '#efefef'
+                    width: (item.upload || 100) + '%',
+                    backgroundColor: item.upload == undefined ? '#d9f7de' : '#efefef'
                 }"></div>
             </div>
             <div class="default" v-if="eque.length == 0">

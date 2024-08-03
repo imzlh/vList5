@@ -1,5 +1,6 @@
 <script setup lang="ts">
-    import type { SettingItem, SettingObject } from '@/env';
+    import type { SettingObject } from '@/utils/config';
+    import type { SettingItem } from '@/env';
     import { reactive, ref, shallowRef, type Ref } from 'vue';
 
     const props = defineProps(['option']),

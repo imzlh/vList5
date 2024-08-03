@@ -2,13 +2,13 @@
 	import { computed, onMounted, reactive, readonly, ref, watch, type Ref } from 'vue';
 	import type { AlertOpts, CtxDispOpts, CtxMenuData } from './env';
 	import tabManager from './module/tabs.vue';
-	import Tree, { marked, markmap, updated } from './module/tree.vue';
 	import CtxMenu from './module/ctxmenu.vue';
-	import { APP_NAME, FS, Global, TREE, getConfig, regConfig, reloadTree, splitPath } from './utils';
+	import { APP_NAME, FS, Global, TREE, getActiveFile, getConfig, regConfig, reloadTree, splitPath } from './utils';
 	import Opener from './module/opener.vue';
 	import Message from './module/message.vue';
 	import Chooser from './module/fileframe.vue';
 	import Alert from './module/alert.vue';
+	import Tree from './module/tree.vue';
 
 	const ctxconfig = reactive({
 			item: [] as Array<CtxMenuData>,
@@ -68,10 +68,11 @@
 				break;
 
 				case 'Delete':
-					this._ensure('删除 ' + markmap.value.length + '个文件(夹)')
+					const marked = getActiveFile();
+					this._ensure('删除 ' + marked.length + '个文件(夹)')
 						.then(() => {
-							const set = new Set(marked.value.map(item => splitPath(item).dir));
-							FS.delete(markmap.value);
+							const set = new Set(marked.map(item => splitPath(item).dir));
+							FS.delete(marked.map(item => item.path));
 							reloadTree(Array.from(set));
 						});
 				break;
@@ -197,7 +198,7 @@
 		<div class="files vlist" ref="list_ele" tabindex="-1"
 			@contextmenu.prevent @focus="tree_active = true" @blur="tree_active = false"
 		>
-			<Tree :data="TREE" :active="tree_active" />
+			<Tree :data="TREE"/>
 		</div>
 	</div>
 	<!-- 移动端时左侧的背层 -->

@@ -1,16 +1,15 @@
 <script setup lang="ts">
-    import type { FileOrDir } from '@/env';
-    import { FS, Global, openFile, type iMixed } from '@/utils';
+    import type { FileOrDir, vDir } from '@/env';
+    import { FS, getTree, Global, loadPath, openFile} from '@/utils';
     import { reactive, ref, shallowRef, watch } from 'vue';
     import List from './list.vue';
     import type { CtxDispOpts } from '@/env';
-    import { marked, markmap } from './tree.vue';
     import I_LIST from '/icon/viewinfo.webp';
     import I_ICON from '/icon/viewlarge.webp';
 
     const display = ref(false),
         history = ref([] as Array<string>),
-        data = shallowRef<Array<FileOrDir>>([]),
+        data = shallowRef<vDir>(),
         current = ref(-1),
         showPath = ref(false),
         path = ref(''),
@@ -30,7 +29,7 @@
     });
 
     async function switchTo(dir:string){
-        data.value = await FS.listall(dir);
+        data.value = await loadPath(dir);
         current.value = history.value.push(dir) -1;
     }
 
@@ -68,19 +67,6 @@
                     "text": '打开',
                     "handle": () => item.type == 'dir' ? switchTo(item.path) : openFile(item)
                 },{
-                    "text": "在文件管理器中展示",
-                    "handle": () => (marked.value.push(item), markmap.value.push(item.path))
-                }
-            ]
-        } satisfies CtxDispOpts);
-    }
-
-    function ctxmenu2(e: MouseEvent){
-        Global('ui.ctxmenu').call({
-            pos_x: e.clientX,
-            pos_y: e.clientY,
-            content: [
-                {
                     "text": "显示为",
                     "child": [
                         {
@@ -122,7 +108,7 @@
     }
 
     watch(current,() => history.value[current.value] &&
-        FS.listall(history.value[current.value]).then(list => data.value = list)
+        loadPath(history.value[current.value]).then(_ => data.value = _)
     );
     watch(current, () => path.value = history.value[current.value] || '/');
 </script>
@@ -180,10 +166,9 @@
             </div>
         </div>
         <!-- 列表 -->
-        <List :list="data" style="padding-top: 4rem;" :mode="displaymode" :layout="layout"
-            @ctxmenu="ctxmenu" @ctxroot="ctxmenu2"
+        <List v-if="data" :dir="data" style="padding-top: 4rem;" :layout="layout"
+            @ctxmenu="ctxmenu"
             @open="(file:FileOrDir) => file.type == 'dir' ? switchTo(file.path) : submit()"
-            @select="(data :iMixed) => exports.push(data)" @clear="() => exports = []"
         ></List>
     </div>
 </template>

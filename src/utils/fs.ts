@@ -349,7 +349,8 @@ export const FS = {
             "path": "vfs://" + uuid + '/' + file.name,
             "type": "file",
             "url": URL.createObjectURL(file),
-            vHandle: handle
+            vHandle: handle,
+            parent: null,
         };
     }
 }

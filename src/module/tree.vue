@@ -1,18 +1,14 @@
 <script lang="ts">
-    import type { MessageOpinion } from '@/env';
+    import type { MessageOpinion, vDir, vFile, FileOrDir } from '@/env';
     import { DEFAULT_FILE_ICON, FS, Global, loadTree, UI, openFile, reloadTree, size2str, splitPath, clipFName } from '@/utils';
     import { ref, shallowRef, toRaw, watch, type PropType } from 'vue';
-    import { upload, type iDir, type iFile, type iMixed } from '@/utils/tree';
+    import { clearActiveFile, upload } from '@/utils/tree';
     import { TREE_REG } from '@/action/tree';
-
-    export const marked = shallowRef<Array<iMixed>>([]),
-        markmap = ref<Array<string>>([]),
-        updated = ref(false);
 
     // DRAG的口令，用于鉴别
     const DRAG_TOKEN = Math.floor(Math.random() * 100000000).toString(36);
 
-    export function acceptDrag(elem: HTMLElement, callback: (file: iFile) => void){
+    export function acceptDrag(elem: HTMLElement, callback: (file: vFile) => void){
         elem.addEventListener('dragover',function(e){
             if(!e.dataTransfer) return;
             e.dataTransfer.dropEffect = 'copy';
@@ -31,23 +27,15 @@
         props: {
             data: {
                 required: true,
-                type: Object as PropType<iDir>
-            },
-            active: {
-                required: false,
-                type: Boolean,
-                default: true
+                type: Object as PropType<vDir>
             }
         },
         setup: function (prop) {
-            watch(() => prop.data.child,(n,r) => r == undefined && (prop.data.show = true));
-
             return {
                 loadTree,
                 DEFAULT_FILE_ICON,
                 openFile,
-                markmap,
-                marked
+                data: prop.data
             };
         },
         directives: {
@@ -73,14 +61,22 @@
             }
         },
         methods: {
-            
-            drag_start(e: DragEvent, fd: iMixed){
+            /**
+             * 开始拖拽
+             * @param e 事件
+             * @param fd 文件或文件夹
+             */
+            drag_start(e: DragEvent, fd: FileOrDir){
                 if(!e.dataTransfer) return e.preventDefault();
 
                 e.dataTransfer.setData('application/json', JSON.stringify(toRaw(fd)));
                 e.dataTransfer.setData('text/vtoken', DRAG_TOKEN);
                 e.dataTransfer.setData('text/uri-list', fd.url);
-                e.dataTransfer.setData('text/plain', `[ ${fd.name.replace(/[\[\]]/g, match => '\\' + match[0])} ](${encodeURI(fd.url)})`);
+                if(fd.type == 'file')
+                    e.dataTransfer.setData('text/plain', `[ ${fd.name.replace(/[\[\]]/g, match => '\\' + match[0])} ](${encodeURI(fd.url)})`);
+                else
+                    e.dataTransfer.setData('text/plain', fd.name);
+
                 e.dataTransfer.dropEffect = 'copy';
 
                 if(fd.icon){
@@ -89,7 +85,12 @@
                     e.dataTransfer.setDragImage(image, 10, 10);
                 }
             },
-            drag_alert(e: DragEvent, fd: iDir){
+            /**
+             * 拖拽过程
+             * @param e 事件
+             * @param fd 文件或文件夹
+             */
+            drag_alert(e: DragEvent, fd: vDir){
                 if(!e.dataTransfer) return;
 
                 // 加载事件
@@ -97,14 +98,19 @@
                 e.dataTransfer.dropEffect = 'copy';
                 (e.currentTarget as HTMLElement).classList.add('moving');
             },
-            async drag_onto(e: DragEvent, to_fd: iDir){
+            /**
+             * 拖拽结束，处理文件
+             * @param e 事件
+             * @param to_fd 目标文件夹
+             */
+            async drag_onto(e: DragEvent, to_fd: vDir){
                 if(!e.dataTransfer) return;
                 // 去除高亮
                 (e.currentTarget as HTMLElement).classList.remove('moving');
                 // 只有满足vlist文件的才可以被拖拽
                 if(e.dataTransfer.getData('text/vtoken') == DRAG_TOKEN){
                     // 拖拽到原处不受理
-                    const from_fd:iMixed = JSON.parse(e.dataTransfer.getData('application/json'));
+                    const from_fd:FileOrDir = JSON.parse(e.dataTransfer.getData('application/json'));
                     if((from_fd.type == 'dir' ? from_fd.path : splitPath(from_fd).dir ) == to_fd.path)
                         return;
 
@@ -128,37 +134,59 @@
                     upload(e, to_fd);
                 }
             },
-            desc(data:iMixed){
+            /**
+             * 获取文件(夹)描述信息
+             * @param data 文件或文件夹
+             * @returns 描述信息
+             */
+            desc(data:FileOrDir){
                 var tmp = data.dispName || data.name;
-                if(data.ctime > 0) tmp += '\n创建日期: ' + (new Date(data.ctime).toDateString());
-                if(data.type == 'dir') tmp += '\n类型: 文件夹';
+                if(data.ctime > 0) tmp += '\n创建日期:\t' + (new Date(data.ctime).toDateString());
+                if(data.type == 'dir') tmp += '\n类型:\t文件夹';
                 else{
-                    if(data.size) tmp += '\n文件大小: ' + size2str(data.size);
-                    tmp += '\n类型: ' + splitPath(data)['ext'].toUpperCase() + '文件';
+                    if(data.size) tmp += '\n文件大小:\t' + size2str(data.size);
+                    tmp += '\n类型:\t' + splitPath(data)['ext'].toUpperCase() + '文件';
                 }
                 return tmp;
             },
-            markup(ev:MouseEvent,self:iMixed){
-                if(marked.value.includes(self)) return;
-                if(ev.shiftKey){
-                    marked.value.push(self);
-                    markmap.value.push(self.path);
+            /**
+             * 标记文件或文件夹选中
+             * @param ev 事件
+             * @param self 文件或文件夹
+             * @param parent 父文件夹
+             */
+            markup(ev:MouseEvent, self:FileOrDir){
+                const parent = self.parent;
+                if(!parent) return;
+                // 多选
+                if(ev.shiftKey || ev.button == 1){
+                    parent.active.set(self, self.path);
+                // 单选
                 }else{
-                    marked.value = [self];
-                    markmap.value = [self.path];
+                    clearActiveFile();
+                    parent.active.set(self, self.path);
                 }
             },
-            folder(dir?:iDir){
+            /**
+             * 操作文件夹状态，展开或收拢
+             * @param dir 目标文件夹，未指定则为当前文件夹
+             */
+            folder(dir?:vDir){
                 dir = dir || this.data;
-                if(dir.locked) dir.show = true
-                else if(dir.child) dir.show = !dir.show;
+                if(dir.child) dir.show = !dir.show;
                 else{
+                    dir.lock = dir.show = true;
+                    // 异步加载子项目
                     loadTree(dir as any)
-                        .then(() => dir.locked = false);
-                        dir.locked = dir.show = true;
+                        .then(() => dir.lock = false);
                 }
             },
-            rename(file: iMixed, val: string){
+            /**
+             * 重命名文件或文件夹
+             * @param file 文件或文件夹
+             * @param val 新名称
+             */
+            rename(file: FileOrDir, val: string){
                 FS.rename({
                     [file.path]: splitPath(file).dir + val
                 }).then(() => (
@@ -176,10 +204,20 @@
                     'timeout': 10
                 } satisfies MessageOpinion), file.rename = false));
             },
-            ctxmenu(fd: iMixed, e: MouseEvent) {
-                if(!e.shiftKey) marked.value = [],markmap.value = [];
-                marked.value.push(fd), markmap.value.push(fd.path);
-                if (marked.value.length == 0) marked.value = [fd];
+            /**
+             * 显示右键菜单
+             * @param fd 目标文件或文件夹
+             * @param e 事件
+             */
+            ctxmenu(fd: FileOrDir, e: MouseEvent) {
+                const parent = fd.parent;
+                if(!parent) return;
+                // 单选
+                if(!e.shiftKey && !parent.active.has(fd))
+                    parent.active.clear();
+
+                // 显示右键菜单
+                parent.active.set(fd, fd.path);
                 TREE_REG.display({
                     x: e.clientX,
                     y: e.clientY,
@@ -192,19 +230,20 @@
 
 <template>
     <div class="parent selectable" ref="parent"
+        :style="{ pointerEvents: data.lock ? 'none' : 'all' }"
         @dblclick.stop="folder()" @click.stop="markup($event, data)" @contextmenu.stop.prevent="ctxmenu(data, $event)"
-        @dragstart.stop="drag_start($event, data)" :draggable="(data).path != '/' && !(data as iDir).rename" @drop.stop="drag_onto($event, data)"
+        @dragstart.stop="drag_start($event, data)" :draggable="(data).path != '/' && !(data as vDir).rename" @drop.stop="drag_onto($event, data)"
         @dragover.stop="drag_alert($event, data)"
         @dragleave.stop="($event.currentTarget as HTMLElement).classList.remove('moving')" :title="desc(data as any)"
         v-touch
-        v-into="markmap.includes(data.path)" tabindex="-1"
+        v-into="data.parent && data.parent.active.has(data)" tabindex="-1"
     >
         <div class="btn-hide" :show="data.show" @click.stop="folder()"></div>
         <img :src="data.icon" v-if="data.icon">
         <input v-if="data.rename" :value="data.name"
             @change="rename(data, ($event.currentTarget as HTMLInputElement).value)"
-            @contextmenu="(data as iDir).rename = false"
-            @blur="(data as iDir).rename = false"
+            @contextmenu="(data as vDir).rename = false"
+            @blur="(data as vDir).rename = false"
             @keydown.stop @drop.stop.prevent
             v-focus
         >
@@ -215,7 +254,7 @@
         @contextmenu.stop.prevent="ctxmenu(data, $event)"
         @dragover.stop="drag_alert($event, data)" @drop.stop="drag_onto($event, data)"
         @dragleave.stop="($event.currentTarget as HTMLElement).classList.remove('moving')"
-        @click.stop="markmap = [];marked = [];"
+        @click.stop="data.active = new Map()"
     >
         <template v-for="child in data.child" :key="child.name">
 
@@ -224,15 +263,16 @@
             <div v-else class="item selectable" :title="desc(child)" ref="elements"
                 @click.stop="markup($event, child)" @contextmenu.stop.prevent="ctxmenu(child, $event)"
                 v-touch
-                @dblclick.stop="openFile(child as iFile)" @dragstart.stop="drag_start($event, child)" :draggable="!(child as iFile).rename"
-                v-into="markmap.includes(child.path)" :process="(child as iFile).status"
-                :style="{ '--status': (child as iFile).status }" :type="child.type" tabindex="-1"
+                @dblclick.stop="openFile(child as vFile)" @dragstart.stop="drag_start($event, child)" :draggable="!(child as vFile).rename"
+                v-into="data.active.has(child)" :process="child.upload"
+                :style="{ '--status': child.upload || 0, pointerEvents: child.lock ? 'none' : 'all' }"
+                :type="child.type" tabindex="-1"
             >
                 <img :src="child.icon || DEFAULT_FILE_ICON">
-                <input v-if="(child as iFile).rename" :value="child.name"
+                <input v-if="(child as vFile).rename" :value="child.name"
                     @change="rename(child, ($event.currentTarget as HTMLInputElement).value)"
-                    @contextmenu="(child as iFile).rename = false"
-                    @blur="(child as iFile).rename = false"
+                    @contextmenu="(child as vFile).rename = false"
+                    @blur="(child as vFile).rename = false"
                     @keydown.stop @drop.stop.prevent
                     v-focus
                 >

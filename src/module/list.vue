@@ -1,18 +1,18 @@
 <script setup lang="ts">
-    import type { FileOrDir, vFile } from '@/env';
-    import { DEFAULT_DIR_ICON, DEFAULT_FILE_ICON, size2str, type iMixed, UI } from '@/utils';
-    import { computed, reactive, ref, shallowReactive, watch } from 'vue';
+    import type { FileOrDir, vDir, vFile } from '@/env';
+    import { DEFAULT_DIR_ICON, DEFAULT_FILE_ICON, loadTree, size2str, UI } from '@/utils';
+    import { computed, reactive, ref, shallowReactive, watch, type PropType } from 'vue';
 
     // ==================== 文件（夹）管理器 =======================
     const _prop = defineProps({
-            list: {
+            dir: {
                 required: true,
-                type: Array
+                type: Object as PropType<vDir>
             },
             mode: {
                 required: false,
                 default: 'view',
-                type: String
+                type: String as PropType<'list' | 'view'>
             },
             layout: {
                 required: false,
@@ -20,32 +20,34 @@
                     table: [60, 20, 20],
                     orderBy: 'name'
                 }),
-                type: Object
+                type: Object as PropType<{
+                    table: Array<number>,
+                    orderBy: 'name' | 'name_rev' | 'date' | 'date_rev' | 'size' | 'size_rev'
+                }>
             }
-        }) as {
-            layout: {
-                table: Array<number>,
-                orderBy: 'name' | 'name_rev' | 'date' | 'date_rev' | 'size' | 'size_rev'
-            },
-            list: Array<iMixed>,
-            mode: 'list' | 'view',
-        },
+        }),
         layout = _prop.layout,
         _modes = ['name' , 'name_rev' , 'date' , 'date_rev' , 'size' , 'size_rev'],
         flist = computed(function(){
+            const child = _prop.dir.child;
+            if(!child){
+                loadTree(_prop.dir);
+                return [];
+            }
+
             if(layout.orderBy == 'name_rev')
-                return [ ..._prop.list ].reverse();
+                return [ ...child ].reverse();
             if(layout.orderBy == 'date')
-                return [ ..._prop.list ].sort((a, b) => a.ctime - b.ctime)
+                return [ ...child ].sort((a, b) => a.ctime - b.ctime)
             if(layout.orderBy == 'date_rev')
-                return [ ..._prop.list ].sort((a, b) => b.ctime - a.ctime)
+                return [ ...child ].sort((a, b) => b.ctime - a.ctime)
             if(layout.orderBy == 'size')
-                return _prop.list.filter(item => item.type == 'dir')
-                    .concat((_prop.list.filter(item => item.type == 'file') as Array<vFile>).sort((a, b) => a.size - b.size) as any)
+                return child.filter(item => item.type == 'dir')
+                    .concat((child.filter(item => item.type == 'file') as Array<vFile>).sort((a, b) => a.size - b.size) as any)
             if(layout.orderBy == 'size_rev')
-                return (_prop.list.filter(item => item.type == 'file') as Array<vFile>).sort((a, b) => b.size - a.size)
-                    .concat(_prop.list.filter(item => item.type == 'dir') as any);
-            return _prop.list
+                return (child.filter(item => item.type == 'file') as Array<vFile>).sort((a, b) => b.size - a.size)
+                    .concat(child.filter(item => item.type == 'dir') as any);
+            return child;
         }),
         select = shallowReactive({
             enable: false,
@@ -54,16 +56,8 @@
             x2: 0,
             y2: 0,
         }),
-        selected = ref<Array<HTMLElement>>([]),
-        list_element = ref<Array<HTMLElement>>([]),
-        data = ref<HTMLDivElement>(),
-        event = defineEmits(['open','ctxmenu','select','clear','ctxroot']);
-
-    // 改变文件内容时清空
-    watch(() => _prop.list,() => (
-        selected.value.forEach(ele => ele.classList.remove('selected')),
-        selected.value = [], event('clear')
-    ));
+        container = ref<HTMLDivElement>(),
+        event = defineEmits(['open', 'ctxmenu']);
 
     const getIcon = (fd: FileOrDir) =>
         fd.icon
@@ -73,14 +67,18 @@
                 : DEFAULT_FILE_ICON;
 
     //  ===================== 选择管理 ==================
+
+    /**
+     * 批量选中时标记选中项
+     */
     function mark_selected(){
-        if(!list_element.value) return console.error('List not ready.');
+        if(!container.value) return console.error('List not ready.');
         // 整理数据
         const minmax = (num1:number,num2:number) =>
                 num1 > num2 ? [num2,num1] : [num1,num2],
             [xr1,xr2] = minmax(select.x1,select.x2),
             [yr1,yr2] = minmax(select.y1,select.y2),
-            element = list_element.value;
+            element = container.value.children;
         // 逐个判断
         for (let i = 0; i < element.length; i++) {
             const child = element[i] as HTMLElement;
@@ -93,18 +91,21 @@
             if(
                 !((x1>xr2 || xr1>x2) || (y1>yr2 || yr1>y2))
                 // (x1 <= xr2 || x2 >= xr1) && (y1 <= yr2 || y2 >= yr1)
-            ) node_select(child,false);
+            ) _prop.dir.active.set(
+                (_prop.dir.child as Array<FileOrDir>)[i], 
+                (_prop.dir.child as Array<FileOrDir>)[i].path
+            );
         }
     }
 
-    function clear_selected(){
-        for (let i = 0; i < selected.value.length; i++)
-            selected.value[i].classList.remove('selected'),
-            selected.value[i].blur();
-        selected.value = [];
-        event('clear');
-    }
+    /**
+     * 清除选中项
+     */
+    const clear_selected = () => _prop.dir.active.clear();
 
+    /**
+     * 初始化批量选中
+     */
     function init_select(ev:MouseEvent){
         clear_selected();
 
@@ -113,6 +114,7 @@
 
         let started = false;
 
+        // 自动滑动
         let timer:number|undefined;
         const handle = function(ev:MouseEvent){
             ev.preventDefault(),ev.stopPropagation();
@@ -126,8 +128,8 @@
                 timer = undefined;
             }
             timer = setInterval(() => {
-                if( !list_element.value[0] ) return;
-                const element = data.value as HTMLElement,
+                if( !container.value ) return;
+                const element = container.value,
                     style = element.getBoundingClientRect(),
                     top = ev.clientY - style.top,
                     total = element.clientHeight;
@@ -158,14 +160,6 @@
 
     }
 
-    function node_select(element:HTMLElement,only?:boolean){
-        if(only) clear_selected();
-        element.classList.add('selected');
-        const id = parseInt(element.dataset.id || '0');
-        selected.value.push(element);
-        event('select',flist.value[id] ,only);
-    }
-
     function format(date: Date){
         return `${date.getFullYear()}/${date.getMonth().toString().padStart(2,'0')}/${date.getDay().toString().padStart(2,'0')} ${date.getHours().toString().padStart(2,'0')}:${date.getMinutes().toString().padStart(2,'0')}`;
     }
@@ -188,19 +182,16 @@
             "once": true
         });
     }
-
-    defineExpose({elements: selected, selected: computed(() =>
-        selected.value.map(item => flist.value[parseInt(item.dataset.id as string)])
-    )});
 </script>
 
 <template>
-    <div class="fd-list" :data-empty="list.length == 0" :style="{
+    <div class="fd-list" :data-empty="flist.length == 0" :style="{
         overflowY: select.enable ? 'hidden' : 'auto',
         paddingRight: select.enable ? '.2rem' : '0'
-    }" v-bind="$attrs" ref="data" @contextmenu.prevent.stop="event('ctxroot', $event)">
+    }" v-bind="$attrs" ref="data" @contextmenu.prevent.stop="event('ctxmenu', $event, _prop.dir)">
         <!-- 默认输出 -->
-        <div v-if="list.length == 0" style="width: auto;background-color: transparent;">
+        <div v-if="flist.length == 0"
+            style="width: auto;background-color: transparent;">
             此文件夹为空
         </div>
         <!-- 列表 -->
@@ -209,7 +200,8 @@
         >
             <template v-for="(fd,i) of flist" :key="fd.path">
                 <div :type="fd.type" ref="list_element" class="item" tabindex="2" @pointerdown.stop @pointermove.prevent
-                    @click.stop="node_select($event.currentTarget as HTMLElement, !$event.shiftKey);" @dblclick.prevent="event('open', fd)"
+                    @click.stop=" _prop.dir.active.set(fd, fd.path)"
+                    @dblclick.prevent="event('open', fd)"
                     @contextmenu.prevent="event('ctxmenu', fd, $event)"
                     :data-id="i" v-touch
                 >
@@ -239,7 +231,8 @@
             <tbody @click.stop>
                 <template v-for="(fd,i) of flist" :key="fd.path">
                     <tr :type="fd.type" ref="list_element" class="item" tabindex="2" @pointerdown.stop @pointermove.prevent
-                        @click.stop="node_select($event.currentTarget as HTMLElement, !$event.shiftKey);" @dblclick.prevent="event('open', fd)"
+                        @click.stop="_prop.dir.active.set(fd, fd.path)"
+                        @dblclick.prevent="event('open', fd)"
                         @contextmenu.prevent="event('ctxmenu', fd, $event)" v-touch
                         :data-id="i" :style="{
                             '--icon': `url('${getIcon(fd)}')`
@@ -272,8 +265,10 @@
         }" @click.stop></div>
     </div>
     <div class="list-info">
-        <span>{{ list.length }} 个项目</span>
-        <span v-show="selected.length != 0">选中 {{ selected.length }} 个项目</span>
+        <span>{{ flist.length }} 个项目</span>
+        <span v-if="_prop.dir.active.size != 0">
+            选中 {{ _prop.dir.active.size }} 个项目
+        </span>
     </div>
 </template>
 

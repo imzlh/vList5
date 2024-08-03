@@ -20,9 +20,8 @@ import I_DELETE from '/icon/del.svg';
 
 import Upload from '@/module/upload.vue';
 import EXPLORER from '@/module/explorer.vue';
-import { FACTION, FS, Global, TREE, loadPath, loadTree, openFile, reloadTree, size2str, splitPath, type iFile } from "@/utils";
-import type { AlertOpts, MessageOpinion, vDir } from "@/env";
-import { list_marked as marked, list_markmap as markmap } from "@/utils";
+import { FACTION, FS, Global, TREE, clearActiveFile, getActiveFile, loadPath, loadTree, openFile, reloadTree, size2str, splitPath } from "@/utils";
+import type { AlertOpts, MessageOpinion, vDir, vFile } from "@/env";
 import { CtxMenuRegister } from './main';
 
 export const TREE_REG = new CtxMenuRegister();
@@ -99,7 +98,7 @@ TREE_REG.register(() => ({
     "text": "剪切",
     "icon": I_CUT,
     handle: () =>
-        FACTION.mark('move', marked.value)
+        FACTION.mark('move')
 }), {
     'single': false,
     'sort': 'all',
@@ -110,7 +109,7 @@ TREE_REG.register(() => ({
     "text": "复制",
     "icon": I_COPY,
     handle: () =>
-        FACTION.mark('copy', marked.value)
+        FACTION.mark('copy')
 }), {
     'single': false,
     'sort': 'all',
@@ -121,7 +120,7 @@ TREE_REG.register(() => ({
     "text": "粘贴",
     "icon": I_PASTE,
     handle: async () => {
-        const dir = marked.value[0] as vDir;
+        const dir = getActiveFile()[0] as vDir;
 
         // 覆盖提示
         try {
@@ -153,7 +152,7 @@ TREE_REG.register(() => ({
     "icon": I_DELETE,
     handle: async () => {
         try {
-            await FS.delete(marked.value.map(item => item.path))
+            await FS.delete(getActiveFile().map(item => item.path))
         } catch (e) {
             return Global('ui.message').call({
                 'type': 'error',
@@ -166,7 +165,7 @@ TREE_REG.register(() => ({
             } satisfies MessageOpinion)
         }
         const refdir = [] as Array<string>;
-        for (const file of marked.value) if (file.type == 'file') {
+        for (const file of getActiveFile()) if (file.type == 'file') {
             const dir = splitPath(file)['dir'];
             if (!refdir.includes(dir)) refdir.push(dir);
         } else {
@@ -185,7 +184,7 @@ TREE_REG.register(() => ({
 TREE_REG.register(() => ({
     "text": "重命名",
     "icon": I_RENAME,
-    handle: () => marked.value[0].rename = true,
+    handle: () => getActiveFile()[0].rename = true,
 }), {
     'single': true,
     'sort': 'all',
@@ -199,7 +198,7 @@ TREE_REG.add_slash();
 TREE_REG.register(() => ({
     "text": "打开",
     "icon": I_OPEN,
-    handle: () => openFile(marked.value[0] as iFile),
+    handle: () => openFile(getActiveFile()[0] as vFile),
 }), {
     'sort': 'file',
     'single': true
@@ -208,8 +207,8 @@ TREE_REG.register(() => ({
     "text": "打开方式",
     "icon": I_OPENER,
     handle() {
-        Global('opener.chooser.choose').call(marked.value[0])
-            .then(opener => opener.open(marked.value[0]));
+        Global('opener.choose').call(getActiveFile()[0] as vFile)
+            .then(opener => opener.open(getActiveFile()[0] as vFile));
     },
 }), {
     'sort': 'file',
@@ -253,7 +252,7 @@ TREE_REG.register(() => ({
                     async callback(data) {
                         try {
                             var preg = new RegExp(data as string, 'i'),
-                                item = marked.value[0] as vDir;
+                                item = getActiveFile()[0] as vDir;
                         } catch (e) {
                             return Global('ui.message').call({
                                 'title': '正则错误',
@@ -269,12 +268,11 @@ TREE_REG.register(() => ({
                         if (!item.child) await loadTree(item);
                         if (!item.child) return; // for TypeScript TypeCheck
 
-                        markmap.value = [];
-                        marked.value = [];
+                        clearActiveFile();
                         for (let i = 0; i < item.child.length; i++)
                             if (preg.test(item.child[i].name)) {
-                                markmap.value.push(item.child[i].path);
-                                marked.value.push(item.child[i]);
+                                item.active.set(item.child[i], item.child[i].path);
+                                getActiveFile().push(item.child[i]);
                             }
 
                         (document.querySelector('.left > div.files') as HTMLElement).focus();
@@ -289,7 +287,7 @@ TREE_REG.register(() => ({
                     "content": EXPLORER,
                     "icon": I_EXPLORER,
                     "name": 'Explorer',
-                    "option": marked.value[0]
+                    "option": getActiveFile()[0]
                 });
             },
         }
@@ -307,13 +305,13 @@ TREE_REG.register(() => ({
             'text': '复制路径',
             'icon': I_PATH,
             handle() {
-                navigator.clipboard.writeText(marked.value[0].path);
+                navigator.clipboard.writeText(getActiveFile()[0].path);
             },
         }, {
             'text': '复制文件链接',
             'icon': I_LINK,
             handle() {
-                navigator.clipboard.writeText(marked.value[0].url);
+                navigator.clipboard.writeText(getActiveFile()[0].url);
             },
         }, {
             'text': '下载文件',
@@ -321,8 +319,8 @@ TREE_REG.register(() => ({
             handle() {
                 const link = document.createElement('a');
                 link.target = '_blank';
-                link.href = marked.value[0].url;
-                link.download = marked.value[0].name;
+                link.href = getActiveFile()[0].url;
+                link.download = getActiveFile()[0].name;
                 link.click();
             },
         }
@@ -340,12 +338,12 @@ TREE_REG.register(() => ({
             'text': '批量排序',
             'icon': I_ORDER,
             handle() {
-                const ordered = marked.value.sort((a, b) => a.name.localeCompare(b.name)),
+                const ordered = getActiveFile().sort((a, b) => a.name.localeCompare(b.name)),
                     obj = {} as Record<string, string>,
                     reload = [] as Array<string>;
                 for (let i = 0; i < ordered.length; i++) {
                     const info = splitPath(ordered[i]);
-                    ordered[i].status = 1;
+                    ordered[i].lock = true;
                     obj[ordered[i].path] = info.dir + (i + 1).toString().padStart(3, '0') + '.' + info.ext;
                     if (!reload.includes(info.dir)) reload.push(info.dir);
                 }

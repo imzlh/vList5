@@ -3,7 +3,7 @@
     import type { FileOrDir, vDir } from '@/env';
     import { computed, nextTick, reactive, ref, watch, type Ref } from 'vue';
     import List from './list.vue';
-    import { FACTION, UI, FS, Global, getConfig, getTree, loadPath, loadTree, openFile, regConfig, reloadTree, splitPath, type iDir, type iMixed, list_marked as marked, list_markmap as markmap } from '@/utils';
+    import { FACTION, UI, FS, Global, getConfig, getTree, loadPath, loadTree, openFile, regConfig, reloadTree, splitPath, getActiveFile } from '@/utils';
 
     import { EXP_REG } from '@/action/explorer';
 
@@ -30,7 +30,7 @@
             search: false,
             search_text: '',
             path_input: false,
-            trace: [] as Array<iDir>,
+            trace: [] as Array<vDir>,
             font: UI.fontSize,
             input_size: config['ui.filebar_size'] as Ref<number>,
             pub_width: UI.app_width,
@@ -96,21 +96,6 @@
         else openFile(fd);
     }
 
-    function select(item: iMixed, only:boolean){
-        if(only){
-            markmap.value = [item.path],
-            marked.value = [item];
-        }else{
-            markmap.value.push(item.path);
-            marked.value.push(item);
-        }
-    }
-
-    function cls(){
-        markmap.value = [],
-        marked.value = [];
-    }
-
     function resize(e:PointerEvent){
 		const rawW = UI.width_total.value;
 		function rszHandler(ev:PointerEvent){
@@ -125,6 +110,19 @@
 			{ once: true}
 		);
 	}
+
+    function del(){
+        const items = getActiveFile(CFG.parent).map(item => item.path);
+        FS.delete(items).then(() => reloadTree(items.map(item => splitPath({path: item}).dir)));
+    }
+
+    function search(text: string){
+        if(text.trim() == '') return;
+        const reg = new RegExp(text, 'i');
+        for(const item of CFG.parent.child as Array<FileOrDir>)
+            if(reg.test(item.name))
+                CFG.parent.active.set(item, item.path)
+    }
 
 </script>
 
@@ -164,27 +162,27 @@
             <!-- 分割 -->
             <div class="split"></div>
             <!-- 剪切 -->
-            <div class="btn" @click="FACTION.mark('move', marked)">
+            <div class="btn" @click="FACTION.mark('move')">
                 <img src="/icon/cut.webp">
                 <desc>剪切</desc>
             </div>
             <!-- 拷贝 -->
-            <div class="btn" @click="FACTION.mark('copy', marked)">
+            <div class="btn" @click="FACTION.mark('copy')">
                 <img src="/icon/copy.webp">
                 <desc>复制</desc>
             </div>
             <!-- 粘贴 -->
-            <div class="btn" @click="FACTION.exec(CFG.parent)" :disable="marked.length == 0">
+            <div class="btn" @click="FACTION.exec(CFG.parent)" :disable="getActiveFile(CFG.parent).length == 0">
                 <img src="/icon/paste.webp">
                 <desc>粘贴</desc>
             </div>
             <!-- 重命名 -->
-            <div class="btn" @click="marked[0].rename = true">
+            <div class="btn" @click="getActiveFile(CFG.parent)[0].rename = true">
                 <img src="/icon/rename.webp">
                 <desc>重命名</desc>
             </div>
             <!-- 删除 -->
-            <div class="btn" @click="FS.delete(markmap).then(() => reloadTree(markmap.map(item => splitPath({ path: item }).dir)))">
+            <div class="btn" @click="del">
                 <img src="/icon/del.svg">
                 <desc>删除</desc>
             </div>
@@ -290,14 +288,15 @@
             </div>
         </div>
 
-        <List v-if="CFG.parent.child" :list="CFG.parent.child" ref="selected" :mode="CFG.style" :layout="reactive({
+        <List v-if="CFG.parent.child" :dir="CFG.parent"
+            :mode="CFG.style" :layout="reactive({
                 table: [60, 20, 20],
                 orderBy: computed({
                     get: () => CFG.order,
                     set: val => CFG.order = val
                 })
             })"
-            @ctxmenu="ctxev" @open="open" @select="select" @clear="cls" @ctxroot="ctxev(CFG.parent, $event)"
+            @ctxmenu="ctxev" @open="open" @ctxroot="ctxev(CFG.parent, $event)"
         ></List>
     </div>
 </template>

@@ -1,4 +1,4 @@
-import type { SettingItem, SettingItemFactory } from "@/env";
+import type { SettingItem } from "@/env";
 import Setting from "@/module/setting.vue";
 import { Global } from "@/utils";
 import { markRaw, ref, type Ref } from "vue";
@@ -8,6 +8,52 @@ import { TREE_REG } from "@/action/tree";
 
 var CONFIG: undefined | Record<string,Array<SettingItem>>,
     cached: undefined | Record<string,Record<string,any>>;
+
+/**
+ * 分离的设置项包含子菜单的对象数据结构
+ */
+export interface SettingObject{
+    name: string,
+    key: string,
+    desc?: string,
+    type: 'object',
+    child: Array<SettingItem>
+}
+
+/**
+ * 内部消费的类型
+ */
+export type SettingItemFactory = ({
+    name: string,
+    key: string,
+    desc?: string
+} & ({
+    type: 'text',
+    default: string,
+} | {
+    type: 'number',
+    step: number,
+    default: number,
+} | {
+    type: 'select',
+    item: Array<{
+        display: string,
+        value: string
+    }>,
+    default: string,
+} | {
+    type: 'check',
+    default: boolean,
+} | {
+    type: 'range',
+    min: number,
+    max: number,
+    step: number
+    default: number
+} | {
+    type: 'object',
+    child: Array<SettingItemFactory>
+})) | string;
 
 export function regConfig(namespace: string, config:Array<SettingItemFactory>){
     if(!cached) try{

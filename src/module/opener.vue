@@ -13,7 +13,7 @@
 
     let callback:undefined|Function;
 
-    Global('opener.chooser.choose').data = function(file:vFile) {
+    Global('opener.choose').data = function(file:vFile) {
         cfg.display = true;
         cfg.ext = splitPath(file)['ext'];
         return new Promise(rs => callback = rs);

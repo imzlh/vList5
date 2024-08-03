@@ -7,21 +7,6 @@ import { DEFAULT_DIR_ICON, FILE_PROXY_SERVER } from "/config";
 import { clearPath, FS, splitPath } from "./fs";
 import { Global, openFile } from "@/utils";
 
-export interface iFile extends vFile{
-    rename?: boolean,
-    status?: number,
-    show?: boolean
-}
-
-export interface iDir extends vDir{
-    rename?: boolean,
-    show?: boolean,
-    locked?: boolean
-    status?: number
-}
-
-export type iMixed = iFile | iDir; 
-
 interface xFile extends File{
     fullpath?: string
 }
@@ -33,7 +18,7 @@ interface xFile extends File{
  * @returns 上传成功的文件
  */
 export async function upload(e: FileList | Array<File> | DragEvent | boolean, to_fd: vDir,
-    onCreate?: (file: iFile) => any
+    onCreate?: (file: vFile) => any
 ):Promise<Array<vFile>>{
 
     // 通过DragEvent导入
@@ -110,7 +95,7 @@ export async function upload(e: FileList | Array<File> | DragEvent | boolean, to
     if(!to_fd.child) try{
         await loadTree(to_fd);
     } catch {
-        return Global('ui.message').call({
+        Global('ui.message').call({
             "title": "资源管理器",
             "content": {
                 "title": "上传错误",
@@ -119,11 +104,12 @@ export async function upload(e: FileList | Array<File> | DragEvent | boolean, to
             "type": "error",
             "timeout": 10
         } satisfies MessageOpinion);
+        return [];
     }
 
     const repeated = [] as Array<vFile>,
         repeated_files = [] as Array<File>,
-        uploaded = [] as Array<iFile>;
+        uploaded = [] as Array<vFile>;
     for (const file of e) {
         // 相对的文件
         if (file.webkitRelativePath || (file as xFile).fullpath) {
@@ -163,8 +149,9 @@ export async function upload(e: FileList | Array<File> | DragEvent | boolean, to
                 "size": file.size,
                 "type": 'file',
                 "url": FILE_PROXY_SERVER + to_fd.path + ((file as xFile).fullpath || file.webkitRelativePath || file.name),
-                "status": 1
-            } as iFile);
+                "status": 1,
+                parent
+            } as vFile);
 
             // 直接开始上传
             const id = (parent.child as Array<FileOrDir>).push(file_element);
@@ -173,10 +160,10 @@ export async function upload(e: FileList | Array<File> | DragEvent | boolean, to
                 await FS.write(
                     file_element.path,
                     file,
-                    prog => file_element.status = prog.loaded / prog.total * 100
+                    prog => file_element.upload = prog.loaded / prog.total * 100
                 );
                 uploaded.push(file_element);
-                file_element.status = undefined;
+                file_element.upload = undefined;
             } catch (e) {
                 // 删除对应元素
                 (parent.child as Array<FileOrDir>).splice(id - 1, 1);
@@ -213,9 +200,9 @@ export async function upload(e: FileList | Array<File> | DragEvent | boolean, to
         await FS.write(
             repeated[i].path,
             repeated_files[i],
-            prog => (repeated[i] as iFile).status = prog.loaded / prog.total * 100
+            prog => (repeated[i] as vFile).upload = prog.loaded / prog.total * 100
         );
-        (repeated[i] as iFile).status = undefined;
+        (repeated[i] as vFile).upload = undefined;
         uploaded.push(repeated[i]);
     }catch(e){
         error[i] = e as Error;
@@ -245,7 +232,9 @@ export const TREE = reactive<vDir>({
     "dispName": "此服务器",
     "url": FILE_PROXY_SERVER,
     "icon": I_DESKTOP,
-    "path": "/"
+    "path": "/",
+    "parent": null,
+    "active": new Map()
 });
 
 /**
@@ -258,6 +247,8 @@ export async function loadTree(input: vDir){
         const _item = (await FS.__request('slist',{ path: input.path },true)).map((item:FileOrDir) => {
                 item.url = FILE_PROXY_SERVER + input.path + item.name + (item.type == 'dir' ? '/' : '');
                 item.path = input.path + item.name + (item.type == 'dir' ? '/' : '');
+                item.parent = input;
+                item.type == 'dir' && (item.active = new Map());
                 return item;
             }) as Array<FileOrDir>,
             item = _item.filter(item => item.type == 'dir').sort((a, b) => a.name.localeCompare(b.name))
@@ -309,14 +300,12 @@ export async function reloadTree(dir:Array<string>){
     }
 }
 
+/**
+ * 根据给定的路径获取目录树
+ * @param dir 路径
+ * @returns 目录树
+ */
 export function getTree(dir: string):vDir{
-    function getInTree(tree:vDir, name: string): vDir{
-        if(tree.child)
-            for (const fd of tree.child)
-                if(fd.name == name && fd.type == 'dir') return fd;
-        throw new Error('Folder not found');
-    }
-
     const paths = clearPath(dir).split('/');
     let current = TREE;
     for (const name of paths) {
@@ -336,7 +325,7 @@ export function getTree(dir: string):vDir{
  * @param create 是否自动创建不存在的目录
  * @returns 目录对象
  */
-export async function loadPath(path: string, create = false, ){
+export async function loadPath(path: string, create = false, ): Promise<vDir>{
     let current = TREE;
     for (const name of path.split('/')) {
         if(!name) continue;
@@ -353,7 +342,9 @@ export async function loadPath(path: string, create = false, ){
                     'icon': DEFAULT_DIR_ICON,
                     'name': name,
                     'path': current.path + name + '/',
-                    'url': current.url + name + '/'
+                    'url': current.url + name + '/',
+                    parent: current,
+                    active: new Map()
                 });
             // 找不到就创建
             }catch{
@@ -366,7 +357,39 @@ export async function loadPath(path: string, create = false, ){
     return current;
 }
 
-export async function listByTree(path: string):Promise<iDir>{
+/**
+ * 获取被选中的文件（夹）
+ * @returns 被选中的文件（夹）
+ */
+export function getActiveFile(parent = TREE): Array<FileOrDir>{
+    const active = [] as Array<FileOrDir>;
+    function traverse(tree: vDir){
+        if(tree.child)
+            for (const item of tree.child)
+                if(tree.active.has(item))
+                    active.push(item);
+                else if(item.type == 'dir')
+                    traverse(item);
+    }
+    traverse(parent);
+    return active;
+}
+
+/**
+ * 取消所有选中的文件（夹）
+ */
+export function clearActiveFile(){
+    function traverse(tree: vDir){
+        tree.active.clear();
+        if(tree.child)
+            for (const item of tree.child)
+                if(item.type == 'dir')
+                    traverse(item);
+    }
+    traverse(TREE);
+}
+
+export async function listByTree(path: string):Promise<vDir>{
     return await loadPath(path);
 }
 

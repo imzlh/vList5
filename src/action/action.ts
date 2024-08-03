@@ -1,11 +1,11 @@
-import type { MessageOpinion } from "@/env";
-import { APP_API, FS, Global, reloadTree, splitPath, type iDir, type iMixed } from "@/utils";
+import type { MessageOpinion, FileOrDir, vDir } from "@/env";
+import { APP_API, FS, getActiveFile, Global, reloadTree, splitPath } from "@/utils";
 
 // 文件操作
 export const FACTION = {
-    marked: [] as Array<iMixed>,
+    marked: [] as Array<FileOrDir>,
     action: 'copy' as 'copy' | 'move',
-    async exec(dest: iDir): Promise<boolean | number> {
+    async exec(dest: vDir): Promise<boolean | number> {
         try{
             await FS.__request(this.action, {
                 from: this.marked.map(item => item.path),
@@ -30,8 +30,8 @@ export const FACTION = {
         return true;
     },
 
-    mark(action: 'copy' | 'move', file: Array<iMixed>) {
-        this.marked = file;
+    mark(action: 'copy' | 'move') {
+        this.marked = getActiveFile();
         this.action = action;
     }
 }
