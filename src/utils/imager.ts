@@ -1,4 +1,4 @@
-import type { CtxDispOpts, vFile } from "@/env";
+import type { CtxDispOpts, vFile, MessageOpinion } from "@/env";
 import { FS, Global, splitPath } from "@/utils";
 import { computed, readonly, ref, type Ref } from "vue";
 
@@ -408,7 +408,7 @@ export class ImageManager{
         const canvas = document.createElement('canvas'),
             ctx = canvas.getContext('2d');
 
-        const E_IMAGE = {
+        const E_IMAGE: MessageOpinion = {
             "type": "error",
             "title": "Imager",
             "content": {
@@ -416,7 +416,7 @@ export class ImageManager{
                 "content": "获取图像失败(-1)"
             },
             "timeout": 5
-        }, E_CLIPBOARD = {
+        }, E_CLIPBOARD: MessageOpinion = {
             "type": "error",
             "title": "Imager",
             "content": {

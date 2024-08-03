@@ -60,7 +60,7 @@ export const OPENER:Array<OpenerOption> = [
                     "icon": I_VSCODE,
                     "name": file.name + " - VSCode",
                     "option": file
-                }, file);
+                });
         },
     },
     // muya
@@ -79,7 +79,7 @@ export const OPENER:Array<OpenerOption> = [
                 "icon": I_MUYA,
                 "name": file.name + " - Muya",
                 "option": file
-            }, file);
+            });
         },
     },
     // imager.vue
@@ -104,7 +104,7 @@ export const OPENER:Array<OpenerOption> = [
                 "icon": I_IMAGER,
                 "name": "imgViewer",
                 "option": file
-            }, file);
+            });
         },
     },
     // browser.vue
@@ -123,7 +123,7 @@ export const OPENER:Array<OpenerOption> = [
                 "icon": I_CHROME,
                 "name": file.name + " - Chrome",
                 "option": file
-            }, file);
+            });
         },
     },
     // vPlayer-vue
@@ -146,7 +146,7 @@ export const OPENER:Array<OpenerOption> = [
                 "icon": I_VPLAYER,
                 "name": "vPlayer",
                 "option": file
-            }, file);
+            });
         }
     },
     // vLite.vue
@@ -172,7 +172,7 @@ export const OPENER:Array<OpenerOption> = [
                 "icon": I_VLITE,
                 "name": "vLite",
                 "option": file
-            }, file);
+            });
         },
     },
     // avPlayer <- libmedia
@@ -206,7 +206,7 @@ export const OPENER:Array<OpenerOption> = [
                 "icon": I_MEDIA,
                 "name": file.name ,
                 "option": file
-            }, file);
+            });
         },
     },
     // font-viewer V1
@@ -229,7 +229,7 @@ export const OPENER:Array<OpenerOption> = [
                 "icon": I_DESIGNER,
                 "name": "Font-" + clipFName(file,20),
                 "option": file
-            }, file);
+            });
         },
     },
     // HexViewer V1
@@ -248,7 +248,7 @@ export const OPENER:Array<OpenerOption> = [
                 "icon": I_HEX,
                 "name": "Hex-" + clipFName(file,20),
                 "option": file
-            }, file);
+            });
         },
     },
     // ArtPlayer
@@ -274,7 +274,7 @@ export const OPENER:Array<OpenerOption> = [
                 "icon": I_ART,
                 "name": "artplayer",
                 "option": file
-            }, file);
+            });
         }
     },
     // APlayer-ts
@@ -300,7 +300,7 @@ export const OPENER:Array<OpenerOption> = [
                 "icon": I_APLAYER,
                 "name": "APlayer",
                 "option": file
-            }, file);
+            });
         },
     },
 ];
