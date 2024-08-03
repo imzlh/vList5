@@ -1,24 +1,23 @@
 <script lang="ts">
     import type { MessageOpinion, vDir, vFile, FileOrDir } from '@/env';
-    import { DEFAULT_FILE_ICON, FS, Global, loadTree, UI, openFile, reloadTree, size2str, splitPath, clipFName } from '@/utils';
-    import { ref, shallowRef, toRaw, watch, type PropType } from 'vue';
-    import { clearActiveFile, upload } from '@/utils/tree';
+    import { DEFAULT_FILE_ICON, FS, Global, UI, openFile, size2str, splitPath, clearActiveFile } from '@/utils';
+    import { type PropType } from 'vue';
     import { TREE_REG } from '@/action/tree';
 
     // DRAG的口令，用于鉴别
     const DRAG_TOKEN = Math.floor(Math.random() * 100000000).toString(36);
 
-    export function acceptDrag(elem: HTMLElement, callback: (file: vFile) => void){
+    export function acceptDrag(elem: HTMLElement, callback: (file: FileOrDir) => any){
         elem.addEventListener('dragover',function(e){
             if(!e.dataTransfer) return;
             e.dataTransfer.dropEffect = 'copy';
             e.preventDefault();
         });
-        elem.addEventListener('drop', function(e){
+        elem.addEventListener('drop', async function(e){
             if(!e.dataTransfer) return;
             e.preventDefault();
-            if(e.dataTransfer.getData('text/vtoken') == DRAG_TOKEN)
-                callback(JSON.parse(e.dataTransfer.getData('application/json')));
+            if(e.dataTransfer.getData('vlist-data/vtoken') == DRAG_TOKEN)
+                callback(await FS.stat(e.dataTransfer.getData('vlist-data/path')));
         });
     }
 
@@ -32,7 +31,7 @@
         },
         setup: function (prop) {
             return {
-                loadTree,
+                loadTree: FS.loadTree,
                 DEFAULT_FILE_ICON,
                 openFile,
                 data: prop.data
@@ -41,7 +40,10 @@
         directives: {
             focus: {
                 mounted(el: HTMLInputElement){
-                    el.select() ;el.focus();
+                    const text = el.value,
+                        pos_end = text.lastIndexOf('.');
+                    // 选中.前内容
+                    el.focus();el.setSelectionRange(0, pos_end);
                 }
             },
             into: {
@@ -69,8 +71,8 @@
             drag_start(e: DragEvent, fd: FileOrDir){
                 if(!e.dataTransfer) return e.preventDefault();
 
-                e.dataTransfer.setData('application/json', JSON.stringify(toRaw(fd)));
-                e.dataTransfer.setData('text/vtoken', DRAG_TOKEN);
+                e.dataTransfer.setData('vlist-data/path', fd.path);
+                e.dataTransfer.setData('vlist-data/vtoken', DRAG_TOKEN);
                 e.dataTransfer.setData('text/uri-list', fd.url);
                 if(fd.type == 'file')
                     e.dataTransfer.setData('text/plain', `[ ${fd.name.replace(/[\[\]]/g, match => '\\' + match[0])} ](${encodeURI(fd.url)})`);
@@ -108,18 +110,13 @@
                 // 去除高亮
                 (e.currentTarget as HTMLElement).classList.remove('moving');
                 // 只有满足vlist文件的才可以被拖拽
-                if(e.dataTransfer.getData('text/vtoken') == DRAG_TOKEN){
+                if(e.dataTransfer.getData('vlist-data/vtoken') == DRAG_TOKEN){
                     // 拖拽到原处不受理
-                    const from_fd:FileOrDir = JSON.parse(e.dataTransfer.getData('application/json'));
+                    const from_fd:FileOrDir = await FS.stat(e.dataTransfer.getData('vlist-data/path'));
                     if((from_fd.type == 'dir' ? from_fd.path : splitPath(from_fd).dir ) == to_fd.path)
                         return;
 
                     FS.move(from_fd.path, to_fd.path)
-                        // 重新加载来源文件夹和目标文件夹
-                        .then(() => reloadTree([
-                            splitPath(from_fd)['dir'],
-                            to_fd.path
-                        ]))
                         .catch(e => Global('ui.message').call({
                             "title": "资源管理器",
                             "content": {
@@ -131,7 +128,7 @@
                         } satisfies MessageOpinion));
                 }else{
                     // 处理事件
-                    upload(e, to_fd);
+                    FS.upload(e, to_fd);
                 }
             },
             /**
@@ -173,11 +170,11 @@
              */
             folder(dir?:vDir){
                 dir = dir || this.data;
-                if(dir.child) dir.show = !dir.show;
+                if(dir.child) dir.unfold = !dir.unfold;
                 else{
-                    dir.lock = dir.show = true;
+                    dir.lock = dir.unfold = true;
                     // 异步加载子项目
-                    loadTree(dir as any)
+                    FS.loadTree(dir as any)
                         .then(() => dir.lock = false);
                 }
             },
@@ -189,12 +186,7 @@
             rename(file: FileOrDir, val: string){
                 FS.rename({
                     [file.path]: splitPath(file).dir + val
-                }).then(() => (
-                    file.name = val ,
-                    file.url = file.url.substring(0, file.url.lastIndexOf('/', file.url.length -2) +1) + file.name,
-                    file.rename = false,
-                    file.ctime = Date.now()
-                )).catch((e: Error) => (Global('ui.message').call({
+                }).catch((e: Error) => (Global('ui.message').call({
                     'type': 'error',
                     'content': {
                         'title': '删除失败',
@@ -238,7 +230,7 @@
         v-touch
         v-into="data.parent && data.parent.active.has(data)" tabindex="-1"
     >
-        <div class="btn-hide" :show="data.show" @click.stop="folder()"></div>
+        <div class="btn-hide" :show="data.unfold" @click.stop="folder()"></div>
         <img :src="data.icon" v-if="data.icon">
         <input v-if="data.rename" :value="data.name"
             @change="rename(data, ($event.currentTarget as HTMLInputElement).value)"
@@ -250,7 +242,7 @@
         <span class="text" v-else>{{ data.dispName || data.name }}</span>
     </div>
 
-    <div v-if="data.child" class="child" v-show="data.show"
+    <div v-if="data.child" class="child" v-show="data.unfold"
         @contextmenu.stop.prevent="ctxmenu(data, $event)"
         @dragover.stop="drag_alert($event, data)" @drop.stop="drag_onto($event, data)"
         @dragleave.stop="($event.currentTarget as HTMLElement).classList.remove('moving')"

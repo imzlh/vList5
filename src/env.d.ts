@@ -95,11 +95,6 @@ interface FileAndDir {
     upload?: number,
 
     /**
-     * 是否隐藏文件(夹)
-     */
-    show?: boolean,
-
-    /**
      * 锁定文件，防止操作时被删除、重命名、移动等操作
      */
     lock?: boolean,

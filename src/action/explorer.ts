@@ -15,7 +15,7 @@ import I_OPEN from "/icon/open.webp";
 import I_OPENER from '/icon/opener.webp';
 
 import Upload from '@/module/upload.vue';
-import { FACTION, FS, Global, TREE, getActiveFile, loadPath, loadTree, openFile, reloadTree, size2str, splitPath } from "@/utils";
+import { FACTION, FS, Global, TREE, getActiveFile, openFile, size2str, splitPath } from "@/utils";
 import type { AlertOpts, MessageOpinion, vDir, vFile } from "@/env";
 import { CtxMenuRegister } from './main';
 
@@ -38,7 +38,7 @@ EXP_REG.register(indir => ({
                     callback: (data) =>
                         // 创建文件夹
                         FS.mkdir(indir.path + data)
-                            .then(() => loadTree(indir)),
+                            .then(() => FS.loadTree(indir)),
                 } satisfies AlertOpts)
         }, {
             "text": "文件",
@@ -51,7 +51,7 @@ EXP_REG.register(indir => ({
                     callback: (data) =>
                         // 创建文件夹
                         FS.touch(indir.path + data)
-                            .then(() => loadTree(indir)),
+                            .then(() => FS.loadTree(indir)),
                 } satisfies AlertOpts)
         }
     ],
@@ -79,7 +79,7 @@ EXP_REG.register(indir => ({
 EXP_REG.register(indir => ({
     "text": "刷新",
     "icon": I_REFRESH,
-    handle: () => loadTree(indir)
+    handle: () => FS.loadTree(indir)
 }
 ), {
     'single': false,
@@ -121,7 +121,7 @@ EXP_REG.register(() => ({
         // 覆盖提示
         try {
             if (!dir.child)
-                await loadTree(dir);
+                await FS.loadTree(dir);
             if (!dir.child) dir.child = [];
             const mark = FACTION.marked.map(item => item.name),
                 over = dir.child.filter(item => mark.includes(item.name));
@@ -159,16 +159,6 @@ EXP_REG.register(() => ({
                 'timeout': 10
             } satisfies MessageOpinion)
         }
-        const refdir = [] as Array<string>;
-        for (const file of getActiveFile()) if (file.type == 'file') {
-            const dir = splitPath(file)['dir'];
-            if (!refdir.includes(dir)) refdir.push(dir);
-        } else {
-            const slash = file.path.lastIndexOf('/', file.path.length - 2);
-            refdir.push(file.path.substring(0, slash + 1));
-        }
-        // 刷新
-        reloadTree(refdir);
     }
 }), {
     'single': false,

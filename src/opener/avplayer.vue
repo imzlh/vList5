@@ -81,7 +81,7 @@
                     }
             } else {
                 // 更新列表
-                const list = (await FS.listall(dir || '/')).filter(item => item.type == 'file') as vFile[];
+                const list = (await FS.list(dir || '/')).filter(item => item.type == 'file') as vFile[];
                 ui.videos = [];
                 let i = 0;
                 list.forEach(item => {
@@ -216,7 +216,8 @@
     });
 
     watch(root, val => acceptDrag(val as HTMLElement, f => 
-        f.name.endsWith('.ass') ? CTRL.createASS(f) : CTRL.play(f)
+        f.type == 'file' &&
+        (f.name.endsWith('.ass') ? CTRL.createASS(f) : CTRL.play(f))
     ));
     watch(UI.app_width, w => player.value && (player.value.func.resize = [w, UI.height_total.value]));
 </script>

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-    import type { vFile } from '@/env';
+    import type { FileOrDir, vFile } from '@/env';
     import { regSelf } from '@/opener';
     import { FS, getConfig, regConfig, splitPath } from '@/utils';
     import APlayer, { addMusicPlugin } from 'aplayer-ts';
@@ -30,7 +30,7 @@
 
         // 不在列表中
         const info = splitPath(file),
-            dir = (await FS.listall(info['dir'])).filter(item => item.type == 'file') as vFile[];
+            dir = (await FS.list(info['dir'])).filter((item: FileOrDir) => item.type == 'file') as vFile[];
         let cover: undefined | vFile, lrc: undefined | vFile;
         // 找到文件
         for (const file of dir) {

@@ -9,7 +9,7 @@ export function getOpenerId(file:vFile):Promise<OpenerOption>|OpenerOption{
         if(OPENER[i].format.includes(ext.toLowerCase()))
             return OPENER[i];
     // 默认方式
-    return Global('opener.chooser.choose').call(file);
+    return Global('opener.choose').call(file);
 }
 
 export async function openFile(file:vFile){

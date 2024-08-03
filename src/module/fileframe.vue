@@ -1,6 +1,6 @@
 <script setup lang="ts">
     import type { FileOrDir, vDir } from '@/env';
-    import { FS, getTree, Global, loadPath, openFile} from '@/utils';
+    import { FS, Global, openFile} from '@/utils';
     import { reactive, ref, shallowRef, watch } from 'vue';
     import List from './list.vue';
     import type { CtxDispOpts } from '@/env';
@@ -29,7 +29,7 @@
     });
 
     async function switchTo(dir:string){
-        data.value = await loadPath(dir);
+        data.value = await FS.loadPath(dir);
         current.value = history.value.push(dir) -1;
     }
 
@@ -108,7 +108,7 @@
     }
 
     watch(current,() => history.value[current.value] &&
-        loadPath(history.value[current.value]).then(_ => data.value = _)
+        FS.loadPath(history.value[current.value]).then(_ => data.value = _)
     );
     watch(current, () => path.value = history.value[current.value] || '/');
 </script>

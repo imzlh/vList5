@@ -1,5 +1,5 @@
 import type { MessageOpinion, FileOrDir, vDir } from "@/env";
-import { APP_API, FS, getActiveFile, Global, reloadTree, splitPath } from "@/utils";
+import { APP_API, FS, getActiveFile, Global, splitPath } from "@/utils";
 
 // 文件操作
 export const FACTION = {
@@ -11,7 +11,7 @@ export const FACTION = {
                 from: this.marked.map(item => item.path),
                 to: dest.path
             });
-            await reloadTree([... this.marked.map(item => splitPath(item).dir), dest.path]);
+            await FS.loadPaths([...this.marked.map(item => splitPath(item).dir), dest.path]);
         }catch(e){
             Global('ui.message').call({
                 "type": "error",

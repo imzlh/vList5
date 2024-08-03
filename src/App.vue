@@ -3,7 +3,7 @@
 	import type { AlertOpts, CtxDispOpts, CtxMenuData } from './env';
 	import tabManager from './module/tabs.vue';
 	import CtxMenu from './module/ctxmenu.vue';
-	import { APP_NAME, FS, Global, TREE, getActiveFile, getConfig, regConfig, reloadTree, splitPath } from './utils';
+	import { APP_NAME, FS, Global, TREE, getActiveFile, getConfig, regConfig, splitPath } from './utils';
 	import Opener from './module/opener.vue';
 	import Message from './module/message.vue';
 	import Chooser from './module/fileframe.vue';
@@ -71,9 +71,7 @@
 					const marked = getActiveFile();
 					this._ensure('删除 ' + marked.length + '个文件(夹)')
 						.then(() => {
-							const set = new Set(marked.map(item => splitPath(item).dir));
 							FS.delete(marked.map(item => item.path));
-							reloadTree(Array.from(set));
 						});
 				break;
 

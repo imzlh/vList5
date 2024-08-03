@@ -1,6 +1,6 @@
 <script setup lang="ts">
     import type { FileOrDir, vDir, vFile } from '@/env';
-    import { DEFAULT_DIR_ICON, DEFAULT_FILE_ICON, loadTree, size2str, UI } from '@/utils';
+    import { clearActiveFile, DEFAULT_DIR_ICON, DEFAULT_FILE_ICON, FS, size2str, UI } from '@/utils';
     import { computed, reactive, ref, shallowReactive, watch, type PropType } from 'vue';
 
     // ==================== 文件（夹）管理器 =======================
@@ -31,7 +31,7 @@
         flist = computed(function(){
             const child = _prop.dir.child;
             if(!child){
-                loadTree(_prop.dir);
+                FS.loadTree(_prop.dir);
                 return [];
             }
 
@@ -66,6 +66,8 @@
                 ? DEFAULT_DIR_ICON
                 : DEFAULT_FILE_ICON;
 
+
+    watch(() => _prop.dir, () => clearActiveFile());
     //  ===================== 选择管理 ==================
 
     /**
@@ -78,11 +80,10 @@
                 num1 > num2 ? [num2,num1] : [num1,num2],
             [xr1,xr2] = minmax(select.x1,select.x2),
             [yr1,yr2] = minmax(select.y1,select.y2),
-            element = container.value.children;
+            element = container.value.querySelectorAll('tr, div');
         // 逐个判断
         for (let i = 0; i < element.length; i++) {
             const child = element[i] as HTMLElement;
-            if(child.classList.contains('select')) continue;
             const y1 = child.offsetTop,
                 y2 = child.offsetTop + child.offsetHeight,
                 x1 = child.offsetLeft,
@@ -99,15 +100,10 @@
     }
 
     /**
-     * 清除选中项
-     */
-    const clear_selected = () => _prop.dir.active.clear();
-
-    /**
      * 初始化批量选中
      */
     function init_select(ev:MouseEvent){
-        clear_selected();
+        clearActiveFile();
 
         select.x1 = select.x2 = ev.offsetX + (ev.target as HTMLElement).scrollLeft,
         select.y1 = select.y2 = ev.offsetY + (ev.target as HTMLElement).scrollTop;
@@ -152,7 +148,7 @@
                 document.removeEventListener('pointermove',handle);
                 if( timer ) clearInterval(timer);
                 if( !started )
-                    return clear_selected();
+                    return clearActiveFile();
                 mark_selected();
                 select.enable = false;
             },
@@ -188,22 +184,23 @@
     <div class="fd-list" :data-empty="flist.length == 0" :style="{
         overflowY: select.enable ? 'hidden' : 'auto',
         paddingRight: select.enable ? '.2rem' : '0'
-    }" v-bind="$attrs" ref="data" @contextmenu.prevent.stop="event('ctxmenu', $event, _prop.dir)">
+    }" v-bind="$attrs" @contextmenu.prevent.stop="event('ctxmenu', $event, _prop.dir)">
         <!-- 默认输出 -->
         <div v-if="flist.length == 0"
             style="width: auto;background-color: transparent;">
             此文件夹为空
         </div>
         <!-- 列表 -->
-        <div class="view" v-else-if="_prop.mode == 'view'" tabindex="-1"
-            @pointerdown.stop.prevent="init_select" @click.prevent.stop="clear_selected()"
+        <div class="view" v-else-if="_prop.mode == 'view'" tabindex="-1" ref="container"
+            @pointerdown.stop.prevent="init_select" @click.prevent.stop="clearActiveFile()"
         >
             <template v-for="(fd,i) of flist" :key="fd.path">
-                <div :type="fd.type" ref="list_element" class="item" tabindex="2" @pointerdown.stop @pointermove.prevent
-                    @click.stop=" _prop.dir.active.set(fd, fd.path)"
+                <div :type="fd.type" ref="list_element" class="item" tabindex="2"
+                    @pointerdown.stop @pointermove.prevent
+                    @click.stop="$event.shiftKey || _prop.dir.active.clear(), _prop.dir.active.set(fd, fd.path)"
                     @dblclick.prevent="event('open', fd)"
                     @contextmenu.prevent="event('ctxmenu', fd, $event)"
-                    :data-id="i" v-touch
+                    :active="fd.parent?.active.has(fd)" v-touch
                 >
                     <!-- 图标 -->
                     <img :src="getIcon(fd)" />
@@ -228,15 +225,15 @@
                 </tr>
             </thead>
 
-            <tbody @click.stop>
+            <tbody @click.stop  ref="container">
                 <template v-for="(fd,i) of flist" :key="fd.path">
                     <tr :type="fd.type" ref="list_element" class="item" tabindex="2" @pointerdown.stop @pointermove.prevent
-                        @click.stop="_prop.dir.active.set(fd, fd.path)"
+                        @click.stop="$event.shiftKey && _prop.dir.active.clear(), _prop.dir.active.set(fd, fd.path)"
                         @dblclick.prevent="event('open', fd)"
                         @contextmenu.prevent="event('ctxmenu', fd, $event)" v-touch
                         :data-id="i" :style="{
                             '--icon': `url('${getIcon(fd)}')`
-                        }"
+                        }" :active="fd.parent?.active.has(fd)"
                     >
                         <td class="name">
                             {{ fd.name }}
@@ -353,7 +350,7 @@
                     }
 
                     &:focus,
-                    &.selected {
+                    &[active=true] {
                         background-color: var(--focus);
                         border-color: var(--border);
                     }
@@ -416,7 +413,7 @@
                     color: #716e6e;
                     font-weight: 300;
 
-                    &.selected{
+                    &[active=true]{
                         background-color: #00b3ff4f;
                     }
 

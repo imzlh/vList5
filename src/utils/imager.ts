@@ -544,7 +544,7 @@ export class ImageManager{
             // 请求URL
             const temp:Array<vFile> = [];
             let id = -1;
-            ((await FS.listall(info.dir)).filter(item => item.type == 'file') as vFile[])
+            ((await FS.list(info.dir)).filter(item => item.type == 'file') as vFile[])
                 .forEach(data => {
                     (ImageManager.IMAGE.includes(splitPath(data)['ext'].toLowerCase()))
                     && ( data.path == f.path ? id = temp.push(data)-1 : temp.push(data) )

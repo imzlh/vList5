@@ -3,7 +3,7 @@
     import type { FileOrDir, vDir } from '@/env';
     import { computed, nextTick, reactive, ref, watch, type Ref } from 'vue';
     import List from './list.vue';
-    import { FACTION, UI, FS, Global, getConfig, getTree, loadPath, loadTree, openFile, regConfig, reloadTree, splitPath, getActiveFile } from '@/utils';
+    import { FACTION, UI, FS, Global, getConfig, openFile, regConfig, splitPath, getActiveFile } from '@/utils';
 
     import { EXP_REG } from '@/action/explorer';
 
@@ -17,7 +17,7 @@
         selected = ref<{selected: Array<FileOrDir>}>();
 
     // 自动加载子目录
-    if(!option.child) await loadTree(option);
+    if(!option.child) await FS.loadTree(option);
 
     const CFG = reactive({
             parent: computed(() => trace.value[current.value]),
@@ -57,10 +57,10 @@
     // }
     // const stop_btimer = () => btimer && clearTimeout(btimer);
 
-    function goto(dir: string){
-        const tree = getTree(dir);
+    async function goto(dir: string){
+        const tree = await FS.loadPath(dir);
         if(tree) trace.value.unshift(tree);
-        else loadPath(dir).then(res => trace.value.unshift( res )).catch(e => Global('ui.message').call({
+        else FS.loadPath(dir).then(res => trace.value.unshift( res )).catch(e => Global('ui.message').call({
                 'type': 'error',
                 'content': {
                     'title': '枚举文件失败',
@@ -83,7 +83,7 @@
     }
 
     function open(fd: FileOrDir){
-        if (fd.type == 'dir') fd.child ? trace.value.unshift(fd) : loadTree(fd)
+        if (fd.type == 'dir') fd.child ? trace.value.unshift(fd) : FS.loadTree(fd)
             .then(() => trace.value.unshift(fd)).catch(e => Global('ui.message').call({
                 'type': 'error',
                 'content': {
@@ -113,7 +113,7 @@
 
     function del(){
         const items = getActiveFile(CFG.parent).map(item => item.path);
-        FS.delete(items).then(() => reloadTree(items.map(item => splitPath({path: item}).dir)));
+        FS.delete(items);
     }
 
     function search(text: string){

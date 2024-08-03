@@ -227,7 +227,17 @@
         }
         vid.oncanplay = () => vid.playbackRate = CFG.vid_rate;
 
-        root.value && acceptDrag(root.value, pl => CTRL.play(pl));
+        root.value && acceptDrag(root.value, pl => {
+            if(pl.type == 'dir') return;
+            const info = splitPath(pl);
+            if(['ass', 'ssa', 'vtt'].includes(info.ext.toLowerCase())){
+                CFG.subtitle.push({
+                    name: info.name,
+                    sub_type: info.ext == 'vtt' ? 'vtt' : 'ass',
+                    url: pl.url
+                });
+            }else CTRL.play(pl);
+        });
     });
 
     function keyev(kbd:KeyboardEvent){
@@ -403,7 +413,7 @@
                     }
             } else {
                 // 更新列表
-                const list = (await FS.listall(dir || '/')).filter(item => item.type == 'file'),
+                const list = (await FS.list(dir || '/')).filter(item => item.type == 'file'),
                     subs = {} as Record<string, Array<subOption>>;
                 CFG.playlist = []; CFG.subtitle = [];
                 let i = 0;

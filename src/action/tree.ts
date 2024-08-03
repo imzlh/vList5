@@ -20,7 +20,7 @@ import I_DELETE from '/icon/del.svg';
 
 import Upload from '@/module/upload.vue';
 import EXPLORER from '@/module/explorer.vue';
-import { FACTION, FS, Global, TREE, clearActiveFile, getActiveFile, loadPath, loadTree, openFile, reloadTree, size2str, splitPath } from "@/utils";
+import { FACTION, FS, Global, TREE, clearActiveFile, getActiveFile, openFile, size2str, splitPath } from "@/utils";
 import type { AlertOpts, MessageOpinion, vDir, vFile } from "@/env";
 import { CtxMenuRegister } from './main';
 
@@ -43,7 +43,7 @@ TREE_REG.register(indir => ({
                     callback: (data) =>
                         // 创建文件夹
                         FS.mkdir(indir.path + data)
-                            .then(() => loadTree(indir)),
+                            .then(() => FS.loadTree(indir)),
                 } satisfies AlertOpts)
         }, {
             "text": "文件",
@@ -56,7 +56,7 @@ TREE_REG.register(indir => ({
                     callback: (data) =>
                         // 创建文件夹
                         FS.touch(indir.path + data)
-                            .then(() => loadTree(indir)),
+                            .then(() => FS.loadTree(indir)),
                 } satisfies AlertOpts)
         }
     ],
@@ -83,7 +83,7 @@ TREE_REG.register(indir => ({
 TREE_REG.register(indir => ({
     "text": "刷新",
     "icon": I_REFRESH,
-    handle: () => loadTree(indir)
+    handle: () => FS.loadTree(indir)
 }
 ), {
     'single': false,
@@ -125,7 +125,7 @@ TREE_REG.register(() => ({
         // 覆盖提示
         try {
             if (!dir.child)
-                await loadTree(dir);
+                await FS.loadTree(dir);
             if (!dir.child) dir.child = [];
             const mark = FACTION.marked.map(item => item.name),
                 over = dir.child.filter(item => mark.includes(item.name));
@@ -164,16 +164,6 @@ TREE_REG.register(() => ({
                 'timeout': 10
             } satisfies MessageOpinion)
         }
-        const refdir = [] as Array<string>;
-        for (const file of getActiveFile()) if (file.type == 'file') {
-            const dir = splitPath(file)['dir'];
-            if (!refdir.includes(dir)) refdir.push(dir);
-        } else {
-            const slash = file.path.lastIndexOf('/', file.path.length - 2);
-            refdir.push(file.path.substring(0, slash + 1));
-        }
-        // 刷新
-        reloadTree(refdir);
     }
 }), {
     'single': false,
@@ -228,7 +218,7 @@ TREE_REG.register(() => ({
             'title': '转到目录',
             'message': '输入目录名称，支持隐藏目录',
             callback(data) {
-                loadPath(data as string);
+                FS.loadPath(data as string);
             },
         } satisfies AlertOpts)
     },
@@ -265,7 +255,7 @@ TREE_REG.register(() => ({
                             } satisfies MessageOpinion);
                         }
 
-                        if (!item.child) await loadTree(item);
+                        if (!item.child) await FS.loadTree(item);
                         if (!item.child) return; // for TypeScript TypeCheck
 
                         clearActiveFile();
@@ -347,7 +337,7 @@ TREE_REG.register(() => ({
                     obj[ordered[i].path] = info.dir + (i + 1).toString().padStart(3, '0') + '.' + info.ext;
                     if (!reload.includes(info.dir)) reload.push(info.dir);
                 }
-                FS.rename(obj).then(() => reloadTree(reload))
+                FS.rename(obj)
                     .catch((e: Error) => Global('ui.message').call({
                         "type": "error",
                         "title": "文件资源管理器",

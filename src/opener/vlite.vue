@@ -65,7 +65,30 @@
     }
 
     // 挂载后
-    onMounted(() => root.value && acceptDrag(root.value, play));
+    onMounted(() => root.value && acceptDrag(root.value, async function(file){
+        if(file.type == 'dir') return;
+        const info = splitPath(file);
+        // 加载歌词
+        if(info.ext.toLowerCase() == 'lrc'){
+            const fe = await fetch(file.url);
+            if(!fe.ok) return Global('ui.message').call({
+                "type": "error",
+                "title": "vLite",
+                "content":{
+                    "title": "歌词加载失败",
+                    "content": "网络错误或格式不受支持"
+                },
+                "timeout": 5
+            });
+            runner = new Runner(Lrc.parse(await fe.text()));
+            CFG.lrc = runner.lrc.lyrics;
+        // 加载封面
+        }else if(CONFIG.cover.includes(info.ext.toLowerCase())){
+            CFG.playlist[CFG.currentID].cover = file.url;
+        // 播放音频
+        }else play(file);
+
+    }));
 
     // 声音大小
     watch(
@@ -103,6 +126,10 @@
             audio.src = item.url;
             audio.load();
         }
+
+        // 清空歌词
+        if(!CFG.playlist[CFG.currentID].lrc && runner)
+            runner = undefined, CFG.lrc = [];
 
         // cue设置
         if(item.start != undefined){
@@ -307,7 +334,7 @@
                 }
         } else {
             // 更新列表
-            const list = (await FS.listall(dir || '/')).filter(item => item.type == 'file'),
+            const list = (await FS.list(dir || '/')).filter(item => item.type == 'file'),
                 lrcs = {} as Record<string,string>,
                 covers = {} as Record<string,string>,
                 default_cover = [] as Array<string>;
