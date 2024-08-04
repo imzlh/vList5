@@ -4,6 +4,7 @@
     import { FS, Global, UI, acceptDrag, clipFName, regConfig, reqFullscreen, splitPath } from '@/utils';
     import ASS from 'assjs';
     import { onMounted, onUnmounted, ref, shallowReactive, shallowRef, watch } from 'vue';
+    import MediaSession,{ updateMediaSession, type mediaSessionCtrl } from '@/utils/mediaSession';
 
     interface subOption {
         name: string,
@@ -14,12 +15,13 @@
 
     interface videoOption extends vFile {
         vid_name: string,
-        subtitle: Array<subOption>
+        subtitle: Array<subOption>,
+        poster?: string
     }
 
     const MKV_EXTRACT = ['mkv','webm'];
 
-    const opts_ = defineProps(['option']),
+    const opts_ = defineProps(['option', 'visibility']),
         file = opts_['option'] as vFile,
         root = ref<HTMLElement>(),
         CFG = shallowReactive({
@@ -68,6 +70,44 @@
 
     // 时间栏
     const timer = setInterval(() => CFG.datetime = new Date(), 350);
+
+    // 监听可见性以抢夺mediaSession
+    watch(() => opts_.visibility, val =>
+        val && video.value && (MediaSession.value = {
+            element: video.value,
+            seekOnce: 10,
+            prev: () => CFG.current--,
+            next: () => CFG.current++
+        }, CTRL.shoot(false).then(src => updateMediaSession({
+            "title": CFG.playlist[CFG.current].vid_name,
+            "artist": "vlist",
+            "album": "vlist",
+            "artwork": [{ src }]
+        }))),
+        { immediate: true }
+    );
+
+    // 当video加载完成且激活时自动抢夺mediaSession
+    watch(
+        () => video.value,
+        // 延时拍摄快照
+        vid => vid && vid.addEventListener('load', () => vid.poster ?
+            updateMediaSession({
+                "title": CFG.playlist[CFG.current].vid_name,
+                "artist": "vlist",
+                "album": "vlist",
+                "artwork": [{ src: vid.poster }]
+            }) :
+            setTimeout(async function(){
+                updateMediaSession({
+                    "title": CFG.playlist[CFG.current].vid_name,
+                    "artist": "vlist",
+                    "album": "vlist",
+                    "artwork": [{ src: await CTRL.shoot() }]
+                });
+            },
+        10 * 1000))
+    );
 
     // 信息栏监听器
     let alert_timer = false as any;
@@ -178,6 +218,9 @@
         // 视频设置
         video.value.src = val.url;
         video.value.play();
+
+        // poster
+        video.value.poster = val.poster || '';
     },{ immediate: true });
 
     function init_sub_delay(time: number, changed: number){
@@ -351,6 +394,12 @@
             "mkv",
             "mp4",
             "ogv"
+        ],
+        image: [
+            'bmp',
+            'jpg', 'png', 'jpeg',
+            'webp',
+            'avif'
         ]
     }
 
@@ -414,7 +463,8 @@
             } else {
                 // 更新列表
                 const list = (await FS.list(dir || '/')).filter(item => item.type == 'file'),
-                    subs = {} as Record<string, Array<subOption>>;
+                    subs = {} as Record<string, Array<subOption>>,
+                    posters = {} as Record<string, string>;
                 CFG.playlist = []; CFG.subtitle = [];
                 let i = 0;
                 list.forEach(item => {
@@ -427,7 +477,7 @@
                         (item as videoOption).vid_name = info.name;
                         CFG.playlist.push(item as videoOption);
                         i++;
-                        // 是字幕
+                    // 是字幕
                     } else if (CONFIG.subtitle.includes(info.ext.toLowerCase())) {
                         if (!(info.name in subs)) subs[info.name] = [];
                         subs[info.name].push({
@@ -435,15 +485,21 @@
                             sub_type: info.ext == 'vtt' ? 'vtt' : 'ass',
                             url: item.url
                         })
+                    // 是图片：poster
+                    } else if ( CONFIG.image.includes(info.ext.toLowerCase())) {
+                        posters[info.name] = item.url;
                     }
                 });
 
                 // 字幕配对
-                for (let i = 0; i < CFG.playlist.length; i++)
+                for (let i = 0; i < CFG.playlist.length; i++){
                     if (CFG.playlist[i].vid_name in subs)
                         CFG.playlist[i].subtitle = subs[CFG.playlist[i].vid_name];
                     else
                         CFG.playlist[i].subtitle = [];
+                    if(CFG.playlist[i].vid_name in posters)
+                        CFG.playlist[i].poster = posters[CFG.playlist[i].vid_name];
+                }
 
                 // 更新
                 this.dir = dir;
@@ -461,20 +517,26 @@
                 "timeout": 5
             } satisfies MessageOpinion);
         },
-        shoot(){
-            if(!video.value) return;
-            let canvas = document.createElement('canvas');
-            let w = canvas.width = video.value.videoWidth,
-                h = canvas.height = video.value.videoHeight;
-            canvas.getContext("2d")?.drawImage(video.value,0,0,w,h);
-            canvas.toBlob(blob => {
-                if(!blob) return;
-                const url = URL.createObjectURL(blob);
-                const win = window.open(url);
-                if(win) win.onbeforeunload = () =>
-                    URL.revokeObjectURL(url);    // 销毁链接
-            },"image/webp");
-            CFG.alert = '截图完成';
+        shoot(open = true){
+            return new Promise<string>(resolve => {
+                if(!video.value) return;
+                let canvas = document.createElement('canvas');
+                let w = canvas.width = video.value.videoWidth,
+                    h = canvas.height = video.value.videoHeight;
+                canvas.getContext("2d")?.drawImage(video.value,0,0,w,h);
+                canvas.toBlob(blob => {
+                    if(!blob) return;
+                    const url = URL.createObjectURL(blob);
+                    if(open){
+                        CFG.alert = '截图完成';
+                        const win = window.open(url);
+                        if(win) win.onbeforeunload = () =>
+                            URL.revokeObjectURL(url);    // 销毁链接
+                    }
+                    resolve(url);
+                },"image/webp");
+                
+            });
         }
     };
 

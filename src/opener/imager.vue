@@ -1,14 +1,14 @@
 <script setup lang="ts">
-    import type { CtxDispOpts, vFile, vSimpleFileOrDir } from '@/env';
+    import type { vFile } from '@/env';
     import { regSelf } from '@/opener';
-    import { FS, Global, reqFullscreen, splitPath } from '@/utils';
-    import { onMounted, onUnmounted, reactive, ref, shallowRef } from 'vue';
+    import { reqFullscreen } from '@/utils';
+    import { onMounted, onUnmounted, ref, shallowRef } from 'vue';
     import { ImageManager } from '@/utils/imager';
 
     const boxElem = ref<HTMLDivElement>(),
         opts_ = defineProps(['option']),
         file = opts_['option'] as vFile,
-        ev = defineEmits(['show','hide','close']);
+        ev = defineEmits(['show']);
 
     let manager = shallowRef<ImageManager>();
 
@@ -28,7 +28,7 @@
 </script>
 
 <template>
-    <div class="image-viewer" ref="boxElem" tabindex="-1">
+    <div class="image-viewer" ref="boxElem" tabindex="-1" v-bind="$attrs">
         <div class="ctrl" v-if="manager">
             <!-- 缩小 -->
             <div @click="manager.scale -= 0.1">

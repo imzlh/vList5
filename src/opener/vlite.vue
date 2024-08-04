@@ -4,7 +4,7 @@
     import parseCue from '@/utils/cue';
     import { acceptDrag, FILE_PROXY_SERVER, FS, Global, splitPath } from '@/utils';
     import { Lrc, Runner, type Lyric } from 'lrc-kit';
-    import { idText } from 'typescript';
+    import MediaSession, { updateMediaSession } from '@/utils/mediaSession';
     import { computed, nextTick, onMounted, onUnmounted, ref, shallowReactive, watch } from 'vue';
 
     interface Music {
@@ -19,7 +19,7 @@
         start?: number
     }
 
-    const props = defineProps(['option']),
+    const props = defineProps(['option', 'visibility']),
         data = props['option'] as vFile,
         root = ref<HTMLElement>(),
         CFG = shallowReactive({
@@ -63,6 +63,27 @@
             "ogg"
         ]
     }
+
+    // 抢夺mediaSession
+    watch(
+        () => props.visibility,
+        val => val && (MediaSession.value = {
+            element: audio,
+            seekOnce: CONFIG.seek_time,
+            prev: () => CFG.currentID --,
+            next: () => CFG.currentID ++
+        }, current.value && updateMediaSession({
+            "title": current.value.name,
+            "artist": current.value.composer,
+            "album": current.value.album,
+            "artwork": [
+                {
+                    src: current.value.cover || ''
+                }
+            ]
+        })),
+        { immediate: true }
+    );
 
     // 挂载后
     onMounted(() => root.value && acceptDrag(root.value, async function(file){
@@ -163,6 +184,18 @@
                 CFG.totalTime = time2str(audio.duration)
             ,{ once: true });
         }
+
+        // 抢夺mediaSession
+        updateMediaSession({
+            "title": item.name,
+            "artist": item.composer,
+            "album": item.album,
+            "artwork": [
+                {
+                    src: item.cover || current.value.cover || ''
+                }
+            ]
+        });
     });
 
     // 字幕解析

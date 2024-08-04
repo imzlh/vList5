@@ -66,8 +66,8 @@
 				<i class="close" @click="tabs.splice(i, 1);"></i>
 			</div>
 			<suspense>
-				<component :is="toRaw(data.content)" :option="data.option"
-					@close="tabs.splice(i, 1);" @hide="current = -1" @show="current = i"
+				<component :is="toRaw(data.content)" :option="data.option" :visibility="current == i"
+					@close="tabs.splice(i, 1);" @hide="current = -1" @show="current = i" @chTitle="data.name = $event"
 				/>
 
 				<template #fallback>
