@@ -22,7 +22,7 @@
 		}
 	};
 
-	function ctxMenu(ev: MouseEvent, i: number) {
+	function ctxMenu(ev: MouseEvent, i: string) {
 		Global('ui.ctxmenu').call({
 			"pos_x": ev.clientX,
 			"pos_y": ev.clientY,

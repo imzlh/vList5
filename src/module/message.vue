@@ -11,6 +11,7 @@
             uuid: Math.floor(Math.random() * Number.MAX_SAFE_INTEGER).toString(36)
         }) - 1;
         if (msg.timeout) setTimeout(() => message.splice(i, 1), msg.timeout * 1000);
+        return i;
     }
     function msg_destroy(i: number) {
         message[i].hidden = true;
