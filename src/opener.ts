@@ -180,7 +180,7 @@ export const OPENER:Array<OpenerOption> = [
     {
         "name": "avPlayer",
         "type": "media/*",
-        "typeDesc": "播放任何视频，基于ffmpeg",
+        "typeDesc": "播放任何视频音频，基于ffmpeg",
         "icon": I_MEDIA,
         "format":[
             "webm",

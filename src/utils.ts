@@ -5,10 +5,10 @@ const pool = {};
  */
 interface GlobalDataTable{
     'ui.alert': (opt: AlertOpts) => void,
-    'ui.window.add': (opt: TabWindow) => void,
+    'ui.window.add': (opt: TabWindow) => number,
     'ui.window.del': (opt: number) => void,
-    'ui.message': (opt: MessageOpinion) => void,
-    'ui.ctxment': (opt: CtxDispOpts) => void,
+    'ui.message': (opt: MessageOpinion) => number,
+    'ui.ctxmenu': (opt: CtxDispOpts) => void,
     'opener.choose': (opt: vFile) => Promise<OpenerOption>,
     'ui.choose': (opt: string) => Promise<Array<vFile>>
 }

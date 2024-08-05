@@ -40,11 +40,6 @@ interface TabWindow {
     icon: string,
 
     /**
-     * 窗口的UUID，用来标记窗口的唯一性
-     */
-    uuid?: string,
-
-    /**
      * 传递给组件(content)的额外参数
      */
     option?: any

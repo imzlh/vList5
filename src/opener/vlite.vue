@@ -68,10 +68,13 @@
     watch(
         () => props.visibility,
         val => val && (MediaSession.value = {
-            element: audio,
             seekOnce: CONFIG.seek_time,
-            prev: () => CFG.currentID --,
-            next: () => CFG.currentID ++
+            prev: () => CFG.currentID == 0 ? CFG.currentID = CFG.playlist.length -1 : CFG.currentID --,
+            next: () => CFG.currentID == CFG.playlist.length -1 ? CFG.currentID = 0 : CFG.currentID ++,
+            play: () => audio.play(),
+            pause: () => audio.pause(),
+            set time(time: number){ audio.currentTime = time },
+            get time(){ return audio.currentTime }
         }, current.value && updateMediaSession({
             "title": current.value.name,
             "artist": current.value.composer,

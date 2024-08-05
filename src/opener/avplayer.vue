@@ -5,6 +5,7 @@
     import { reqFullscreen, UI } from '@/App.vue';
     import { acceptDrag, FS, Global, splitPath } from '@/utils';
     import ASS from 'assjs';
+    import MediaSession, { updateMediaSession } from '@/utils/mediaSession';
 
     const CONFIG = {
         seek_time: 10,
@@ -37,7 +38,7 @@
     } satisfies Directive<HTMLElement, number>;
 
     const videoel = ref<HTMLDivElement>(),
-        _prop = defineProps(['option']),
+        _prop = defineProps(['option', 'visibility']),
         file = _prop.option as vFile,
         ui = reactive({
             about: false,
@@ -64,6 +65,24 @@
         CTRL.play(file);
     });
     onUnmounted(() => player.value?.destroy());
+
+    watch(() => _prop.visibility, val => val && player.value && (
+        MediaSession.value = {
+            next: () => CTRL.next(),
+            prev: () => CTRL.prev(),
+            play: () => player.value && (player.value.play = true),
+            pause: () => player.value && (player.value.play = false),
+            set time(val: number){ player.value?.func.seek(val * 1000); },
+            get time(){ return (player.value?.time.current || 0) / 1000; },
+            seekOnce: CONFIG.seek_time
+        },
+        updateMediaSession({
+            "title": ui.videos[ui.videoID].name,
+            "artist": "vPlayer",
+            "album": "vPlayer",
+            "artwork": []
+        })
+    ), { immediate: true });
 
     const CTRL = {
         dir: '?',
@@ -213,6 +232,12 @@
     watch(() => ui.videos[ui.videoID], function(vid){
         if(!vid || !player.value) return;
         player.value.url = vid.url;
+        updateMediaSession({
+            "title": vid.name,
+            "artist": "vPlayer",
+            "album": "vPlayer",
+            "artwork": []
+        })
     });
 
     watch(root, val => acceptDrag(val as HTMLElement, f => 

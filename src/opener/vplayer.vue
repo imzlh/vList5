@@ -74,39 +74,20 @@
     // 监听可见性以抢夺mediaSession
     watch(() => opts_.visibility, val =>
         val && video.value && (MediaSession.value = {
-            element: video.value,
             seekOnce: 10,
             prev: () => CFG.current--,
-            next: () => CFG.current++
-        }, CTRL.shoot(false).then(src => updateMediaSession({
+            next: () => CFG.current++,
+            play: () => video.value?.play(),
+            pause: () => video.value?.pause(),
+            set time(val: number) { video.value && (video.value.currentTime = val) },
+            get time() { return video.value? video.value.currentTime : 0 },
+        }, updateMediaSession({
             "title": CFG.playlist[CFG.current].vid_name,
             "artist": "vlist",
             "album": "vlist",
-            "artwork": [{ src }]
-        }))),
+            "artwork": [{ src: video.value.poster }]
+        })),
         { immediate: true }
-    );
-
-    // 当video加载完成且激活时自动抢夺mediaSession
-    watch(
-        () => video.value,
-        // 延时拍摄快照
-        vid => vid && vid.addEventListener('load', () => vid.poster ?
-            updateMediaSession({
-                "title": CFG.playlist[CFG.current].vid_name,
-                "artist": "vlist",
-                "album": "vlist",
-                "artwork": [{ src: vid.poster }]
-            }) :
-            setTimeout(async function(){
-                updateMediaSession({
-                    "title": CFG.playlist[CFG.current].vid_name,
-                    "artist": "vlist",
-                    "album": "vlist",
-                    "artwork": [{ src: await CTRL.shoot() }]
-                });
-            },
-        10 * 1000))
     );
 
     // 信息栏监听器
@@ -221,6 +202,12 @@
 
         // poster
         video.value.poster = val.poster || '';
+        updateMediaSession({
+            "title": CFG.playlist[CFG.current].vid_name,
+            "artist": "vlist",
+            "album": "vlist",
+            "artwork": val.poster ? [{ src: val.poster}] : undefined
+        })
     },{ immediate: true });
 
     function init_sub_delay(time: number, changed: number){
