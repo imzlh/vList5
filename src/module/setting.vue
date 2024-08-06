@@ -10,6 +10,7 @@
 
     function click(el: PointerEvent, step = -1, refl: Ref<number>){
         const target = el.target as HTMLElement;
+        if(typeof refl.value != 'number') refl.value = 0;
 
         let timer: number|undefined = setTimeout(function(){
             timer = undefined;

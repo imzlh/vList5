@@ -30,6 +30,11 @@ interface TabWindow {
     onLeave?: Function,
 
     /**
+     * 当窗口关闭时触发的回调函数
+     */
+    onDestroy?: Function,
+
+    /**
      * 窗口的组件
      */
     content: Component,

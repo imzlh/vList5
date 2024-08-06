@@ -1,8 +1,9 @@
 <script setup lang="ts">
 	import type { CtxDispOpts, TabWindow } from '@/env';
 	import { Global } from '@/utils';
-	import { ref, reactive, toRaw, markRaw } from 'vue';
+	import { ref, reactive, toRaw, markRaw, watch } from 'vue';
 	import I_OFF from "/icon/off.webp";
+	import Home from './home.vue';
 
 	const tabs = reactive<Record<string, TabWindow>>({}),
 		current = ref<string>('');
@@ -18,6 +19,9 @@
 		add(item: TabWindow) {
 			const uuid = Math.floor(Math.random() * Number.MAX_SAFE_INTEGER).toString(36);
 			tabs[current.value = uuid] = item;
+
+			watch(() => tabs[current.value], val => val || (item.onDestroy?.call(item), item.onDestroy = undefined));
+
 			return uuid;
 		}
 	};
@@ -40,6 +44,11 @@
 		} satisfies CtxDispOpts)
 	}
 
+	watch(() => tabs[current.value], (now, old) => {
+		now?.onDisplay && now.onDisplay();
+		old?.onLeave && old.onLeave();
+	})
+
 	Global('ui.window').data = func;
 	defineExpose(func);
 </script>
@@ -52,7 +61,7 @@
 			>
 				<img :src="data.icon" onerror="this.style.display = 'none';" class="icon">
 				<span>{{ data.name }}</span>
-				<i class="close" @click.stop="delete tabs[i];"></i>
+				<i class="close" @click.stop="delete tabs[i];current = '';"></i>
 			</div>
 		</template>
 	</div>
@@ -62,11 +71,11 @@
 			<div class="app-meta-header" @click="current = i">
 				<img :src="data.icon" onerror="this.style.display = 'none';" class="icon">
 				<span>{{ data.name }}</span>
-				<i class="close" @click="delete tabs[i];"></i>
+				<i class="close" @click="delete tabs[i];current = '';"></i>
 			</div>
 			<suspense>
 				<component :is="toRaw(data.content)" :option="data.option" :visibility="current == i"
-					@close="delete tabs[i];" @hide="current = ''" @show="current = i" @chTitle="data.name = $event"
+					@close="delete tabs[i];current = '';" @hide="current = ''" @show="current = i" @chTitle="data.name = $event"
 				/>
 
 				<template #fallback>
@@ -77,10 +86,7 @@
 	</template>
 
 	<div class="app default_app" v-show="current == ''">
-		<svg viewBox="0 0 16 16" class="default_app_icon">
-			<path
-				d="M5 2V0H0v5h2v6H0v5h5v-2h6v2h5v-5h-2V5h2V0h-5v2H5zm6 1v2h2v6h-2v2H5v-2H3V5h2V3h6zm1-2h3v3h-3V1zm3 11v3h-3v-3h3zM4 15H1v-3h3v3zM1 4V1h3v3H1z" />
-		</svg>
+		<Home />
 	</div>
 
 </template>
