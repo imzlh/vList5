@@ -3,7 +3,7 @@
 	import type { AlertOpts, CtxDispOpts, CtxMenuData } from './env';
 	import tabManager from './module/tabs.vue';
 	import CtxMenu from './module/ctxmenu.vue';
-	import { APP_NAME, FS, Global, TREE, getActiveFile, getConfig, regConfig, splitPath } from './utils';
+	import { FS, Global, TREE, getActiveFile, getConfig, regConfig, splitPath } from './utils';
 	import Opener from './module/opener.vue';
 	import Message from './module/message.vue';
 	import Chooser from './module/fileframe.vue';
@@ -148,6 +148,20 @@
 			"key": "authkey",
 			"name": "身份ID",
 			"desc": "用于身份验证，解锁文件系统操作"
+		},
+		'个性化',
+		{
+			"type": "text",
+			"default": "izCloud",
+			"key": "appname",
+			"name": "应用名称",
+			"desc": "在左上角显示的应用名称"
+		},{
+			"type": "text",
+			"default": "",
+			"key": "favicon",
+			"name": "应用图标",
+			"desc": "在左上角显示的应用图标"
 		}
 	]);
 	const UIMAIN = getConfig('基础'),
@@ -188,10 +202,11 @@
 		left: layout_displayLeft ? '1rem' : '-200vw'
 	}">
 		<div class="h">
-			<svg fill="currentColor" viewBox="0 0 16 16">
+			<img v-if="UIMAIN.favicon.value" :src="UIMAIN.favicon.value" />
+			<svg fill="currentColor" viewBox="0 0 16 16" v-else>
 				<path d="M4.158 12.025a.5.5 0 0 1 .316.633l-.5 1.5a.5.5 0 0 1-.948-.316l.5-1.5a.5.5 0 0 1 .632-.317zm6 0a.5.5 0 0 1 .316.633l-.5 1.5a.5.5 0 0 1-.948-.316l.5-1.5a.5.5 0 0 1 .632-.317zm-3.5 1.5a.5.5 0 0 1 .316.633l-.5 1.5a.5.5 0 0 1-.948-.316l.5-1.5a.5.5 0 0 1 .632-.317zm6 0a.5.5 0 0 1 .316.633l-.5 1.5a.5.5 0 1 1-.948-.316l.5-1.5a.5.5 0 0 1 .632-.317zm.747-8.498a5.001 5.001 0 0 0-9.499-1.004A3.5 3.5 0 1 0 3.5 11H13a3 3 0 0 0 .405-5.973zM8.5 2a4 4 0 0 1 3.976 3.555.5.5 0 0 0 .5.445H13a2 2 0 0 1 0 4H3.5a2.5 2.5 0 1 1 .605-4.926.5.5 0 0 0 .596-.329A4.002 4.002 0 0 1 8.5 2z"/>
 			</svg>
-			{{ APP_NAME }}
+			{{ UIMAIN.appname.value }}
 		</div>
 		<div class="files vlist" ref="list_ele" tabindex="-1"
 			@contextmenu.prevent @focus="tree_active = true" @blur="tree_active = false"
@@ -285,7 +300,7 @@
 				font-size: 1.6rem;
 				line-height: 3rem;
 
-				>svg {
+				>svg, >img {
 					display: inline-block;
 					width: 1em;
 					height: 1em;

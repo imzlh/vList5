@@ -98,23 +98,29 @@ export function getConfig(namespace: string){
     }else throw new Error('Unknown namespace');
 }
 
-export function openSetting(){
+export function openSetting(appns?: string){
     if(!CONFIG) return CONFIG = {};
-    const item:Array<SettingItem> = [];
-    for (const key in CONFIG) {
-        item.push({
-            "type": "object",
-            "name": key,
-            "child": CONFIG[key],
-            "key": key
-        })
+
+    let item:Array<SettingItem> = [];
+    if(appns && appns in CONFIG){
+        item = Object.entries(CONFIG).filter(([key, val]) => key == appns)[0][1];
+    }else{
+        for (const key in CONFIG) {
+            item.push({
+                "type": "object",
+                "name": key,
+                "child": CONFIG[key],
+                "key": key
+            })
+        }
     }
+
     Global('ui.window.add').call({
         "content": Setting,
         "icon": I_SETTING,
         "name": "设置",
         "option": markRaw({
-            "name": "设置",
+            "name": (appns || '') + '设置',
             "child": item,
             "type": "object",
             "key": ""

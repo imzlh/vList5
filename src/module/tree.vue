@@ -1,6 +1,6 @@
 <script lang="ts">
     import type { MessageOpinion, vDir, vFile, FileOrDir } from '@/env';
-    import { DEFAULT_FILE_ICON, FS, Global, UI, openFile, size2str, splitPath, clearActiveFile } from '@/utils';
+    import { DEFAULT_FILE_ICON, FS, Global, UI, openFile, size2str, splitPath, clearActiveFile, getActiveFile } from '@/utils';
     import { type PropType } from 'vue';
     import { TREE_REG } from '@/action/tree';
 
@@ -17,7 +17,8 @@
             if(!e.dataTransfer) return;
             e.preventDefault();
             if(e.dataTransfer.getData('vlist-data/vtoken') == DRAG_TOKEN)
-                callback(await FS.stat(e.dataTransfer.getData('vlist-data/path')));
+                for(const path of JSON.parse(e.dataTransfer.getData('vlist-data/paths')))
+                    callback(await FS.stat(path));
         });
     }
 
@@ -69,15 +70,25 @@
              * @param fd 文件或文件夹
              */
             drag_start(e: DragEvent, fd: FileOrDir){
+                if(!fd.parent?.active.has(fd)){
+                    clearActiveFile();
+                    fd.parent?.active.set(fd, fd.path);
+                }
+
                 if(!e.dataTransfer) return e.preventDefault();
 
-                e.dataTransfer.setData('vlist-data/path', fd.path);
+                const files = getActiveFile();
+
                 e.dataTransfer.setData('vlist-data/vtoken', DRAG_TOKEN);
-                e.dataTransfer.setData('text/uri-list', fd.url);
-                if(fd.type == 'file')
-                    e.dataTransfer.setData('text/plain', `[ ${fd.name.replace(/[\[\]]/g, match => '\\' + match[0])} ](${encodeURI(fd.url)})`);
-                else
-                    e.dataTransfer.setData('text/plain', fd.name);
+                e.dataTransfer.setData('vlist-data/paths', JSON.stringify(files.map(item => item.path)));
+                e.dataTransfer.setData('text/uri-list', files.map(item => item.url).join('\n'));
+
+                e.dataTransfer.setData('text/plain', 
+                    files.map(item => item.type == 'file'
+                        ? `[ ${fd.name.replace(/[\[\]]/g, match => '\\' + match[0])} ](${encodeURI(fd.url)})`
+                        : fd.name    
+                    ).join('')
+                );
 
                 e.dataTransfer.dropEffect = 'copy';
 
@@ -111,12 +122,17 @@
                 (e.currentTarget as HTMLElement).classList.remove('moving');
                 // 只有满足vlist文件的才可以被拖拽
                 if(e.dataTransfer.getData('vlist-data/vtoken') == DRAG_TOKEN){
-                    // 拖拽到原处不受理
-                    const from_fd:FileOrDir = await FS.stat(e.dataTransfer.getData('vlist-data/path'));
-                    if((from_fd.type == 'dir' ? from_fd.path : splitPath(from_fd).dir ) == to_fd.path)
-                        return;
-
-                    FS.move(from_fd.path, to_fd.path)
+                    const data = JSON.parse(e.dataTransfer.getData('vlist-data/paths'));
+                    const enabled = [];
+                    for(const path of data){
+                        // 拖拽到原处不受理
+                        const from_fd:FileOrDir = await FS.stat(path);
+                        if((from_fd.type == 'dir' ? from_fd.path : splitPath(from_fd).dir ) == to_fd.path)
+                            continue;
+                        else
+                            enabled.push(from_fd.path);
+                    }
+                    FS.move(enabled, to_fd.path)
                         .catch(e => Global('ui.message').call({
                             "title": "资源管理器",
                             "content": {
