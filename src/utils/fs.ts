@@ -519,11 +519,6 @@ export const FS = {
             const index = (current.child as Array<FileOrDir>).findIndex(item => item.path == src);
             const node = (current.child as Array<FileOrDir>)[index];
             index != -1 && (current.child as Array<FileOrDir>).splice(index, 1);
-            // 更改节点路径
-            node.path = dst;
-            node.name = splitPath({path: dst}).fname;
-            node.url = FILE_PROXY_SERVER + dst;
-            node.icon = getIcon(node.name, node.type == 'file');
             // 找到目标节点并插入
             current = TREE;
             const paths2 = dst.split('/').filter(item => !!item);
@@ -534,6 +529,12 @@ export const FS = {
                     .filter(item => item.name == name && item.type == 'dir')[0] as vDir;
             }
             (current.child as Array<FileOrDir>).push(node);
+            // 更改节点路径
+            node.icon = getIcon(node.name, node.type == 'file');
+            node.type == 'dir' && this.__update_child(node);
+            node.parent = current;
+            node.path = dst;
+            node.url = FILE_PROXY_SERVER + dst;
         }
     },
 
@@ -666,7 +667,20 @@ export const FS = {
                 current.child && (current.child as Array<FileOrDir>).splice(index, 1);
             target.child || (target.child = []);
             target.child.push((current.child as Array<FileOrDir>)[index]);
+            (current.child as Array<FileOrDir>)[index].parent = target;
         }
+        // 更新子项目路径
+        this.__update_child(target);
+    },
+    
+    __update_child(parent: vDir){
+        if(!parent.child) return;
+        for(const item of parent.child)
+            if(item.type == 'dir')
+                this.__update_child(item);
+            else
+                item.path = parent.path + item.name,
+                item.url = FILE_PROXY_SERVER + parent.path + item.name;
     },
 
     async copy(from:Array<string>|string,to:string){

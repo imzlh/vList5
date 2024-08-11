@@ -139,6 +139,8 @@
 
     // 监听曲目变化
     watch(current, (item, old) => {
+        if(!item) return;
+        
         // 刷新播放状态
         CFG.playing = false;
         CFG.totalTime = '-:-';
@@ -277,7 +279,7 @@
         }
         // 更新时间
         CFG.currentTime = time2str(
-            current.value.start == undefined
+            current.value?.start == undefined
                 ? audio.currentTime
                 : audio.currentTime - current.value.start
         );
@@ -359,6 +361,9 @@
 
     let cur_dir = '';
     async function play(file: vFile) {
+        // 暂停
+        audio.pause();
+        CFG.currentID = -1;
         const dir = splitPath(file)['dir'];
         let id: number | undefined;
         if (cur_dir == dir) {

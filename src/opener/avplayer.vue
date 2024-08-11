@@ -4,7 +4,6 @@
     import type { CtxDispOpts, MessageOpinion, vFile } from '@/env';
     import { reqFullscreen, UI } from '@/App.vue';
     import { acceptDrag, FS, Global, splitPath } from '@/utils';
-    import ASS from 'assjs';
     import MediaSession, { updateMediaSession } from '@/utils/mediaSession';
 
     const CONFIG = {
@@ -27,6 +26,13 @@
             "m2ts",
             "ivf",
             "wav"
+        ],
+        subtitle: [
+            "ass",
+            "ssa",
+            "srt",
+            "vtt",
+            "ttml"
         ]
     },vSpeed = {
         mounted(el, bind){
@@ -50,10 +56,10 @@
         }),
         root = ref<HTMLElement>();
 
-    function time2str(time:number){
-        time /= 1000;
-        const min = Math.floor(time / 60),
-            sec = Math.floor(time % 60);
+    function time2str(time: bigint){
+        if(!time) return '00:00';
+        time /= 1000n;
+        const min = time / 60n, sec = time % 60n;
         return min.toString().padStart(2, '0') + ':' + sec.toString().padStart(2, '0');
     }
 
@@ -72,8 +78,8 @@
             prev: () => CTRL.prev(),
             play: () => player.value && (player.value.play = true),
             pause: () => player.value && (player.value.play = false),
-            set time(val: number){ player.value?.func.seek(val * 1000); },
-            get time(){ return (player.value?.time.current || 0) / 1000; },
+            set time(val: number){ player.value?.func.seek(BigInt(val) * 1000000n); },
+            get time(){ return Number((player.value?.time.current || 0n) / 1000n); },
             seekOnce: CONFIG.seek_time
         },
         updateMediaSession({
@@ -90,7 +96,6 @@
         async play(file: vFile) {
             const dir = splitPath(file)['dir'];
             let id: number | undefined;
-            if(this.ass) this.ass.destroy();
             if (this.dir == dir) {
                 // 找到ID
                 for (let i = 0; i < ui.videos.length; i++)
@@ -139,24 +144,6 @@
             if(ui.videoID == 0)
                 ui.videoID = ui.videos.length -1;
             else ui.videoID --;
-        },
-        ass: undefined as undefined | ASS,
-        async createASS(file: vFile){
-            if(this.ass) this.ass.destroy();
-            const fctx = await (await fetch(file.url)).text();
-            this.ass = new ASS(fctx, videoel.value as any, {
-                container: videoel.value,
-                resampling: 'script_width'
-            });
-            Global('ui.message').call({
-                'type': 'info',
-                'title': 'AVPlayer',
-                'content': {
-                    'title': '成功',
-                    'content': '字母轨道成功渲染'
-                },
-                'timeout': 3
-            } satisfies MessageOpinion);
         }
     };
 
@@ -190,7 +177,7 @@
                     ]
                 },{
                     text: "校准轨道",
-                    handle: () => player.value?.func.seek(player.value.time.current +1)
+                    handle: () => player.value?.func.seek(player.value.time.current +1n)
                 },'---',{
                     "text": "统计信息",
                     handle: () => ui.about = true
@@ -200,14 +187,14 @@
     }
 
     function basicKbdHandle(e: KeyboardEvent){
-        if(!player.value || player.value.time.total == 0) return;
+        if(!player.value || player.value.time.total == 0n) return;
         switch(e.key){
             case 'ArrowRight':
-                player.value.func.seek(player.value.time.current + 10 * 1000);
+                player.value.func.seek(player.value.time.current + 10000n);
             break;
 
             case 'ArrowLeft':
-                player.value.func.seek(player.value.time.current - 10 * 1000);
+                player.value.func.seek(player.value.time.current - 10000n);
             break;
 
             case 'ArrowUp':
@@ -241,8 +228,17 @@
     });
 
     watch(root, val => acceptDrag(val as HTMLElement, f => 
-        f.type == 'file' &&
-        (f.name.endsWith('.ass') ? CTRL.createASS(f) : CTRL.play(f))
+        f.type == 'file' && (function(){
+            const info = splitPath(f);
+            if(CONFIG.media.includes(info.ext.toLowerCase()))
+                CTRL.play({...f, name: info.name});
+            else if(CONFIG.subtitle.includes(info.ext.toLowerCase()))
+                player.value?.func.extSub({
+                    source: f.url,
+                    lang: 'zh-CN',
+                    title: info.name
+                });
+        })()
     ));
     watch(UI.app_width, w => player.value && (player.value.func.resize = [w, UI.height_total.value]));
 </script>
@@ -261,12 +257,18 @@
     >
         <div class="video" ref="videoel"></div>
         <div class="bar" v-if="player" :style="{
-            pointerEvents: player.time.total == 0 ? 'none' : 'all'
+            pointerEvents: player.time.total == 0n ? 'none' : 'all'
         }">
             <div class="time">
                 <div class="current">{{ time2str(player.time.current) }}</div>
-                <div class="timebar" @click="player.func.seek($event.offsetX / ($event.currentTarget as HTMLElement).clientWidth * player.time.total)">
-                    <div :style="{ width: player.time.current / player.time.total * 100 + '%' }"></div>
+                <div class="timebar" @click="player.func.seek(BigInt(Math.floor($event.offsetX / ($event.currentTarget as HTMLElement).clientWidth)) * player.time.total)">
+                    <div :style="{ width: (player.time.current || 0n) / (player.time.total || 1n) * 100n + '%' }"></div>
+                    <div class="chapter" v-if="player.time.total">
+                        <div v-for="(chap, i) in player.tracks.chapter" :style="{
+                            left: (chap.start || 0n) / player.time.total * 100n + '%',
+                            width: Number((chap.end || player.time.total) - (chap.start || 0n))
+                        }" :title="'Chapter' + i"></div>
+                    </div>
                 </div>
                 <div class="total">{{ time2str(player.time.total) }}</div>
             </div>
@@ -354,6 +356,11 @@
             </div>
             
         </div>
+
+        <div class="frame-mask" v-show="ui.speed || ui.about || ui.track || ui.playlist"
+            @click="ui.speed = ui.about = ui.track = ui.playlist = false"
+        ></div>
+
         <div class="frame speed" v-show="ui.speed">
             <h1>播放速度</h1>
             <ul class="select">
@@ -425,17 +432,26 @@
         </div>
 
         <div class="frame track" v-show="ui.track">
-            <ul class="left" v-if="player?.tracks.audio">
+            <ul v-if="player?.tracks.audio">
                 <h1>音频轨道({{ player.tracks.audio.length }})</h1>
                 <li v-for="item in player.tracks.audio"
                     :active="item.index == player.tracks.audioTrack"
-                >{{ item.metadata.language }}</li>
+                    @click="player.tracks.audioTrack = item.index"
+                >({{ item.index }}){{ item.metadata.languageString }}</li>
             </ul>
-            <ul class="right" v-if="player?.tracks.video">
+            <ul v-if="player?.tracks.video">
                 <h1>视频轨道({{ player.tracks.video.length }})</h1>
                 <li v-for="item in player.tracks.video"
                     :active="item.index == player.tracks.videoTrack"
-                >{{ item.metadata.language }}</li>
+                    @click="player.tracks.videoTrack = item.index"
+                >({{ item.index }}){{ item.metadata.languageString }}</li>
+            </ul>
+            <ul v-if="player?.tracks.subtitle">
+                <h1>字幕轨道({{ player.tracks.subtitle.length }})</h1>
+                <li v-for="item in player.tracks.subtitle"
+                    :active="item.index == player.tracks.subTrack"
+                    @click="player.tracks.subTrack = item.index"
+                >({{ item.index }}){{ item.metadata.languageString }}</li>
             </ul>
         </div>
 
@@ -467,6 +483,13 @@
                 top: 0;
                 left: 0;
                 height: 100%;
+            }
+
+            > *:not(video){
+                pointer-events: none;
+                position: absolute !important;
+                top: 50% !important;left: 50% !important;
+                transform: translate(-50%, -50%);
             }
         }
 
@@ -509,7 +532,7 @@
                     &:hover{
                         height: .5rem;
 
-                        > div{
+                        > .prog{
                             min-width: .5rem;
                         }
 
@@ -518,7 +541,7 @@
                         }
                     }
 
-                    > div{
+                    > .prog{
                         border-radius: 0.2rem;
                         min-width: .2rem;
                         height: 100%;
@@ -536,6 +559,20 @@
                             border-radius: 1rem;
                             background-color: white;
                             border: solid .05rem gray;
+                        }
+                    }
+
+                    > .chapter{
+                        position: absolute;
+                        top: -.3rem;
+                        bottom: 100%;
+                        width: 100%;
+
+                        > div{
+                            position: absolute;
+                            border: solid .1rem rgb(184, 184, 184);
+                            border-bottom: none;border-top: none;
+                            height: .25rem;
                         }
                     }
                 }
@@ -657,9 +694,11 @@
 
         > .track{
             display: flex;
-            width: 20rem;
-            max-width: 90vw;
+            width: 35rem;
+            flex-wrap: wrap;
+            max-width: 90%;
             gap: 1rem;
+            justify-items: center;
 
             h1{
                 font-size: 1.25rem;
@@ -670,12 +709,17 @@
                 margin: 0;
                 padding: 0;
                 flex-grow: 1;
+                min-width: 10rem;
 
                 > li{
                     list-style: none;
                     font-size: .85rem;
                     padding: .25rem .5rem;
                     position: relative;
+
+                    &:hover{
+                        background-color: #ffffff30
+                    }
 
                     &[active=true]{
                         @include hover();
@@ -712,6 +756,14 @@
                     }
                 }
             }
+        }
+
+        > .frame-mask{
+            position: absolute;
+            inset: 0;
+            backdrop-filter: blur(.2rem);
+            background-color: rgb(255 255 255 / 60%);
+            z-index: 2;
         }
     }
 </style>

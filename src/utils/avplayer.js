@@ -23,10 +23,18 @@ import { markRaw, reactive, watch } from 'vue';
 import AVPLAYER_SRC from 'libmedia/dist/avplayer/avplayer?url';
 
 // 初始化avPlayer
+const _CSS = window.CSS;
+window.CSS = {
+    ..._CSS,
+    registerProperty(def){
+        console.debug('Register property:', def.name);
+    }
+};
 const script = document.createElement('script');
 script.src = AVPLAYER_SRC;
 document.body.append(script);
 await new Promise(rs => script.onload = rs);
+window.CSS = _CSS;
 AVPlayer.level = 3; // WARN LEVEL
 
 const CODEC_MAP = {
@@ -166,10 +174,6 @@ fn fragment(fragData: VertexOut) -> @location(0) vec4f
     console.warn('Your device doesnot support WebGPU.');
 }
 
-const AVMEDIA_TYPE_VIDEO = 0,
-    AVMEDIA_TYPE_AUDIO = 1,
-    AVMEDIA_TYPE_SUBTITLE = 3;
-
 export default function create(el){
     const player = new globalThis.AVPlayer({
         "container": el,
@@ -206,7 +210,8 @@ export default function create(el){
             video: [],
             videoTrack: 0,
             subtitle: [],
-            subTrack: 0
+            subTrack: 0,
+            chapter: []
         },
         ended: false,
         play: false,
@@ -227,7 +232,13 @@ export default function create(el){
                 window.open(url).onbeforeunload = () => URL.revokeObjectURL(url);
             }, 'image/' + type, 1),
             seek: time => player.seek(time),
-            resize: markRaw([0, 0])
+            resize: markRaw([0, 0]),
+            extSub: track => player.loadExternalSubtitle(track).then(() => {
+                const stream = player.getStreams().at(-1);
+                refs.tracks.subtitle.push(stream);
+                refs.tracks.subTrack = stream.id;
+                return stream;
+            })
         }
     });
 
@@ -236,25 +247,25 @@ export default function create(el){
         old && await player.stop();
         url && player.load(url).then(function(){
             // 加载完毕
-            refs.time.total = Number(player.getDuration());
+            refs.time.total = player.getDuration();
             // 轨道分离
-            refs.tracks.audio = [];
-            refs.tracks.video = [];
-            refs.tracks.subtitle = [];
+            refs.tracks.audio = markRaw([]);
+            refs.tracks.video = markRaw([]);
+            refs.tracks.subtitle = markRaw([]);
             for (const stream of player.getStreams()){
-                if(stream.type == AVMEDIA_TYPE_AUDIO)
+                if(stream.mediaType == 'Audio')
                     refs.tracks.audio.push(markRaw(stream));
-                else if(stream.type == AVMEDIA_TYPE_VIDEO)
+                else if(stream.mediaType == 'Video')
                     refs.tracks.video.push(markRaw(stream));
-                else if(stream.type == AVMEDIA_TYPE_SUBTITLE)
+                else if(stream.mediaType == 'Subtitle')
                     refs.tracks.subtitle.push(markRaw(stream));
             }
             if(refs.tracks.subtitle.length > 0) refs.tracks.subTrack = refs.tracks.subtitle[0].track;
             if(refs.tracks.video.length > 0) refs.tracks.videoTrack = refs.tracks.video[0].track;
             if(refs.tracks.audio.length > 0) refs.tracks.audioTrack = refs.tracks.audio[0].track;
             refs.ended = false;
-            refs.tracks.videoTrack = refs.tracks.audioTrack = refs.tracks.subTrack = 0;
-            player.play();
+            refs.tracks.chapter = player.getChapters();
+            player.play().then(() => refs.play = true);
         }
     )});
     watch(() => refs.stop, res => res ? player.resume() : player.stop())
@@ -262,9 +273,9 @@ export default function create(el){
     watch(() => refs.loop, loop => player.setLoop(loop));
     watch(() => refs.volume, vol => player.setVolume(vol));
     watch(() => refs.play, state => state ? player.play() : player.pause());
-    watch(() => refs.tracks.audioTrack, id => player.selectAudio(id));
-    watch(() => refs.tracks.videoTrack, id => player.selectVideo(id));
-    watch(() => refs.tracks.subTrack, id => player.selectSubtitle(id));
+    watch(() => refs.tracks.audioTrack, id => id && player.getSelectedAudioStreamId() != id && player.selectAudio(id));
+    watch(() => refs.tracks.videoTrack, id => id > 0 && player.getSelectedVideoStreamId() != id && player.selectVideo(id));
+    watch(() => refs.tracks.subTrack, id => id > 0 && player.getSelectedSubtitleStreamId() != id && player.selectSubtitle(id));
     watch(() => refs.display.fill, fill => player.setRenderMode(fill ? 1 : 0));
     watch(() => refs.display.rotate, rotate => player.setRotate(rotate));
     watch(() => refs.display.flip.horizontal, flip => player.enableHorizontalFlip(flip));
@@ -272,15 +283,20 @@ export default function create(el){
     watch(() => refs.func.resize, size => player.resize(size[0], size[1]));
 
     player.on('ended', () => refs.ended = true);
-    player.on('time', pts => refs.time.current = Number(pts));
+    player.on('time', pts => refs.time.current = pts);
+    player.on('firstAudioRendered', function(){
+        refs.tracks.videoTrack = player.getSelectedVideoStreamId();
+        refs.tracks.audioTrack = player.getSelectedAudioStreamId();
+        refs.tracks.subTrack = player.getSelectedSubtitleStreamId();
+    });
 
     // 欺骗ASS.js
     el.videoHeight = el.videoWidth = 
     el.currentTime = 0;
     el.paused = true;
 
-    watch(() => refs.time.total, total => el.duration = total / 1000);
-    watch(() => refs.time.current, current => el.currentTime = current / 1000);
+    watch(() => refs.time.total, total => el.duration = (total || 0n) / 1000n);
+    watch(() => refs.time.current, current => el.currentTime = current / 1000n);
     watch(() => refs.play, play => el.dispatchEvent(new Event((el.paused = !play) ? 'pause' : 'play')));
     watch(() => refs.play, play => play && (el.videoWidth = refs.status.width, el.videoHeight = refs.status.height));
     watch(() => refs.func.seek, time => time > 0 && el.dispatchEvent(new Event('seeking')));
