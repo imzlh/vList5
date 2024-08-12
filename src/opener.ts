@@ -11,6 +11,7 @@ import I_VPLAYER from '/app/vplayer.webp';
 import I_IMAGER from '/app/imager.webp';
 import I_DESIGNER from '/app/desginer.webp';
 import I_MEDIA from '/app/video.webp';
+import I_PS from '/app/ps.webp';
 
 import Imager from './opener/imager.vue';
 import Browser from './opener/browser.vue';
@@ -228,6 +229,26 @@ export const OPENER:Array<OpenerOption> = [
                 "content": (await import('@/opener/imgedit.vue')).default,
                 "icon": I_DESIGNER,
                 "name": file.name + " - imgEditor",
+                "option": file
+            });
+        },
+    },
+    // psd.js
+    // Copyright(C) 2021 izGroup
+    {
+        "name": "PS预览器",
+        "icon": I_PS,
+        "type": "media/image",
+        "typeDesc": "PS预览器",
+        "format": [
+            "psd",
+            "psb"
+        ],
+        async open(file) {
+            Global('ui.window.add').call({
+                "content": (await import('@/opener/psdviewer.vue')).default,
+                "icon": I_PS,
+                "name": file.name + " - PS预览器",
                 "option": file
             });
         },

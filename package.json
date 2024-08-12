@@ -13,6 +13,7 @@
   "dependencies": {
     "@muyajs/core": "^0.0.32",
     "@petamoriken/float16": "^3.8.7",
+    "@webtoon/psd": "^0.4.0",
     "aplayer-ts": "^2.4.5",
     "artplayer": "^5.1.5",
     "assjs": "^0.1.0",

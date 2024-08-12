@@ -145,7 +145,7 @@ export default defineConfig({
                     // core
                     if(
                         (!id.includes('node_modules') || ['vue', 'avplayer'].some(item => id.includes(item)))
-                        && !['markdown.vue', 'aplayer.vue', 'artplayer.vue', 'vscode.vue', 'imgedit'].some(item => id.includes(item))
+                        && !['markdown.vue', 'aplayer.vue', 'artplayer.vue', 'vscode.vue', 'imgedit', 'psd'].some(item => id.includes(item))
                     ) return 'main';
                     // monaco
                     if(id.includes('monaco-editor') || id.includes('vscode.vue'))
@@ -158,6 +158,9 @@ export default defineConfig({
                     // imgedit
                     if(id.includes('react') || id.includes('imgedit'))
                         return 'imgedit';
+                    // psd
+                    if(id.includes('psd'))
+                        return 'psd';
                 },
             },
         },

@@ -84,7 +84,7 @@
             >header {
                 display: flex;
                 height: 1.5em;
-                gap: .75em;
+                gap: .3em;
                 line-height: 1.5em;
                 padding: .25rem .75rem;
                 color: #7c7a7a;
@@ -149,14 +149,13 @@
                     flex-grow: 1;
 
                     > span {
-                        line-height: 1rem;
-                        font-size: .85rem;
+                        font-size: .8rem;
                         color: #575252;
                     }
 
                     > h3 {
                         margin: 0;
-                        line-height: 1.2rem;
+                        line-height: 1.5rem;
                         font-size: 1rem;
                     }
                 }

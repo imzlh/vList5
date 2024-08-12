@@ -264,8 +264,13 @@ export const FS = {
                         file.webkitRelativePath
                             ? file.webkitRelativePath
                             : (file as xFile).fullpath as string
-                }),
-                    parent = await FS.loadPath(path.dir);
+                });
+                try{
+                    var parent = await this.stat(path.dir) as vDir;
+                }catch{
+                    await this.mkdir(path.dir);
+                    parent = await this.stat(path.dir) as vDir;
+                }
             } else {
                 var path = splitPath(to_fd),
                     parent = to_fd;

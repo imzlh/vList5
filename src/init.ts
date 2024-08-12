@@ -102,6 +102,33 @@ document.documentElement.addEventListener('touchend', ev => {
             touch.lastClick.value = now;
     }
     touch = undefined;
+});
+
+// 拖拽管理
+let dragEl: {
+    el: HTMLElement,
+    x: number,
+    y: number,
+    rx: number,
+    ry: number
+} | undefined;
+document.documentElement.addEventListener('pointermove', e => {
+    if(!dragEl) return;
+    dragEl.el.style.left = `${e.clientX - dragEl.x + dragEl.rx}px`,
+    dragEl.el.style.top = `${e.clientY - dragEl.y + dragEl.ry}px`;
+    document.documentElement.style.cursor = 'grabbing';
+});
+document.documentElement.addEventListener('pointerup', () => {
+    dragEl = undefined;
+    document.documentElement.style.cursor = 'default';
+});
+document.documentElement.addEventListener('pointerleave', () => {
+    if(!dragEl) return;
+    // 回到原位
+    dragEl.el.style.left = `${dragEl.rx}px`,
+    dragEl.el.style.top = `${dragEl.ry}px`,
+    dragEl = undefined;
+    document.documentElement.style.cursor = 'default';
 })
 
 // 挂载应用
@@ -125,6 +152,15 @@ app.directive('touch', {
     },
     unmounted(){
         touch = undefined
+    }
+});
+app.directive('drag', {
+    mounted(el: HTMLElement, direct) {
+        el.addEventListener('pointerdown', ev => ev.button == 0 && (ev.target as HTMLElement).classList.contains('drag') && (dragEl = {
+            el, x: ev.clientX, y: ev.clientY, rx: el.offsetLeft, ry: el.offsetTop
+        }));
+        el.style.left = direct.value[0] + 'px';
+        el.style.top = direct.value[1] + 'px';
     }
 });
 
