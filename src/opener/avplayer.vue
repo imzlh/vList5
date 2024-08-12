@@ -216,6 +216,13 @@
         }
     }
 
+    function float(num: bigint, n: number){
+        const numstr = num.toString(),
+            n1 = numstr.substring(0, numstr.length - n),
+            n2 = numstr.substring(numstr.length - n);
+        return n1 + '.' + n2;
+    }
+
     watch(() => ui.videos[ui.videoID], function(vid){
         if(!vid || !player.value) return;
         player.value.url = vid.url;
@@ -261,12 +268,12 @@
         }">
             <div class="time">
                 <div class="current">{{ time2str(player.time.current) }}</div>
-                <div class="timebar" @click="player.func.seek(BigInt(Math.floor($event.offsetX / ($event.currentTarget as HTMLElement).clientWidth)) * player.time.total)">
-                    <div :style="{ width: (player.time.current || 0n) / (player.time.total || 1n) * 100n + '%' }"></div>
+                <div class="timebar" @click="player.func.seek($event.offsetX / ($event.currentTarget as HTMLElement).clientWidth * Number(player.time.total))">
+                    <div class="prog" :style="{ width: float((player.time.current || 0n) * 10000n / (player.time.total || 1n), 2)+ '%' }"></div>
                     <div class="chapter" v-if="player.time.total">
                         <div v-for="(chap, i) in player.tracks.chapter" :style="{
                             left: (chap.start || 0n) / player.time.total * 100n + '%',
-                            width: Number((chap.end || player.time.total) - (chap.start || 0n))
+                            width: (chap.end || player.time.total) - (chap.start || 0n) + '%'
                         }" :title="'Chapter' + i"></div>
                     </div>
                 </div>
@@ -435,22 +442,22 @@
             <ul v-if="player?.tracks.audio">
                 <h1>音频轨道({{ player.tracks.audio.length }})</h1>
                 <li v-for="item in player.tracks.audio"
-                    :active="item.index == player.tracks.audioTrack"
-                    @click="player.tracks.audioTrack = item.index"
+                    :active="item.id == player.tracks.audioTrack"
+                    @click="player.tracks.audioTrack = item.id"
                 >({{ item.index }}){{ item.metadata.languageString }}</li>
             </ul>
             <ul v-if="player?.tracks.video">
                 <h1>视频轨道({{ player.tracks.video.length }})</h1>
                 <li v-for="item in player.tracks.video"
-                    :active="item.index == player.tracks.videoTrack"
-                    @click="player.tracks.videoTrack = item.index"
+                    :active="item.id == player.tracks.videoTrack"
+                    @click="player.tracks.videoTrack = item.id"
                 >({{ item.index }}){{ item.metadata.languageString }}</li>
             </ul>
             <ul v-if="player?.tracks.subtitle">
                 <h1>字幕轨道({{ player.tracks.subtitle.length }})</h1>
                 <li v-for="item in player.tracks.subtitle"
-                    :active="item.index == player.tracks.subTrack"
-                    @click="player.tracks.subTrack = item.index"
+                    :active="item.id == player.tracks.subTrack"
+                    @click="player.tracks.subTrack = item.id"
                 >({{ item.index }}){{ item.metadata.languageString }}</li>
             </ul>
         </div>

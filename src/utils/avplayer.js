@@ -231,7 +231,7 @@ export default function create(el){
                 let url = URL.createObjectURL(data);
                 window.open(url).onbeforeunload = () => URL.revokeObjectURL(url);
             }, 'image/' + type, 1),
-            seek: time => player.seek(time),
+            seek: time => player.seek(Number(time)),
             resize: markRaw([0, 0]),
             extSub: track => player.loadExternalSubtitle(track).then(() => {
                 const stream = player.getStreams().at(-1);
@@ -260,9 +260,6 @@ export default function create(el){
                 else if(stream.mediaType == 'Subtitle')
                     refs.tracks.subtitle.push(markRaw(stream));
             }
-            if(refs.tracks.subtitle.length > 0) refs.tracks.subTrack = refs.tracks.subtitle[0].track;
-            if(refs.tracks.video.length > 0) refs.tracks.videoTrack = refs.tracks.video[0].track;
-            if(refs.tracks.audio.length > 0) refs.tracks.audioTrack = refs.tracks.audio[0].track;
             refs.ended = false;
             refs.tracks.chapter = player.getChapters();
             player.play().then(() => refs.play = true);
@@ -284,7 +281,7 @@ export default function create(el){
 
     player.on('ended', () => refs.ended = true);
     player.on('time', pts => refs.time.current = pts);
-    player.on('firstAudioRendered', function(){
+    player.on('firstVideoRendered', function(){
         refs.tracks.videoTrack = player.getSelectedVideoStreamId();
         refs.tracks.audioTrack = player.getSelectedAudioStreamId();
         refs.tracks.subTrack = player.getSelectedSubtitleStreamId();
@@ -296,10 +293,14 @@ export default function create(el){
     el.paused = true;
 
     watch(() => refs.time.total, total => el.duration = (total || 0n) / 1000n);
-    watch(() => refs.time.current, current => el.currentTime = current / 1000n);
-    watch(() => refs.play, play => el.dispatchEvent(new Event((el.paused = !play) ? 'pause' : 'play')));
-    watch(() => refs.play, play => play && (el.videoWidth = refs.status.width, el.videoHeight = refs.status.height));
-    watch(() => refs.func.seek, time => time > 0 && el.dispatchEvent(new Event('seeking')));
+    player.on('ended', () => el.dispatchEvent(new Event('ended')));
+    player.on('loading', () => el.dispatchEvent(new Event('waiting')));
+    player.on('loaded', () => el.dispatchEvent(new Event('load')));
+    player.on('played', () => el.dispatchEvent(new Event('play')));
+    player.on('paused', () => el.dispatchEvent(new Event('pause')));
+    player.on('seeking', () => el.dispatchEvent(new Event('seeking')));
+    player.on('seeked', () => el.dispatchEvent(new Event('seeked')));
+    player.on('time', time => el.currentTime = time / 1000n);
 
     return refs;
 }

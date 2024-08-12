@@ -11,6 +11,7 @@
     "src/*.ts",
     "vendor/*.ts",
     "config.ts",
+    "src/utils/imgedit.jsx",
   ],
   "exclude": [
     "src/**/__tests__/*",

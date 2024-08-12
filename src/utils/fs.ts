@@ -177,7 +177,8 @@ export const FS = {
             async function add_to_tree(entry: FileSystemDirectoryEntry | FileSystemEntry, parent?: FileSystemDirectoryEntry) {
                 if (entry.isFile){ 
                     if(!parent) parent = await new Promise((rs, rj) => entry.getParent(rs as any, rj));
-                    const file = await new Promise((rs, rj) => (parent as FileSystemDirectoryEntry).getFile(entry.fullPath, undefined, r => (r as FileSystemFileEntry).file(rs, rj), rj)) as xFile;
+                    const file = await new Promise<xFile>((rs, rj) => (entry as FileSystemFileEntry).file(rs, rj));
+                    if(!file) return;
                     file.fullpath = entry.fullPath;
                     TREE.push(file);
                 }else {
@@ -535,6 +536,7 @@ export const FS = {
             node.parent = current;
             node.path = dst;
             node.url = FILE_PROXY_SERVER + dst;
+            node.name = paths2[paths2.length - 1];
         }
     },
 
@@ -587,8 +589,7 @@ export const FS = {
     },
 
     async __create(item: (name: string, fullpath: string, parent: vDir) => FileOrDir, dirs: Array<string>){
-        for(const dirpath of typeof dirs == 'string' ? [dirs] : dirs){
-            const { dir } = splitPath({ path: dirpath });
+        for(const dir of typeof dirs == 'string' ? [dirs] : dirs){
             // 找到dir
             let current = TREE;
             const paths = dir.split('/').filter(item => !!item);
@@ -599,7 +600,7 @@ export const FS = {
             }
             // 添加一个
             current.child || (current.child = []);
-            current.child.push(item(paths[paths.length - 1], dirpath, current));
+            current.child.push(item(paths[paths.length - 1], dir, current));
         }
     },
 
@@ -772,7 +773,7 @@ export const FS = {
             }
 
             file_ref = file_ref || ref<vFile>();
-            this.__create((name, fullpath, parent) => (file_ref as Ref<vFile>).value = reactive({
+            await this.__create((name, fullpath, parent) => (file_ref as Ref<vFile>).value = reactive({
                 "type": "file",
                 "ctime": Date.now(),
                 "icon": getIcon(name, true),

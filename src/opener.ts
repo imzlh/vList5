@@ -209,6 +209,29 @@ export const OPENER:Array<OpenerOption> = [
             });
         },
     },
+    // filerobot-image-editor
+    // @link https://github.com/scaleflex/filerobot-image-editor
+    {
+        "name": "imgEditor",
+        "icon": I_DESIGNER,
+        "type": "media/image",
+        "typeDesc": "图片编辑器",
+        "format": [
+            "jpg", "jpeg", "jxl",
+            "png",
+            "ico",
+            "bmp",
+            "svg"
+        ],
+        async open(file) {
+            Global('ui.window.add').call({
+                "content": (await import('@/opener/imgedit.vue')).default,
+                "icon": I_DESIGNER,
+                "name": file.name + " - imgEditor",
+                "option": file
+            });
+        },
+    },
     // font-viewer V1
     // Copyright(C) 2024 izGroup
     {
