@@ -144,7 +144,7 @@ export default defineConfig({
                 manualChunks(id) {
                     // core
                     if(
-                        (!id.includes('node_modules') || ['vue', 'avplayer', 'react', ''].some(item => id.includes(item)))
+                        (!id.includes('node_modules') || ['vue', 'avplayer'].some(item => id.includes(item)))
                         && !['markdown.vue', 'aplayer.vue', 'artplayer.vue', 'vscode.vue', 'imgedit'].some(item => id.includes(item))
                     ) return 'main';
                     // monaco

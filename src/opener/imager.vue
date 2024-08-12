@@ -5,7 +5,6 @@
     import { onMounted, onUnmounted, ref, shallowRef } from 'vue';
     import { ImageManager } from '@/utils/imager';
     import I_DESIGNER from '/app/desginer.webp';
-import Imgedit from './imgedit.vue';
 
     const boxElem = ref<HTMLDivElement>(),
         opts_ = defineProps(['option']),
@@ -21,13 +20,13 @@ import Imgedit from './imgedit.vue';
     });
 
     const fullscreen = () => document.fullscreenElement ? document.exitFullscreen() : reqFullscreen();
-    const openEditor = () => Global('ui.window.add').call({
+    const openEditor = () => import('./imgedit.vue').then(m => Global('ui.window.add').call({
         "name": "图片编辑",
         "icon": I_DESIGNER,
-        "content": Imgedit,
+        "content": m.default,
         "option": file,
         "onDestroy": () => ev('show')
-    })
+    }));
 
     const unreg = regSelf('Imager',f => {
         manager.value && manager.value.setImage(f);

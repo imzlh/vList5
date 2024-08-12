@@ -43,6 +43,13 @@
         }
     } satisfies Directive<HTMLElement, number>;
 
+    let timer: number | undefined;
+    function active(){
+        ui.tool = true;
+        if(timer) clearTimeout(timer);
+        timer = setTimeout(() => ui.tool = false, 3000);
+    }
+
     const videoel = ref<HTMLDivElement>(),
         _prop = defineProps(['option', 'visibility']),
         file = _prop.option as vFile,
@@ -52,9 +59,12 @@
             playlist: false,
             speed: false,
             videos: [] as Array<vFile & { name: string }>,
-            videoID: 0
+            videoID: 0,
+            tool: false
         }),
         root = ref<HTMLElement>();
+    
+    active();
 
     function time2str(time: bigint){
         if(!time) return '00:00';
@@ -261,11 +271,12 @@
     <div class="av-container" ref="root" v-touch tabindex="-1"
         @contextmenu.prevent="ctxmenu" @keydown.prevent.stop="basicKbdHandle"
         @dblclick.prevent="player && (player.play = !player.play)"
+        @pointermove="active" @click="active"
     >
         <div class="video" ref="videoel"></div>
         <div class="bar" v-if="player" :style="{
             pointerEvents: player.time.total == 0n ? 'none' : 'all'
-        }">
+        }" :active="ui.tool">
             <div class="time">
                 <div class="current">{{ time2str(player.time.current) }}</div>
                 <div class="timebar" @click="player.func.seek($event.offsetX / ($event.currentTarget as HTMLElement).clientWidth * Number(player.time.total))">
@@ -511,6 +522,13 @@
             border-radius: .35rem .35rem 0 0 ;
 
             background-color: rgba(255, 255, 255, 0.9);
+
+            transition: all .2s;
+
+            &[active=false]:not(:hover){
+                transform: translateY(80%) translateX(-50%);
+                opacity: 0;
+            }
 
             > *{
                 display: flex;
