@@ -113,7 +113,7 @@
 
     function del(){
         const items = getActiveFile(CFG.parent).map(item => item.path);
-        FS.delete(items);
+        FS.del(items);
     }
 
     function search(text: string){

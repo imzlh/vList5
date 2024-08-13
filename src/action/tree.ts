@@ -152,7 +152,7 @@ TREE_REG.register(() => ({
     "icon": I_DELETE,
     handle: async () => {
         try {
-            await FS.delete(getActiveFile().map(item => item.path))
+            await FS.del(getActiveFile().map(item => item.path))
         } catch (e) {
             return Global('ui.message').call({
                 'type': 'error',

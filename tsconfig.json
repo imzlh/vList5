@@ -5,13 +5,8 @@
   ],
   "include": [
     "src/env.d.ts",
-    "src/*/*.vue",
-    "src/*.vue",
-    "src/*/*.ts",
-    "src/*.ts",
-    "vendor/*.ts",
-    "config.ts",
-    "src/utils/imgedit.jsx",
+    "src/**/*.vue",
+    "src/**/*.ts",
   ],
   "exclude": [
     "src/**/__tests__/*",

@@ -71,7 +71,7 @@
 					const marked = getActiveFile();
 					this._ensure('删除 ' + marked.length + '个文件(夹)')
 						.then(() => {
-							FS.delete(marked.map(item => item.path));
+							FS.del(marked.map(item => item.path));
 						});
 				break;
 

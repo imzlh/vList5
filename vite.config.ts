@@ -3,6 +3,11 @@ import { fileURLToPath, URL } from 'node:url';
 import { defineConfig } from 'vite';
 import vue from '@vitejs/plugin-vue';
 import { VitePWA as pwa } from 'vite-plugin-pwa';
+import nlsPlugin, {
+    Languages,
+    esbuildPluginMonacoEditorNls,
+} from "./src/opener/vscode/vite_plugin.i18n";
+import I18n from './src/opener/vscode/translate.i18n.json';
 
 // 这里定义应用名称
 const APP_NAME = 'izCloud';
@@ -11,6 +16,10 @@ const APP_NAME = 'izCloud';
 export default defineConfig({
     plugins: [
         vue(),
+        nlsPlugin({
+            locale: Languages.zh_hans,
+            localeData: I18n,
+        }),
         pwa({
             "filename": "sw.js",
             "registerType": "autoUpdate",
@@ -144,8 +153,8 @@ export default defineConfig({
                 manualChunks(id) {
                     // core
                     if(
-                        (!id.includes('node_modules') || ['vue', 'avplayer'].some(item => id.includes(item)))
-                        && !['markdown.vue', 'aplayer.vue', 'artplayer.vue', 'vscode.vue', 'imgedit', 'psd'].some(item => id.includes(item))
+                        (!id.includes('node_modules') || ['vue'].some(item => id.includes(item)))
+                        && !['markdown.vue', 'aplayer.vue', 'artplayer.vue', 'vscode.vue', 'imgedit', 'psd', 'avplayer', 'libmedia'].some(item => id.includes(item))
                     ) return 'main';
                     // monaco
                     if(id.includes('monaco-editor') || id.includes('vscode.vue'))
@@ -158,13 +167,23 @@ export default defineConfig({
                     // imgedit
                     if(id.includes('react') || id.includes('imgedit'))
                         return 'imgedit';
-                    // psd
-                    if(id.includes('psd'))
-                        return 'psd';
+                    // additional pack
+                    if(id.includes('psd') || id.includes('libmedia') || id.includes('avplayer') || id.includes('artplayer') || id.includes('aplayer'))
+                        return 'additional';
                 },
             },
         },
         chunkSizeWarningLimit: 1000
+    },
+    optimizeDeps: {
+        esbuildOptions: {
+            plugins: [
+                esbuildPluginMonacoEditorNls({
+                    locale: Languages.zh_hans,
+                    localeData: I18n,
+                }),
+            ],
+        },
     },
     base: './',
     assetsInclude: [

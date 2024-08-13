@@ -109,11 +109,11 @@ async function encrypto(ctxlen: number, pass: string, content: string):Promise<s
 /**
  * 响应式带缓存的文件IO
  */
-export const FS = {
+export namespace FS{
     /**
      * @private
      */
-    auth_key: null as null | Ref<string>,
+    let auth_key: null | Ref<string> = null;
 
     /**
      * 请求后端
@@ -123,25 +123,25 @@ export const FS = {
      * @param json 是否以json返回
      * @returns JSON
      */
-    async __request(method: string,body: Object, json = false){
-        if(!this.auth_key)
-            this.auth_key = getConfig('基础').authkey;
+    export async function __request(method: string,body: Object, json = false){
+        if(!auth_key)
+            auth_key = getConfig('基础').authkey;
         const content = JSON.stringify(body),
             xhr = await fetch(APP_API + '?action=' + method,{
             method: 'POST',
             body: content,
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': this.auth_key?.value
-                    ? await encrypto(content.length, this.auth_key.value, content)
+                'Authorization': auth_key?.value
+                    ? await encrypto(content.length, auth_key.value, content)
                     : ''
             },
         });
         if(xhr.status == 403) throw new PermissionDeniedError(await xhr.text());
         else if(xhr.status == 400) throw new SyntaxError(await xhr.text());
         else if(xhr.status == 401) try{
-            await this.__auth();
-            await this.__request(method, body, json);
+            await __auth();
+            await __request(method, body, json);
         }catch{
             throw new LoginError();
         }else if(Math.floor(xhr.status / 100) != 2) throw new Error(await xhr.text());
@@ -152,7 +152,7 @@ export const FS = {
         }catch{
             throw new TypeError('Server Error');
         }
-    },
+    }
 
     /**
      * 实用工具：通过input上传文件
@@ -160,7 +160,7 @@ export const FS = {
      * @param to_fd 目标文件夹，自动刷新
      * @returns 上传成功的文件
      */
-    async upload(e: FileList | Array<File> | DragEvent | boolean, to_fd: vDir,
+    export async function upload(e: FileList | Array<File> | DragEvent | boolean, to_fd: vDir,
         onCreate?: (file: vFile) => any
     ):Promise<Array<vFile>>{
 
@@ -237,7 +237,7 @@ export const FS = {
 
         // 检验根目录
         if(!to_fd.child) try{
-            await this.loadTree(to_fd);
+            await loadTree(to_fd);
         } catch {
             Global('ui.message').call({
                 "title": "资源管理器",
@@ -266,10 +266,10 @@ export const FS = {
                             : (file as xFile).fullpath as string
                 });
                 try{
-                    var parent = await this.stat(path.dir) as vDir;
+                    var parent = await stat(path.dir) as vDir;
                 }catch{
-                    await this.mkdir(path.dir);
-                    parent = await this.stat(path.dir) as vDir;
+                    await mkdir(path.dir);
+                    parent = await stat(path.dir) as vDir;
                 }
             } else {
                 var path = splitPath(to_fd),
@@ -360,7 +360,7 @@ export const FS = {
         });
 
         return uploaded;
-    },
+    }
 
     /**
      * 列举一个文件夹
@@ -368,23 +368,23 @@ export const FS = {
      * @param dir 文件夹路径
      * @returns 列表
      */
-    async __list(path:string, predirect: ListPredirect | {} = {}){
+    export async function __list(path:string, predirect: ListPredirect | {} = {}){
         if(/^vfs:\/\/([a-z0-9-]+)\/(.+)$/.test(path))
             throw new TypeError('vfs is not accessable');
         (predirect as any).path = path[path.length -1] == '/' ? path : path + '/';
-        const item = (await this.__request('list',predirect,true) as Array<string>)
+        const item = (await __request('list',predirect,true) as Array<string>)
             .map((item) => ({
                 name: item,
                 path: path + item,
                 url: FILE_PROXY_SERVER + path + item
             } satisfies vSimpleFileOrDir)) as Array<vSimpleFileOrDir>;
         return item.sort((a, b) => a.name.localeCompare(b.name));
-    },
+    }
 
-    async loadTree(input: vDir, quiet = false){
+    export async function loadTree(input: vDir, quiet = false){
         try{
             // 加载父文件夹
-            const _item = (await this.__request('slist',{ path: input.path },true)).map((item:FileOrDir) => {
+            const _item = (await __request('slist',{ path: input.path },true)).map((item:FileOrDir) => {
                     item.url = FILE_PROXY_SERVER + input.path + item.name + (item.type == 'dir' ? '/' : '');
                     item.path = input.path + item.name + (item.type == 'dir' ? '/' : '');
                     item.parent = input;
@@ -407,12 +407,12 @@ export const FS = {
                 "timeout": 5
             });
         }
-    },
+    }
 
     /**
      * @private
      */
-    __findTree(dir: string):vDir{
+    function __findTree(dir: string):vDir{
         const paths = clearPath(dir).split('/');
         let current = TREE;
         for (const name of paths) {
@@ -424,16 +424,27 @@ export const FS = {
             current = cur as vDir;
         }
         return current;
-    },
+    }
 
-    async loadPaths(dir:Array<string>) {
+    export async function  loadPaths(dir:Array<string>) {
         dir = dir.filter(item => dir.every(item2 => item == item2 || !item.startsWith(item2)));
         for (const each of dir)
-            await this.loadPath(each);
-    },
+            await loadPath(each);
+    }
 
-    async loadPath(dirpath: string, reload = false): Promise<vDir>{
-        const dir = this.__findTree(dirpath);
+    export async function loadPath(dirpath: string, reload = false, create_on_miss = false): Promise<vDir>{
+        try{
+            await stat(dirpath);
+        }catch{
+            if(create_on_miss) await mkdir(dirpath);
+            else throw new Error('Folder not found');
+            
+            const dir = __findTree(dirpath);
+            await loadTree(dir);
+            return dir;
+        }
+
+        const dir = await stat(dirpath) as vDir;
         if(!reload) return dir;
         // 获取所有打开的子文件夹
         function getOpenedFolder(tree: vDir): Array<string> {
@@ -449,13 +460,13 @@ export const FS = {
         let opened = getOpenedFolder(dir);
         opened.filter(item => opened.every(item2 => item == item2 || !item.startsWith(item2)));
         // 重新加载目录
-        await this.loadTree(dir);
+        await loadTree(dir);
         // 依次加载子文件夹
         for (const fd of opened) try {
-            await this.loadPath(fd);
+            await loadPath(fd);
         } catch { }
         return dir;
-    },
+    }
 
     /**
      * （带缓存功能，响应式）
@@ -464,16 +475,16 @@ export const FS = {
      * @param create 是否创建不存在的目录
      * @returns 子项目数组
      */
-    async list(path:string, create = false):Promise<Array<FileOrDir>>{
+    export async function list(path:string, create = false):Promise<Array<FileOrDir>>{
         let current = TREE;
         for (const name of path.split('/')) {
             if(!name) continue;
-            if(!current.child) await this.loadTree(current, true);
+            if(!current.child) await loadTree(current, true);
             const cur = (current.child as Array<FileOrDir>).filter(item => item.name == name && item.type == 'dir')[0] as vDir | undefined;
             if(!cur){
                 // 存在，只是被隐藏了
                 try{
-                    if((await this.stat(current.path + name + '/')).type != 'dir')
+                    if((await stat(current.path + name + '/')).type != 'dir')
                         throw 1;
                     current.child?.unshift(current = {
                         'type': 'dir',
@@ -492,9 +503,9 @@ export const FS = {
                 }
             }else current = cur;
         }
-        if(!current.child) await this.loadTree(current);
+        if(!current.child) await loadTree(current);
         return current.child as Array<FileOrDir>;
-    },
+    }
 
     /**
      * 重命名文件
@@ -502,7 +513,7 @@ export const FS = {
      * 对于批量复制到一个地方`move()`更简便且节省带宽
      * @param fileList 文件列表，键值对应 `源文件:目标文件`
      */
-    async rename(fileList: Record<string,string>):Promise<void>{
+    export async function rename(fileList: Record<string,string>):Promise<void>{
         // 查重
         const items = Object.keys(fileList).concat(Object.values(fileList)),
             set = new Set(items);
@@ -510,7 +521,7 @@ export const FS = {
             throw new Error('Duplicate file path');
 
         // 重命名
-        await this.__request('rename', fileList, false);
+        await __request('rename', fileList, false);
         // 将这些文件从原TREE位置删除
         for(const [src, dst] of Object.entries(fileList)){
             // 找到原节点
@@ -523,32 +534,33 @@ export const FS = {
             }
             // 去除节点
             const index = (current.child as Array<FileOrDir>).findIndex(item => item.path == src);
-            const node = (current.child as Array<FileOrDir>)[index];
+            const node = current.child![index];
             index != -1 && (current.child as Array<FileOrDir>).splice(index, 1);
             // 找到目标节点并插入
             current = TREE;
             const paths2 = dst.split('/').filter(item => !!item);
             for(let i = 0; i < paths2.length - 1; i++){
                 const name = paths2[i];
-                if(!current.child) await this.loadTree(current, true);
+                if(!current.child) await loadTree(current, true);
                 current = (current.child as Array<FileOrDir>)
                     .filter(item => item.name == name && item.type == 'dir')[0] as vDir;
             }
             (current.child as Array<FileOrDir>).push(node);
             // 更改节点路径
             node.icon = getIcon(node.name, node.type == 'file');
-            node.type == 'dir' && this.__update_child(node);
+            node.type == 'dir' && __update_child(node);
             node.parent = current;
             node.path = dst;
             node.url = FILE_PROXY_SERVER + dst;
             node.name = paths2[paths2.length - 1];
         }
-    },
+    }
 
-    async stat(path:string):Promise<FileOrDir>{
+    export async function  stat(path:string):Promise<FileOrDir>{
         let match: RegExpMatchArray | null;
+        let use_create = false;
         if(match = path.match(/^vfs:\/\/([a-z0-9-]+)\/(.+)$/))
-            return new Promise(rs => match && rs(this.vfiles[match[1]]));
+            return new Promise(rs => match && rs(vfiles[match[1]]));
 
         // 尝试找到这个文件
         let current = TREE;
@@ -556,9 +568,12 @@ export const FS = {
         for(let i = 0; i < paths.length; i++){
             const name = paths[i];
             if(!name) continue;
-            if(!current.child) await this.loadTree(current, true);
+            if(!current.child) await loadTree(current, true);
             const cur = (current.child as Array<FileOrDir>).filter(item => item.name == name)[0];
-            if(!cur) break; // 找不到就尝试直接stat()
+            if(!cur){
+                use_create = true;
+                break; // 找不到就尝试直接stat()
+            }
 
             // 找到了
             if(i == paths.length - 1)
@@ -573,46 +588,63 @@ export const FS = {
                 current = cur;
         }
 
-        return this.__request('stat',{ path }, true);
-    },
+        
+        const res = await __request('stat',{ path }, true) as FileOrDir;
+        res.type == 'dir' && path[path.length -1] != '/' && (path += '/');
+        res.type == 'file' && path[path.length -1] == '/' && (path = path.slice(0, -1));
+        res.icon = getIcon(res.name, res.type == 'file');
+        res.path = path;
+        res.url = FILE_PROXY_SERVER + path;
+        res.parent = current;
+        res.type == 'dir' && (res.active = new Map());
+        use_create && __create(() => res, [ path ]);
+        return res;
+    }
 
-    async delete(files:Array<string>|string){
-        await this.__request('delete', { files: typeof files == 'string' ? [files] : files });
+    export async function del(files:Array<string>|string){
+        await __request('delete', { files: typeof files == 'string' ? [files] : files });
         // 删除源节点
         for(const file of typeof files == 'string' ? [files] : files){
             let current = TREE;
             const paths = file.split('/').filter(item => !!item);
             for(let i = 0; i < paths.length - 1; i++){
                 const name = paths[i];
-                if(!current.child) await this.loadTree(current, true);
+                if(!current.child) await loadTree(current, true);
                 current = (current.child as Array<FileOrDir>)
                     .filter(item => item.name == name && item.type == 'dir')[0] as vDir;
             }
             const index = (current.child as Array<FileOrDir>).findIndex(item => item.path == file);
             index != -1 && (current.child as Array<FileOrDir>).splice(index, 1);
         }
-    },
+    }
 
-    async __create(item: (name: string, fullpath: string, parent: vDir) => FileOrDir, dirs: Array<string>){
-        for(const dir of typeof dirs == 'string' ? [dirs] : dirs){
+    /**
+     * 在指定的父文件夹中创建返回的元素
+     */
+    async function __create(item: (name: string, fullpath: string, parent: vDir) => FileOrDir, files: Array<string>){
+        for(const dir of files){
             // 找到dir
             let current = TREE;
             const paths = dir.split('/').filter(item => !!item);
             for(let i = 0; i < paths.length -1; i++){
                 const name = paths[i];
-                if(!current.child) await this.loadTree(current, true);
+                if(current.type != 'dir') throw new Error('Path ' + paths.slice(0, i+1).join('/') + ' is not a dir');
+                if(!current.child) await loadTree(current, true);
                 current = (current.child as Array<FileOrDir>).filter(item => item.name == name && item.type == 'dir')[0] as vDir;
             }
             // 添加一个
             current.child || (current.child = []);
-            current.child.push(item(paths[paths.length - 1], dir, current));
+            const nitem = item(paths[paths.length - 1], dir, current);
+            nitem.type == 'file'
+                ? current.child.push(nitem)
+                : current.child.unshift(nitem);
         }
-    },
+    }
 
-    async mkdir(dirs: Array<string>|string){
-        await this.__request('mkdir', { files: typeof dirs == 'string' ? [dirs] : dirs });
+    export async function  mkdir(dirs: Array<string>|string){
+        await __request('mkdir', { files: typeof dirs == 'string' ? [dirs] : dirs });
         // 在文件夹下创建文件夹
-        await this.__create((name, dirpath, parent) => ({
+        await __create((name, dirpath, parent) => ({
             "type": "dir",
             "ctime": Date.now(),
             "icon": DEFAULT_DIR_ICON,
@@ -622,17 +654,17 @@ export const FS = {
             parent,
             active: new Map()
         }), typeof dirs == 'string' ? [dirs] : dirs);
-    },
+    }
 
-    async touch(files:Array<string>|string, mode?: number){
+    export async function  touch(files:Array<string>|string, mode?: number){
         if(mode && mode > 0o7777)
             throw new Error('Mode Error');
         files = typeof files == 'string' ? [files] : files;
-        await this.__request('touch', { 
+        await __request('touch', { 
             files,
             mode
         });
-        await this.__create((name, fullpath, parent) => ({
+        await __create((name, fullpath, parent) => ({
             "type": "file",
             "ctime": Date.now(),
             "icon": getIcon(name, true),
@@ -643,16 +675,16 @@ export const FS = {
             parent,
             active: new Map()
         }), files);
-    },
+    }
 
-    async __analysis_from_to(delete_origin = false, from: Array<string>, to: string){
+    async function __analysis_from_to(delete_origin = false, from: Array<string>, to: string){
         // 找到目标节点
         let current = TREE;
         const paths = to.split('/');
         for(let i = 0; i < paths.length; i++){
             const name = paths[i];
             if(!name) continue;
-            if(!current.child) await this.loadTree(current, true);
+            if(!current.child) await loadTree(current, true);
             current = (current.child as Array<FileOrDir>)
                 .filter(item => item.name == name && item.type == 'dir')[0] as vDir;
         }
@@ -663,7 +695,7 @@ export const FS = {
             const paths = item.split('/').filter(item => !!item);
             for(let i = 0; i < paths.length - 1; i++){
                 const name = paths[i];
-                if(!current.child) await this.loadTree(current, true);
+                if(!current.child) await loadTree(current, true);
                 current = (current.child as Array<FileOrDir>)
                     .filter(item => item.name == name && item.type == 'dir')[0] as vDir;
             }
@@ -672,52 +704,54 @@ export const FS = {
             if(delete_origin)
                 current.child && (current.child as Array<FileOrDir>).splice(index, 1);
             target.child || (target.child = []);
-            target.child.push((current.child as Array<FileOrDir>)[index]);
-            (current.child as Array<FileOrDir>)[index].parent = target;
+            current.child![index].type == 'file' 
+                ? target.child.push(current.child![index])
+                : target.child.unshift(current.child![index]);
+            current.child![index].parent = target;
         }
         // 更新子项目路径
-        this.__update_child(target);
-    },
+        __update_child(target);
+    }
     
-    __update_child(parent: vDir){
+    function __update_child(parent: vDir){
         if(!parent.child) return;
         for(const item of parent.child)
             if(item.type == 'dir')
-                this.__update_child(item);
+                __update_child(item);
             else
                 item.path = parent.path + item.name,
                 item.url = FILE_PROXY_SERVER + parent.path + item.name;
-    },
+    }
 
-    async copy(from:Array<string>|string,to:string){
+    export async function  copy(from:Array<string>|string,to:string){
         from = typeof from == 'string' ? [from] : from;
-        await this.__request('copy', {
+        await __request('copy', {
             from,
             to
         });
-        await this.__analysis_from_to(false, from, to);
-    },
+        await __analysis_from_to(false, from, to);
+    }
 
-    async move(from:Array<string>|string,to:string){
+    export async function  move(from:Array<string>|string,to:string){
         from = typeof from == 'string' ? [from] : from;
-        await this.__request('move', {
+        await __request('move', {
             from,
             to
         });
-        await this.__analysis_from_to(true, from, to);
-    },
+        await __analysis_from_to(true, from, to);
+    }
 
     /**
      * @private
      */
-    __auth: () => new Promise((rs, rj) => Global('ui.alert').call({
+    const __auth = () => new Promise<string>((rs, rj) => Global('ui.alert').call({
         'type': 'prompt',
         'title': '身份验证',
         'message': '由于身份验证失败，操作失败。\n请输入身份ID，如果忘记请查看nginx配置',
         'callback': (data) => {
-            if(!FS.auth_key)
-                FS.auth_key = getConfig('基础').authkey;
-            FS.auth_key.value = data as string;
+            if(!auth_key)
+                auth_key = getConfig('基础').authkey;
+            auth_key.value = data as string;
             rs(data as string);
         },
         'button': [
@@ -732,16 +766,16 @@ export const FS = {
                 'role': 'submit'
             }
         ]
-    } satisfies AlertOpts)) as Promise<string>,
+    } satisfies AlertOpts))
 
-    write(
+    export function write(
         file:string,
         content: Blob,
         progress?:(this: XMLHttpRequest, ev: number) => any,
         file_ref?: Ref<vFile | undefined>
     ):Promise<string>{
-        if(!this.auth_key)
-            this.auth_key = getConfig('基础').authkey;
+        if(!auth_key)
+            auth_key = getConfig('基础').authkey;
 
         // 虚拟文件系统
         let match: RegExpMatchArray | null;
@@ -749,7 +783,7 @@ export const FS = {
             return (async () => {
                 if(!match) throw 1;  // TypeScript Check
 
-                const obj = this.vfiles[match[1]],
+                const obj = vfiles[match[1]],
                     write = await obj.vHandle.createWritable({
                         "keepExistingData": false
                     });
@@ -763,14 +797,14 @@ export const FS = {
             try{
                 _pre = await fetch(APP_API + '?action=upload&path=' + encodeURIComponent(file) + '&length=' + content.size,{
                     headers: {
-                        'Authorization': this.auth_key?.value
-                            ? await encrypto(content.size, this.auth_key.value, file)
+                        'Authorization': auth_key?.value
+                            ? await encrypto(content.size, auth_key.value, file)
                             : ''
                     }
                 });
                 if(_pre.status == 401){
-                    await this.__auth();
-                    return await this.write(file, content, progress).then(rs).catch(rj);
+                    await __auth();
+                    return await write(file, content, progress).then(rs).catch(rj);
                 }
                 if(Math.floor(_pre.status / 100) != 2) throw 0;
             }catch{
@@ -778,7 +812,7 @@ export const FS = {
             }
 
             file_ref = file_ref || ref<vFile>();
-            await this.__create((name, fullpath, parent) => (file_ref as Ref<vFile>).value = reactive({
+            await __create((name, fullpath, parent) => (file_ref as Ref<vFile>).value = reactive({
                 "type": "file",
                 "ctime": Date.now(),
                 "icon": getIcon(name, true),
@@ -808,18 +842,20 @@ export const FS = {
 
             xhr.open('POST',APP_API + '?action=upload&path=' + encodeURIComponent(file));
             xhr.setRequestHeader('Content-Type', content.type);
-            if(this.auth_key?.value) 
-                xhr.setRequestHeader('Authorization', await encrypto(content.size, this.auth_key.value, file));
+            if(auth_key?.value) 
+                xhr.setRequestHeader('Authorization', await encrypto(content.size, auth_key.value, file));
             xhr.send(content);
         });
 
         return promise as Promise<string>;
-    },
-    vfiles: {} as Record<string, vFile & { vHandle: FileSystemFileHandle }>,
-    async create( handle: FileSystemFileHandle ){
+    }
+
+    const vfiles: Record<string, vFile & { vHandle: FileSystemFileHandle }> = {};
+
+    export async function  create( handle: FileSystemFileHandle ){
         const uuid = Math.floor(Math.random() * Number.MAX_SAFE_INTEGER).toString(36),
             file = await handle.getFile();
-        return this.vfiles[uuid] = {
+        return vfiles[uuid] = {
             "ctime": file.lastModified,
             "name": handle.name,
             "size": file.size,
