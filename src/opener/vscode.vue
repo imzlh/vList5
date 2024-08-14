@@ -1,8 +1,8 @@
 <script setup lang="ts">
-    import type { MessageOpinion, vFile } from '@/env';
-    import { FS, Global, getConfig, regConfig, splitPath } from '@/utils';
-    import { onMounted, onUnmounted, ref, watch } from 'vue';
+    import type { vFile } from '@/env';
+    import { onMounted, ref } from 'vue';
     import { VSLang } from './vscode/language';
+    import Editor from './vscode/editor';
 
     // VSCode不可复用
     const opts = defineProps(['option']),
@@ -22,14 +22,11 @@
 </template>
 
 <script lang="ts">
-    import { CFG } from "./vscode/configure";
-    import Editor from './vscode/editor';
-    
+    // 初始化配置
+    import './vscode/configure';
+
     // 设置monaco
-    window.MonacoEnvironment = {
-        "baseUrl": CFG['importURL'].value,
-        "getWorker": VSLang.getWorker
-    }
+    window.MonacoEnvironment = { "getWorker": VSLang.getWorker };
 </script>
 
 <style lang="scss">

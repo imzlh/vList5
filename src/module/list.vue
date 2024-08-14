@@ -111,7 +111,7 @@
         let started = false;
 
         // 自动滑动
-        let timer:number|undefined;
+        let timer:number|undefined|NodeJS.Timeout;
         const handle = function(ev:MouseEvent){
             ev.preventDefault(),ev.stopPropagation();
             select.x2 += ev.movementX,

@@ -409,10 +409,7 @@ export namespace FS{
         }
     }
 
-    /**
-     * @private
-     */
-    function __findTree(dir: string):vDir{
+    export function __findTree(dir: string):vDir{
         const paths = clearPath(dir).split('/');
         let current = TREE;
         for (const name of paths) {

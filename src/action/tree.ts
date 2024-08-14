@@ -338,6 +338,7 @@ TREE_REG.register(() => ({
                     if (!reload.includes(info.dir)) reload.push(info.dir);
                 }
                 FS.rename(obj)
+                    .then(() => ordered.forEach(item => item.lock = false))
                     .catch((e: Error) => Global('ui.message').call({
                         "type": "error",
                         "title": "文件资源管理器",

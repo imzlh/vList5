@@ -43,7 +43,7 @@
         }
     } satisfies Directive<HTMLElement, number>;
 
-    let timer: number | undefined;
+    let timer: number | NodeJS.Timeout | undefined;
     function active(){
         ui.tool = true;
         if(timer) clearTimeout(timer);

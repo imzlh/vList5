@@ -12,10 +12,10 @@
         const target = el.target as HTMLElement;
         if(typeof refl.value != 'number') refl.value = 0;
 
-        let timer: number|undefined = setTimeout(function(){
+        let timer: number|undefined|NodeJS.Timeout = setTimeout(function(){
             timer = undefined;
             interval = setInterval(() => refl.value += step,100);
-        }, 500),interval: undefined | number;
+        }, 500),interval: undefined | number | NodeJS.Timeout;
 
         document.documentElement.addEventListener('pointerup',function(){
             interval ? clearInterval(interval) : refl.value += step;

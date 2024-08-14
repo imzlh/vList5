@@ -153,11 +153,12 @@ export default defineConfig({
                 manualChunks(id) {
                     // core
                     if(
-                        (!id.includes('node_modules') || ['vue'].some(item => id.includes(item)))
-                        && !['markdown.vue', 'aplayer.vue', 'artplayer.vue', 'vscode.vue', 'imgedit', 'psd', 'avplayer', 'libmedia'].some(item => id.includes(item))
+                        ['svg', 'png', 'jpg', 'webp', 'ico'].some(item => id.endsWith('.' + item)) ||
+                        ((!id.includes('node_modules') || ['vue'].some(item => id.includes(item)))
+                        && !['markdown.vue', 'aplayer.vue', 'artplayer.vue', 'vscode.vue', 'imgedit', 'psd', 'avplayer', 'libmedia', 'vscode'].some(item => id.includes(item)))
                     ) return 'main';
                     // monaco
-                    if(id.includes('monaco-editor') || id.includes('vscode.vue'))
+                    if(id.includes('monaco-editor') || id.includes('vscode'))
                         return 'vscode';
                     // muya
                     if((id.includes('muya') && !['prism' ,'mermaid', 'mindmap', 'vega', 'flowchart'].some(item => id.includes(item))) || id.includes('markdown.vue'))
@@ -167,8 +168,11 @@ export default defineConfig({
                     // imgedit
                     if(id.includes('react') || id.includes('imgedit'))
                         return 'imgedit';
+                    // avplayer
+                    if(id.includes('avplayer'))
+                        return 'avplayer';
                     // additional pack
-                    if(id.includes('psd') || id.includes('libmedia') || id.includes('avplayer') || id.includes('artplayer') || id.includes('aplayer'))
+                    if(id.includes('psd') || id.includes('libmedia') || id.includes('artplayer') || id.includes('aplayer'))
                         return 'additional';
                 },
             },
