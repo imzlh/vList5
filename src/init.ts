@@ -114,6 +114,7 @@ let dragEl: {
 } | undefined;
 document.documentElement.addEventListener('pointermove', e => {
     if(!dragEl) return;
+    e.preventDefault();
     dragEl.el.style.left = `${e.clientX - dragEl.x + dragEl.rx}px`,
     dragEl.el.style.top = `${e.clientY - dragEl.y + dragEl.ry}px`;
     document.documentElement.style.cursor = 'grabbing';
@@ -155,12 +156,10 @@ app.directive('touch', {
     }
 });
 app.directive('drag', {
-    mounted(el: HTMLElement, direct) {
+    mounted(el: HTMLElement) {
         el.addEventListener('pointerdown', ev => ev.button == 0 && (ev.target as HTMLElement).classList.contains('drag') && (dragEl = {
             el, x: ev.clientX, y: ev.clientY, rx: el.offsetLeft, ry: el.offsetTop
         }));
-        el.style.left = direct.value[0] + 'px';
-        el.style.top = direct.value[1] + 'px';
     }
 });
 

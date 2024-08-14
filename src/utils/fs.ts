@@ -629,9 +629,13 @@ export namespace FS{
                 if(!current.child) await loadTree(current, true);
                 current = (current.child as Array<FileOrDir>).filter(item => item.name == name && item.type == 'dir')[0] as vDir;
             }
-            // 添加一个
             current.child || (current.child = []);
             const nitem = item(paths[paths.length - 1], dir, current);
+            // 排异
+            for(let i = 0; i < current.child.length - 1; i++)
+                if(current.child[i].name == paths[paths.length - 1])
+                    return current.child[i] = nitem;
+            // 添加一个
             nitem.type == 'file'
                 ? current.child.push(nitem)
                 : current.child.unshift(nitem);

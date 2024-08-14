@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-    import { ref, watch } from 'vue';
+    import { onUnmounted, ref, watch } from 'vue';
     import {mount} from '@/utils/imgedit';
 
     const _prop = defineProps(['visibility', 'option']),
@@ -7,7 +7,8 @@
         ev = defineEmits(['close']),
         container = ref();
 
-    watch(container, val => val && mount(val, file, ev));    
+    const prom_close = new Promise<void>(rs => onUnmounted(rs));
+    watch(container, val => val && mount(val, file, ev, prom_close));
 </script>
 
 <template>

@@ -54,7 +54,7 @@
 </script>
 
 <template>
-	<div class="tab" v-bind="$attrs">
+	<TransitionGroup name="tab" tag="div" v-bind="$attrs" class="tab" v-drag>
 		<template v-for="(data, i) in tabs" :key="i">
 			<div v-if="data" @click="current = i" @contextmenu.prevent="ctxMenu($event, i)"
 				:active="current == i"
@@ -64,7 +64,7 @@
 				<i class="close" @click.stop="delete tabs[i];current = '';"></i>
 			</div>
 		</template>
-	</div>
+	</TransitionGroup>
 
 	<template v-for="(data, i) in tabs" :key="i">
 		<div v-if="data" :key="data.name + i" class="app" v-show="i == current">
@@ -92,7 +92,7 @@
 </template>
 
 
-<style lang="scss">
+<style lang="scss" scoped>
 	@import '@/icon.scss';
 
 	.tab {
@@ -105,7 +105,8 @@
 		position: absolute;
 		top: 0;
 		left: 0;
-		right: 0;
+		max-width: 100%;
+		box-sizing: border-box;
 
 		scroll-behavior: smooth;
 
@@ -115,11 +116,11 @@
 
 		@keyframes tab_jumpin {
 			from{
-				transform: translateY(-5rem) scale(0);
 				opacity: 0;
+				transform: translateX(-1rem);
 			}to{
-				transform: none;
 				opacity: 1;
+				transform: none;
 			}
 		}
 
@@ -140,7 +141,7 @@
 			transition: all .2s;
 			position: relative;
 			font-size: .85rem;
-			animation: jumpin .3s linear forwards;
+			animation: tab_jumpin .3s linear forwards;
 
 			&[active=true]::before {
 				content: '';
@@ -159,6 +160,11 @@
 
 			&:hover > i.close{
 				display: block;
+			}
+
+			&.tab-leave-active{
+				width: 0;
+				overflow: hidden;
 			}
 
 			>img {

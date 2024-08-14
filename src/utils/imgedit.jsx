@@ -3,22 +3,16 @@ import { FS, splitPath } from '../utils';
 import { createRoot } from 'react-dom/client';
 import React from 'react';
 
-const MAP = {
-    'jpg': 'jpeg',
-    'jpeg': 'jpeg',
-    'png': 'png',
-    'webp': 'webp'
-};
-
-export function mount(div, file, ev) {
+export function mount(div, file, ev, promise_onClose) {
     const finfo = splitPath(file);
-    createRoot(div).render(<Editor
+    const app = createRoot(div);
+    app.render(<Editor
         source={file.url}
         onSave={async function (obj) {
             if (!obj.imageCanvas) return;
-            const mime = 'image/' + MAP[finfo.ext];
-            const blob = await new Promise(rs => obj.imageCanvas.toBlob(rs, mime, 1));
-            FS.write(file.path, blob);
+            const blob = await new Promise(rs => obj.imageCanvas.toBlob(rs, obj.mimeType, 1)),
+                path = obj.name + '.' + obj.extension;
+            FS.write(path, blob);
         }}
         onClose={() => ev('close')}
         annotationsCommon={{
@@ -73,4 +67,5 @@ export function mount(div, file, ev) {
         savingPixelRatio={1}
         previewPixelRatio={1}
     ></Editor>);
+    promise_onClose && promise_onClose.then(() => app.unmount());
 }

@@ -9,22 +9,11 @@
     const mgr = ref<HTMLUListElement>(),
         canvas = ref<HTMLCanvasElement>(),
         _prop = defineProps(['option']),
-        file = _prop.option as vFile,
-        pos = {
-            x: UI.app_width.value - UI.fontSize.value * 12,
-            y: UI.height_total.value - UI.fontSize.value * 12
-        };
+        file = _prop.option as vFile;
 
     onMounted(() =>
         PSD.create(file).then(function(psd){
             psd.render(mgr.value!, canvas.value!);
-            // 缩放canvas适合大小
-            const scale = Math.min(
-                UI.app_width.value / canvas.value!.width,
-                UI.height_total.value / canvas.value!.height
-            ) * .95;
-            canvas.value!.style.width = canvas.value!.width * scale + 'px';
-            canvas.value!.style.height = canvas.value!.height * scale + 'px';
         }).catch(() => Global('ui.message').call({
             "type": "error",
             "title": "PhotoShop Viewer",
@@ -40,7 +29,7 @@
 <template>
     <div class="psd-container">
         <canvas ref="canvas"></canvas>
-        <div class="float" v-drag="[pos.x, pos.y]">
+        <div class="float" v-drag>
             <header class="drag">图层</header>
             <ul ref="mgr"></ul>
         </div>
@@ -58,6 +47,10 @@
             left: 50%;
             transform: translate(-50%, -50%);
             border: solid .1rem gray;
+
+            max-width: 95%;
+            max-height: 95%;
+            object-fit: scale-down;
         }
 
         > .float{
@@ -70,6 +63,9 @@
             resize: both;
             color: white;
             line-height: 1.2rem;
+
+            bottom: 2rem;
+            right: 2rem;
 
             height: 10rem;
 
