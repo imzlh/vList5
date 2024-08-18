@@ -199,22 +199,17 @@ export namespace FS{
                 }
             }
 
-            for (const item of e.dataTransfer.items) {
-                const entry = item.webkitGetAsEntry();
-                if(!entry) continue;
-
-                // 文件：遍历FileSystem
-                if(entry.isFile){
-                    const root = entry.filesystem.root;
-                    if(root) await add_to_tree(root, root);
-                    else for (const item of e.dataTransfer.items) {
-                        const entry = item.webkitGetAsEntry();
-                        if(!entry) continue;
-                        await add_to_tree(entry);
-                    }
+            if(e.dataTransfer.items.length == 1){
+                await add_to_tree(e.dataTransfer.items[0].webkitGetAsEntry()!);
+            }else{
+                const entry = e.dataTransfer.items[0].webkitGetAsEntry()!;
+                const root = entry.filesystem.root;
+                if(root) await add_to_tree(root, root);
+                else for (const item of e.dataTransfer.items) {
+                    const entry = item.webkitGetAsEntry();
+                    if(!entry) continue;
+                    await add_to_tree(entry);
                 }
-                // 文件夹：上传这个文件夹
-                else await add_to_tree(entry);
             }
 
             e = TREE;
@@ -251,7 +246,6 @@ export namespace FS{
             return [];
         }
 
-        type _FILE = vSimpleFileOrDir & { upload?: undefined | number };
         const repeated = [] as Array<vFile>,
             repeated_files = [] as Array<File>,
             uploaded = [] as Array<vFile>;
@@ -384,6 +378,7 @@ export namespace FS{
     export async function loadTree(input: vDir, quiet = false){
         try{
             // 加载父文件夹
+            input.lock = true;
             const _item = (await __request('slist',{ path: input.path },true)).map((item:FileOrDir) => {
                     item.url = FILE_PROXY_SERVER + input.path + item.name + (item.type == 'dir' ? '/' : '');
                     item.path = input.path + item.name + (item.type == 'dir' ? '/' : '');
@@ -395,7 +390,6 @@ export namespace FS{
                     .concat(_item.filter(item => item.type == 'file').sort((a, b) => a.name.localeCompare(b.name)) as any) as Array<FileOrDir>;
             item.forEach(each => each.icon = getIcon(each.name, each.type == 'file'));
             input.child = reactive(item);
-            quiet || (input.unfold = true);
         }catch(e){
             quiet && Global('ui.message').call({
                 "type": "error",
@@ -407,6 +401,7 @@ export namespace FS{
                 "timeout": 5
             });
         }
+        input.lock = false;
     }
 
     export function __findTree(dir: string):vDir{
@@ -733,9 +728,9 @@ export namespace FS{
         await __analysis_from_to(false, from, to);
     }
 
-    export async function  move(from:Array<string>|string,to:string){
+    export async function  move(from:Array<string>|string, to:string, deep_move = false){
         from = typeof from == 'string' ? [from] : from;
-        await __request('move', {
+        await __request(deep_move ? 'fmove' : 'move', {
             from,
             to
         });

@@ -280,6 +280,29 @@ TREE_REG.register(() => ({
                     "option": getActiveFile()[0]
                 });
             },
+        }, {
+            'text': '全部展开',
+            'icon': I_FOLDER,
+            handle() {
+                async function unfold(dir: vDir) {
+                    dir.child || await FS.loadTree(dir);
+                    dir.unfold = true;
+                    for(let i = 0; i < dir.child!.length; i++)
+                        if(dir.child![i].type == 'dir')
+                            await unfold(dir.child![i] as vDir);
+                }
+                return unfold(getActiveFile()[0] as vDir);
+            }
+        }, {
+            'text': '全部收起',
+            'icon': I_FOLDER,
+            handle() {
+                const fold = (dir: vDir) => {
+                    dir.unfold = false;
+                    dir.child!.forEach(item => item.type == 'dir' && fold(item))
+                };
+                return fold(getActiveFile()[0] as vDir);
+            }
         }
     ]
 }), {

@@ -158,7 +158,7 @@ export default defineConfig({
                         && !['markdown.vue', 'aplayer.vue', 'artplayer.vue', 'vscode.vue', 'imgedit', 'psd', 'avplayer', 'libmedia', 'vscode'].some(item => id.includes(item)))
                     ) return 'main';
                     // monaco
-                    if(id.includes('monaco-editor') || id.includes('vscode'))
+                    if(id.includes('monaco-editor') || id.includes('vscode') || id.includes('@types'))
                         return 'vscode';
                     // muya
                     if((id.includes('muya') && !['prism' ,'mermaid', 'mindmap', 'vega', 'flowchart'].some(item => id.includes(item))) || id.includes('markdown.vue'))
@@ -171,6 +171,9 @@ export default defineConfig({
                     // avplayer
                     if(id.includes('avplayer'))
                         return 'avplayer';
+                    // asciinema
+                    if(id.includes('asciinema'))
+                        return 'asciinema';
                     // additional pack
                     if(id.includes('psd') || id.includes('libmedia') || id.includes('artplayer') || id.includes('aplayer'))
                         return 'additional';

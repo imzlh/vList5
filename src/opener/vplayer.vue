@@ -5,12 +5,13 @@
     import ASS from 'assjs';
     import { onMounted, onUnmounted, ref, shallowReactive, shallowRef, watch } from 'vue';
     import MediaSession,{ updateMediaSession, type mediaSessionCtrl } from '@/utils/mediaSession';
+import { parseSrt } from '@/utils/subsrt';
 
     interface subOption {
         name: string,
         url?: string,
         text?: string,
-        sub_type: 'ass' | 'vtt'
+        sub_type: 'ass' | 'vtt' | 'srt'
     }
 
     interface videoOption extends vFile {
@@ -18,8 +19,6 @@
         subtitle: Array<subOption>,
         poster?: string
     }
-
-    const MKV_EXTRACT = ['mkv','webm'];
 
     const opts_ = defineProps(['option', 'visibility']),
         file = opts_['option'] as vFile,
@@ -138,9 +137,17 @@
     }
 
     // 切换字幕
-    watch(() => CFG.subtitle[CFG.sub_current],function(val:subOption){
+    watch(() => CFG.subtitle[CFG.sub_current], function(val:subOption){
         if(!val) return;
         if(val.sub_type == 'vtt') return ass && ass.hide();
+        else if(val.sub_type == 'srt'){
+            ass && ass.hide();
+            if(val.text)
+                parseSrt(val.text, video.value!);
+            else
+                fetch(val.url!).then(res => res.text()).then(text => parseSrt(text, video.value!))
+                    .then(() => CFG.alert = 'SRT字幕加载成功');
+        }
         else if(CFG.disp_sub) load_sub(val) .then(() => CFG.alert = '字幕加载成功');
 
         // 偏移设置
@@ -260,10 +267,10 @@
         root.value && acceptDrag(root.value, pl => {
             if(pl.type == 'dir') return;
             const info = splitPath(pl);
-            if(['ass', 'ssa', 'vtt'].includes(info.ext.toLowerCase())){
+            if(CONFIG.subtitle.includes(info.ext.toLowerCase())){
                 CFG.subtitle.push({
                     name: info.name,
-                    sub_type: info.ext == 'vtt' ? 'vtt' : 'ass',
+                    sub_type: info.ext == 'vtt' ? 'vtt' : info.ext == 'srt' ? 'srt' : 'ass',
                     url: pl.url
                 });
             }else CTRL.play(pl);
@@ -374,7 +381,8 @@
         subtitle: [
             "ssa",
             "ass",
-            "vtt"
+            "vtt",
+            "srt"
         ],
         "video": [
             "webm",
@@ -410,7 +418,7 @@
                     // } satisfies MessageOpinion);
                     // 非推荐格式
                     const info = splitPath(each);
-                    if (!['ass', 'ssa', 'vtt'].includes(info.ext.toLowerCase()))
+                    if (!CONFIG.subtitle.includes(info.ext.toLowerCase()))
                         return Global('ui.message').call({
                             "type": "warn",
                             "title": "vPlayer",
@@ -423,7 +431,7 @@
                     // 推入列表
                     CFG.playlist[subfor].subtitle.push({
                         name: info.name,
-                        sub_type: info.ext == 'vtt' ? 'vtt' : 'ass',
+                        sub_type: info.ext == 'vtt' ? 'vtt' : info.ext == 'srt' ? 'srt' : 'ass',
                         url: each.url
                     });
                     // 设置为当前字幕
@@ -469,7 +477,7 @@
                         if (!(info.name in subs)) subs[info.name] = [];
                         subs[info.name].push({
                             name: info.name,
-                            sub_type: info.ext == 'vtt' ? 'vtt' : 'ass',
+                            sub_type: info.ext == 'vtt' ? 'vtt' : info.ext == 'srt' ? 'srt' : 'ass',
                             url: item.url
                         })
                     // 是图片：poster
@@ -553,6 +561,8 @@
             <video ref="video">
                 <track :default="CFG.disp_sub" v-if="CFG.subtitle[CFG.sub_current] && CFG.subtitle[CFG.sub_current].sub_type == 'vtt'"
                     kind="captions" label="vtt sub" :src="CFG.subtitle[CFG.sub_current].url" />
+                <track v-else-if="CFG.subtitle[CFG.sub_current] && CFG.subtitle[CFG.sub_current].sub_type == 'srt'"
+                    kind="subtitles" label="srt sub" src="about:blank" />
             </video>
             <!-- 错误提示 -->
             <div class="error" :display="CFG.error">

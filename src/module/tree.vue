@@ -132,7 +132,7 @@
                         else
                             enabled.push(from_fd.path);
                     }
-                    FS.move(enabled, to_fd.path)
+                    FS.move(enabled, to_fd.path, true)
                         .catch(e => Global('ui.message').call({
                             "title": "资源管理器",
                             "content": {
@@ -191,7 +191,7 @@
                     dir.lock = dir.unfold = true;
                     // 异步加载子项目
                     FS.loadTree(dir as any)
-                        .then(() => dir.lock = false);
+                        .then(() => dir.lock = !(dir.unfold = true));
                 }
             },
             /**

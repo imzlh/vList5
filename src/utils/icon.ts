@@ -1579,8 +1579,10 @@ const folderIcon: FolderIcon[] = [
     { name: 'coffee', fileExtensions: ['coffee', 'cson', 'iced'] },
     {
         name: 'document', fileExtensions: [
-            'txt', 'ass', 'vtt'
+            'txt', 'ass', 'vtt', 'srt', 'ssa'
         ]
+    },{
+        name: 'cast', fileExtensions: ['cast']
     },
     {
         name: 'graphql',

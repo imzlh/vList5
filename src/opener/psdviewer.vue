@@ -11,10 +11,10 @@
         _prop = defineProps(['option']),
         file = _prop.option as vFile;
 
-    onMounted(() =>
-        PSD.create(file).then(function(psd){
-            psd.render(mgr.value!, canvas.value!);
-        }).catch(() => Global('ui.message').call({
+    try{
+        var psd = await PSD.create(file);
+    }catch{
+        Global('ui.message').call({
             "type": "error",
             "title": "PhotoShop Viewer",
             "icon": I_PS,
@@ -22,7 +22,11 @@
                 "title": "打开失败",
                 "content": "请检查文件是否损坏或未打开最大兼容模式"
             }
-        }))
+        })
+    }
+
+    onMounted(() =>
+        psd.render(mgr.value!, canvas.value!)
     )
 </script>
 

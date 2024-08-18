@@ -12,6 +12,7 @@ import I_IMAGER from '/app/imager.webp';
 import I_DESIGNER from '/app/desginer.webp';
 import I_MEDIA from '/app/video.webp';
 import I_PS from '/app/ps.webp';
+import I_ASCIINEMA from '/app/asciinema.svg';
 
 import Imager from './opener/imager.vue';
 import Browser from './opener/browser.vue';
@@ -79,6 +80,25 @@ export const OPENER:Array<OpenerOption> = [
                 "content": (await import ('@/opener/markdown.vue')).default,
                 "icon": I_MUYA,
                 "name": file.name + " - Muya",
+                "option": file
+            });
+        },
+    },
+    // asciinema
+    // @link https://asciinema.org/
+    {
+        "name": "Asciinema",
+        "type": "text/asciinema",
+        "typeDesc": "在线播放Asciinema录像",
+        "icon": I_ASCIINEMA,
+        "format": [
+            "cast"
+        ],
+        async open(file) {
+            Global('ui.window.add').call({
+                "content": (await import('@/opener/asciinema.vue')).default,
+                "icon": I_ASCIINEMA,
+                "name": file.name + " - Asciinema",
                 "option": file
             });
         },

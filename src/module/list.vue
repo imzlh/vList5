@@ -1,6 +1,6 @@
 <script setup lang="ts">
     import type { FileOrDir, vDir, vFile } from '@/env';
-    import { clearActiveFile, DEFAULT_DIR_ICON, DEFAULT_FILE_ICON, FS, size2str, UI } from '@/utils';
+    import { DEFAULT_DIR_ICON, DEFAULT_FILE_ICON, FS, size2str, UI } from '@/utils';
     import { computed, reactive, ref, shallowReactive, watch, type PropType } from 'vue';
 
     // ==================== 文件（夹）管理器 =======================
@@ -30,6 +30,7 @@
         _modes = ['name' , 'name_rev' , 'date' , 'date_rev' , 'size' , 'size_rev'],
         flist = computed(function(){
             const child = _prop.dir.child;
+            _prop.dir.unfold = true;
             if(!child){
                 FS.loadTree(_prop.dir);
                 return [];
@@ -67,7 +68,7 @@
                 : DEFAULT_FILE_ICON;
 
 
-    watch(() => _prop.dir, () => clearActiveFile());
+    watch(() => _prop.dir, (n, old) => old.active.clear());
     //  ===================== 选择管理 ==================
 
     /**
@@ -103,8 +104,9 @@
      * 初始化批量选中
      */
     function init_select(ev:MouseEvent){
-        clearActiveFile();
+        _prop.dir.active.clear();
 
+        select.enable = true,
         select.x1 = select.x2 = ev.offsetX + (ev.target as HTMLElement).scrollLeft,
         select.y1 = select.y2 = ev.offsetY + (ev.target as HTMLElement).scrollTop;
 
@@ -148,12 +150,16 @@
                 document.removeEventListener('pointermove',handle);
                 if( timer ) clearInterval(timer);
                 if( !started )
-                    return clearActiveFile();
+                    return _prop.dir.active.clear();
                 mark_selected();
                 select.enable = false;
             },
-            { once: true });
-
+            { once: true }
+        );
+        document.addEventListener('pointerleave',
+            () => document.dispatchEvent(new PointerEvent('pointerup')),
+            { once: true }
+        );
     }
 
     function format(date: Date){
@@ -192,7 +198,7 @@
         </div>
         <!-- 列表 -->
         <div class="view" v-else-if="_prop.mode == 'view'" tabindex="-1" ref="container"
-            @pointerdown.stop.prevent="init_select" @click.prevent.stop="clearActiveFile()"
+            @pointerdown.stop.prevent="init_select" @click.prevent.stop="_prop.dir.active.clear()"
         >
             <template v-for="(fd,i) of flist" :key="fd.path">
                 <div :type="fd.type" ref="list_element" class="item" tabindex="2"
@@ -209,7 +215,7 @@
                 </div>
             </template>
         </div>
-        <table class="list" v-else>
+        <table class="list" v-else @pointerdown.stop.prevent="init_select">
 
             <thead>
                 <tr>
@@ -225,11 +231,11 @@
                 </tr>
             </thead>
 
-            <tbody @click.stop  ref="container">
+            <tbody ref="container">
                 <template v-for="(fd,i) of flist" :key="fd.path">
                     <tr :type="fd.type" ref="list_element" class="item" tabindex="2" @pointerdown.stop @pointermove.prevent
-                        @click.stop="$event.shiftKey && _prop.dir.active.clear(), _prop.dir.active.set(fd, fd.path)"
-                        @dblclick.prevent="event('open', fd)"
+                        @click.stop="$event.shiftKey || _prop.dir.active.clear(), _prop.dir.active.set(fd, fd.path)"
+                        @dblclick.prevent="event('open', fd)" @pointerdown.stop.prevent
                         @contextmenu.prevent="event('ctxmenu', fd, $event)" v-touch
                         :data-id="i" :style="{
                             '--icon': `url('${getIcon(fd)}')`
@@ -247,7 +253,7 @@
                             {{ fd.type == 'dir' ? '' :  size2str(fd.size) }}
                         </td>
                     </tr>
-                 </template>
+                </template>
             </tbody>
 
         </table>
@@ -365,6 +371,7 @@
             border-spacing: 0;
             user-select: none;
             position: absolute;
+            padding: 0 .5rem;
 
             > thead{
                 position: sticky;
