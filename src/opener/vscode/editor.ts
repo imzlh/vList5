@@ -1,5 +1,5 @@
 import type { vFile } from "@/env";
-import { KeyCode, editor } from 'monaco-editor';
+import { KeyCode, editor, languages, Uri } from 'monaco-editor';
 import genConfig from './configure';
 import { FS, Global } from "@/utils";
 import { VSLang } from "./language";
@@ -38,10 +38,7 @@ export default class Editor{
     async load(){
         // 获取内容
         try{
-            const xhr = await fetch(this.file.url);
-            if(!xhr.ok || parseInt(xhr.headers.get('Content-Length') || '0') >= 2 * 1024 * 1024)
-                throw 1;
-            this.editor.setValue(await xhr.text());
+            await analysis_import(this.file, this.editor);
         }catch{
             Global('ui.message').call({
                 "type": "error",
@@ -86,3 +83,39 @@ export default class Editor{
         return this.editor.getModel()!.getLanguageId()
     }
 } 
+
+// 设置tsconfig
+languages.typescript.typescriptDefaults.setCompilerOptions({
+    target: languages.typescript.ScriptTarget.Latest,
+    allowNonTsExtensions: true,
+    moduleResolution: languages.typescript.ModuleResolutionKind.NodeJs,
+    module: languages.typescript.ModuleKind.ESNext,
+    noEmit: true,
+    allowJs: false,
+    typeRoots: ["node_modules/@types"]
+});
+
+export async function analysis_import(pfile: vFile, session?: editor.IStandaloneCodeEditor){
+    const preg_import = /import\s+(?:.+\s+from\s+)?['"]([^'"]+\.(?:js|ts|tsx|jsx))['"]/g,
+        preg_cjs_import = /(?:require|import)\(['"]([^'"]+\.(ts|js|tsx|jsx))['"]\)/g,
+        ref_syntax = /\/\/\/\s*\<reference.+path=\"(.+\.ts)\".*\>[\r\n]+/g,
+        code = await (await fetch(pfile.url)).text();
+
+    for(const match of [
+        ...code.matchAll(preg_import),
+        ...code.matchAll(preg_cjs_import),
+        ...code.matchAll(ref_syntax)
+    ]){
+        const file = await FS.stat(new URL(match[1], pfile.url).pathname);
+        if(file.type == 'dir') continue;
+        const content = await analysis_import(file);
+        languages.typescript.typescriptDefaults.addExtraLib(content, 'inmemory:' + file.path);
+    }
+
+    if(session){
+        const model = editor.createModel(code, 'typescript', Uri.parse('inmemory:' + pfile.path));
+        session.setModel(model);
+    }
+
+    return code;
+}

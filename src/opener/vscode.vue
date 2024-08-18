@@ -25,11 +25,6 @@
     // 初始化配置
     import './vscode/configure';
 
-    // 初始化TS库
-    import DEFINE from './vscode/lib';
-    // DEFINE.vue()
-    DEFINE.node()
-
     // 设置monaco
     window.MonacoEnvironment = { "getWorker": VSLang.getWorker };
 </script>
