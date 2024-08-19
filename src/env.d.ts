@@ -543,3 +543,34 @@ type ListPredirect = {
      */
     mode: 'r' | 'w' | 'x' | 'f'
 };
+
+/**
+ * 命令面板的命令
+ * 使用`Global('ui.command').call(...)`添加命令
+ */
+interface Command{
+    /**
+     * 快捷键绑定
+     */
+    keybinding?: {
+        ctrl: boolean,
+        alt: boolean,
+        shift: boolean,
+        key: string
+    },
+
+    /**
+     * 英文名称，方便筛选
+     */
+    name: string,
+
+    /**
+     * 中文名称，显示在面板上
+     */
+    title: string,
+
+    /**
+     * 命令的回调函数
+     */
+    handler():any;
+}

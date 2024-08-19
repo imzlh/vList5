@@ -7,6 +7,8 @@ import cssWorker from "monaco-editor/esm/vs/language/css/css.worker?worker";
 import htmlWorker from "monaco-editor/esm/vs/language/html/html.worker?worker";
 import tsWorker from "monaco-editor/esm/vs/language/typescript/ts.worker?worker";
 
+import { languages } from "monaco-editor";
+
 export namespace VSLang{
     const LangMap = {
         bat: ['bat'],
@@ -37,7 +39,8 @@ export namespace VSLang{
         sql: ['sql'],
         typescript: ['ts','tsx'],
         xml: ['xml'],
-        yaml: ['yaml']
+        yaml: ['yaml'],
+        ass: ['ass', 'ssa']
     } as Record<string,Array<string>>;
 
     export function getLang(file: vFile): string{
@@ -67,3 +70,48 @@ export namespace VSLang{
         return new cl();
     }
 }
+
+// 注册一个ass语言
+languages.register({ id: 'ass' });
+languages.setMonarchTokensProvider('ass', {
+    keywords: ['Title', 'ScriptType', 'PlayResX', 'PlayResY', 'Format', 'Style', 'Comment', 'Dialogue'],
+    tokenizer: {
+        root: [
+            [/$Script Info$/, 'header', '@script_info'],
+            [/$V4\+ Styles$/, 'header', '@v4_styles'],
+            [/$Events$/, 'header', '@events'],
+            [/$.*?$/, 'header'],
+            [/\w+:/, 'key'],
+            [/\w+/, 'tag'],
+            [/\d+:\d+:\d+(\.\d+)?/, 'time'],
+            [/\d+(\.\d+)?/, 'number'],
+            [/"(?:[^"\\]|\\.)*"/,'string'],
+            [/'(?:[^'\\]|\\.)*'/, 'literal'],
+            [/,/, 'delimiter'],
+            [/\n/, 'newline'],
+            [/\s+/, 'whitespace'],
+            [/^\s*\;\s*/, 'delimiter'],
+            [/\{([a-zA-Z]+.+?)+\}/, 'tag']
+        ],
+        common: [
+            [/\w+:/, 'key'],
+            [/\w+/, 'tag'],
+            [/\d+:\d+:\d+(\.\d+)?/, 'time'],
+            [/\d+(\.\d+)?/, 'number'],
+            [/"(?:[^"\\]|\\.)*"/,'string'],
+            [/'(?:[^'\\]|\\.)*'/, 'literal'],
+            [/,/, 'delimiter'],
+            [/\n/, 'newline'],
+            [/\s+/, 'whitespace']
+        ],
+        script_info: [
+            { include: 'common' }
+        ],
+        v4_styles: [
+            { include: 'common' }
+        ],
+        events: [
+            { include: 'common' }
+        ]
+    }
+});

@@ -44,7 +44,7 @@
                     const text = el.value,
                         pos_end = text.lastIndexOf('.');
                     // 选中.前内容
-                    el.focus();el.setSelectionRange(0, pos_end);
+                    requestAnimationFrame(() => el.focus());el.setSelectionRange(0, pos_end);
                 }
             },
             into: {
@@ -57,6 +57,7 @@
                                 'block': 'center'
                             });
                         el.classList.add('selected');
+                        requestAnimationFrame(() => el.focus());
                     }else{
                         el.classList.remove('selected');
                     }

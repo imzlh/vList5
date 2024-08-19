@@ -1,7 +1,7 @@
 <script setup lang="ts">
 	import type { CtxDispOpts, TabWindow } from '@/env';
 	import { Global } from '@/utils';
-	import { ref, reactive, toRaw, markRaw, watch } from 'vue';
+	import { ref, reactive, toRaw, markRaw, watch, nextTick } from 'vue';
 	import I_OFF from "/icon/off.webp";
 	import Home from './home.vue';
 
@@ -50,6 +50,15 @@
 	})
 
 	Global('ui.window').data = func;
+	nextTick(() => Global('ui.command').call({
+		"title": "关闭当前工作区",
+		"name": "app.close_current",
+		handler: () => delete tabs[current.value]
+	}, {
+		"title": "回到首页",
+		"name": "app.home",
+		handler: () => current.value = ''
+	}))
 	defineExpose(func);
 </script>
 

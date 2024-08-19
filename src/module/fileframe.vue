@@ -19,8 +19,6 @@
             orderBy: 'name' as 'name' | 'name_rev' | 'date' | 'date_rev' | 'size' | 'size_rev'
         });
 
-    let exports = [] as Array<FileOrDir>;
-
     let resolver:undefined|Function;
 
     Global('ui.choose').data = (f:string) => new Promise(function(rs){
@@ -54,7 +52,7 @@
     }
 
     function submit(){
-        resolver && resolver(exports);
+        resolver && resolver([...data.value!.active.keys()]);
         resolver = undefined;display.value = false;
     }
 
@@ -107,10 +105,10 @@
         } satisfies CtxDispOpts);
     }
 
-    watch(current,() => history.value[current.value] &&
-        FS.loadPath(history.value[current.value]).then(_ => data.value = _)
-    );
-    watch(current, () => path.value = history.value[current.value] || '/');
+    watch(() => history.value[current.value],v =>{ v &&
+        FS.loadPath(v).then(_ => data.value = _);
+        path.value = v || '/';
+    });
 </script>
 
 <template>
@@ -166,10 +164,12 @@
             </div>
         </div>
         <!-- 列表 -->
-        <List v-if="data" :dir="data" style="padding-top: 4rem;" :layout="layout"
-            @ctxmenu="ctxmenu"
-            @open="(file:FileOrDir) => file.type == 'dir' ? switchTo(file.path) : submit()"
-        ></List>
+        <div v-if="data" style="padding-top: 4rem;box-sizing: border-box;height: 100%">
+            <List :dir="data" :layout="layout"
+                @ctxmenu="ctxmenu"
+                @open="(file:FileOrDir) => file.type == 'dir' ? switchTo(file.path) : submit()"
+            ></List>
+        </div>
     </div>
 </template>
 

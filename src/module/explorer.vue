@@ -128,15 +128,16 @@
 
 <script lang="ts">
     nextTick(() =>
-    regConfig('explorer', [
-        {
-            "type": "number",
-            "default": Math.abs(UI.app_width.value * .5), 
-            "key": "ui.filebar_size",
-            "name": "路径框大小",
-            "step": 1
-        }
-    ]));
+        regConfig('explorer', [
+            {
+                "type": "number",
+                "default": Math.abs(UI.app_width.value * .5), 
+                "key": "ui.filebar_size",
+                "name": "路径框大小",
+                "step": 1
+            }
+        ])
+    );
 </script>
 
 <template>

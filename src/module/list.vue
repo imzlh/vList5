@@ -106,9 +106,8 @@
     function init_select(ev:MouseEvent){
         _prop.dir.active.clear();
 
-        select.enable = true,
-        select.x1 = select.x2 = ev.offsetX + (ev.target as HTMLElement).scrollLeft,
-        select.y1 = select.y2 = ev.offsetY + (ev.target as HTMLElement).scrollTop;
+        select.x1 = select.x2 = ev.offsetX,
+        select.y1 = select.y2 = ev.offsetY;
 
         let started = false;
 
@@ -147,12 +146,12 @@
         document.addEventListener('pointermove',handle),
         document.addEventListener('pointerup',
             () => {
+                select.enable = false;
                 document.removeEventListener('pointermove',handle);
                 if( timer ) clearInterval(timer);
                 if( !started )
                     return _prop.dir.active.clear();
                 mark_selected();
-                select.enable = false;
             },
             { once: true }
         );
@@ -201,7 +200,7 @@
             @pointerdown.stop.prevent="init_select" @click.prevent.stop="_prop.dir.active.clear()"
         >
             <template v-for="(fd,i) of flist" :key="fd.path">
-                <div :type="fd.type" ref="list_element" class="item" tabindex="2"
+                <div :type="fd.type" ref="list_element" class="item selectable" tabindex="2"
                     @pointerdown.stop @pointermove.prevent
                     @click.stop="$event.shiftKey || _prop.dir.active.clear(), _prop.dir.active.set(fd, fd.path)"
                     @dblclick.prevent="event('open', fd)"
@@ -233,7 +232,7 @@
 
             <tbody ref="container">
                 <template v-for="(fd,i) of flist" :key="fd.path">
-                    <tr :type="fd.type" ref="list_element" class="item" tabindex="2" @pointerdown.stop @pointermove.prevent
+                    <tr :type="fd.type" ref="list_element" class="item selectable" tabindex="2" @pointerdown.stop @pointermove.prevent
                         @click.stop="$event.shiftKey || _prop.dir.active.clear(), _prop.dir.active.set(fd, fd.path)"
                         @dblclick.prevent="event('open', fd)" @pointerdown.stop.prevent
                         @contextmenu.prevent="event('ctxmenu', fd, $event)" v-touch
@@ -291,6 +290,8 @@
         overflow-x: auto;
         overflow-y: hidden;
         scroll-behavior: smooth;
+
+        position: relative;
 
         &[data-empty=false] {
             padding: .25rem;

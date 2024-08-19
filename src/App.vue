@@ -1,14 +1,15 @@
 <script setup lang="ts">
-	import { computed, onMounted, reactive, readonly, ref, watch, type Ref } from 'vue';
-	import type { AlertOpts, CtxDispOpts, CtxMenuData } from './env';
+	import { computed, nextTick, reactive, ref, shallowRef, watch, type Ref } from 'vue';
+	import type { CtxDispOpts, CtxMenuData, FileOrDir, vDir } from './env';
 	import tabManager from './module/tabs.vue';
 	import CtxMenu from './module/ctxmenu.vue';
-	import { FS, Global, TREE, getActiveFile, getConfig, regConfig, splitPath } from './utils';
+	import { FACTION, FS, Global, TREE, getActiveFile, getConfig, openFile, regConfig } from './utils';
 	import Opener from './module/opener.vue';
 	import Message from './module/message.vue';
 	import Chooser from './module/fileframe.vue';
 	import Alert from './module/alert.vue';
 	import Tree from './module/tree.vue';
+	import Command from './module/command.vue';
 
 	const ctxconfig = reactive({
 			item: [] as Array<CtxMenuData>,
@@ -17,72 +18,117 @@
 			y: 0
 		}),
 		list_ele = ref<HTMLElement>();
-
-	// 键盘事件管理器
-	const KeyBoardManager = {
-		/**
-		 * @private
-		 */
-		current: 0,
-		/**
-		 * @private
-		 */
-		elements: computed(() => (list_ele.value as HTMLElement).getElementsByClassName('selectable')),
-
-		get next(){
-			if(this.current == this.elements.value.length-1)
-				this.current = 0;
-			else
-				this.current ++;
-			return this.elements.value[this.current] as HTMLElement;
-		},
-		get prev(){
-			if(this.current == 0)
-				this.current = this.elements.value.length -1;
-			else
-				this.current --;
-			return this.elements.value[this.current] as HTMLElement;
-		},
-		_ensure(action: string):Promise<any>{
-			return new Promise(rs => Global('ui.alert').call({
-				"callback": res => res && rs(true),
-				"message": "真的要" + action + '吗?',
-				"title": "确认操作",
-				"type": "confirm"
-			} satisfies AlertOpts));
-		},
-		__handler(e: KeyboardEvent){
-			e.preventDefault();
-
-			switch (e.key) {
-				case 'ArrowDown':
-					this.next.click();
-				break;
-
-				case 'ArrowUp':
-					this.prev.click();
-				break;
-
-				case 'Enter':
-					this.elements.value[this.current].dispatchEvent(new MouseEvent('dblclick'));
-				break;
-
-				case 'Delete':
-					const marked = getActiveFile();
-					this._ensure('删除 ' + marked.length + '个文件(夹)')
-						.then(() => {
-							FS.del(marked.map(item => item.path));
-						});
-				break;
-
-				default:
-					break;
-			}
-		}
-	}
-
-	watch(list_ele, el => el && el.addEventListener('keydown', e => KeyBoardManager.__handler(e)));
 	window.addEventListener('resize', () => layout_displayLeft.value = false);
+
+	// 键盘监听
+	let current_tree = TREE.parent!,
+		current_index = 0,
+		old_fd: undefined | FileOrDir,
+		current: FileOrDir = current_tree.child![current_index],
+		locked = false;
+	async function handleUpdate(){
+		old_fd && old_fd.parent?.active.clear();
+		old_fd = current;
+		locked = true;
+		if(!current_tree.child) document.documentElement.focus(), await FS.loadTree(current_tree);
+		current_tree.unfold = true;
+		locked = false;
+		current = current_tree.child![current_index];
+		current.parent?.active.set(current, current.path);
+	}
+	watch(list_ele, ele => ele && ele.addEventListener('keydown', (ev:KeyboardEvent) => {
+		if((ev.target as HTMLElement).tagName == 'INPUT') return;
+		if(locked) return;
+
+		if(ev.ctrlKey) switch(ev.key){
+			case 'keyA':
+				if(!current.parent) return;
+				current.parent.child?.forEach(child => current.parent?.active.set(child, child.path));
+			break;
+
+			case 'keyC':
+				FACTION.mark('copy');
+			break;
+
+			case 'keyX':
+				FACTION.mark('move');
+			break;
+
+			case 'keyV':
+				let dir = current.type == 'dir' ? current : current.parent;
+				if(dir) FACTION.exec(dir);
+			break;
+
+			default:
+				return;
+		}
+		
+		switch(ev.key){
+			case 'ArrowUp':
+				current_index = Math.max(0, current_index - 1);
+				handleUpdate();
+			break;
+				
+			case 'ArrowDown':
+				current_index = current_index >= current_tree.child!.length - 1 ? 0 : current_index + 1;
+				handleUpdate();	
+			break;
+
+			case 'Enter':{
+				const cur = current;
+				cur.type == 'dir'
+					? FS.loadTree(cur).then(() => cur.unfold = true)
+					: openFile(cur);
+			break; }
+
+			case 'Tab':
+			case 'ArrowRight':
+				if(current.type == 'dir')
+					current_tree = current,
+					current_index = 0;
+				handleUpdate();
+			break;
+
+			case 'ArrowLeft':
+			case 'Escape':
+				if(current_tree.parent)
+					current_tree = current_tree.parent,
+					current_index = 0;
+				handleUpdate();
+			break;
+
+			case 'F5':{
+				const cur = current;
+				if(cur.type == 'file' && cur.parent?.type == 'dir')
+					FS.loadTree(cur.parent).then(() => cur!.parent!.unfold = true);
+				else if(cur.type == 'dir')
+					FS.loadTree(cur).then(() => cur!.unfold = true);
+				handleUpdate();
+			break; }
+
+			case 'F2':
+				if(current.type == 'file')
+					current.rename = true;
+			break;
+
+			case 'Delete':
+            	FS.del(getActiveFile()[0].path).catch(e => Global('ui.message').call({
+					'type': 'error',
+					'content': {
+						'title': '删除失败',
+						'content': (e as Error).message
+					},
+					'title': '文件资源管理器',
+					'timeout': 10
+				}));
+				handleUpdate();
+			break;
+
+			default: return;
+		}
+
+		ev.preventDefault();
+	}));
 
 	const tree_active = ref(false),
 		layout_displayLeft = ref(false),
@@ -120,6 +166,16 @@
 		if(target.classList.contains('app-meta-header') && taskmode.value)
 			taskmode.value = false
 	}
+
+	nextTick(() => Global('ui.command').call({
+		"name": "list.focus",
+		"title": "聚焦到文件列表",
+		"handler": () => list_ele.value!.focus()
+	}, {
+		"name": "app.fullscreen",
+		"title": "切换全屏模式",
+		handler: () => UI.fullscreen.value ? document.exitFullscreen() : reqFullscreen()
+	}))
 </script>
 
 <script lang="ts">
@@ -243,6 +299,8 @@
 		<Chooser />
 		<!-- 模态框 -->
 		<Alert />
+		<!-- 快捷启动 -->
+		<Command />
 		<!-- 显示选择栏 -->
 		<div class="mobile-tool">
 			<div @click="layout_displayLeft = !layout_displayLeft">

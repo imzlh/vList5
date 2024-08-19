@@ -175,7 +175,7 @@ export default defineConfig({
                     if(id.includes('asciinema'))
                         return 'asciinema';
                     // additional pack
-                    if(id.includes('psd') || id.includes('libmedia') || id.includes('artplayer') || id.includes('aplayer'))
+                    if(id.includes('psd') || id.includes('libmedia') || id.includes('artplayer'))
                         return 'additional';
                 },
             },

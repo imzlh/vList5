@@ -9,7 +9,7 @@
         vFocus = {
             mounted(el: HTMLElement, dat){
                 if(dat.value)
-                    el.focus();
+                    requestAnimationFrame(() => el.focus());
             }
         } satisfies Directive,
         vBtn = {
@@ -25,7 +25,7 @@
     }
 
     Global('ui.alert').data = (d: AlertOpts) => {
-        item.value = d; dataref.value = '';core.value && core.value.focus();
+        item.value = d; dataref.value = '';core.value && requestAnimationFrame(() => core.value!.focus());
     };
 </script>
 

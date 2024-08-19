@@ -557,6 +557,7 @@ export namespace FS{
         // 尝试找到这个文件
         let current = TREE;
         const paths = path.split('/').filter(item => !!item);
+        if(paths.length == 0) return current;
         for(let i = 0; i < paths.length; i++){
             const name = paths[i];
             if(!name) continue;

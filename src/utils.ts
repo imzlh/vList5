@@ -10,7 +10,8 @@ interface GlobalDataTable{
     'ui.message': (opt: MessageOpinion) => number,
     'ui.ctxmenu': (opt: CtxDispOpts) => void,
     'opener.choose': (opt: vFile) => Promise<OpenerOption>,
-    'ui.choose': (opt: string) => Promise<Array<vFile>>
+    'ui.choose': (opt: string) => Promise<Array<vFile>>,
+    'ui.command': (...opt: Array<Command>) => () => void
 }
 
 /**
@@ -106,5 +107,5 @@ export { FACTION } from './action/action';
 export * from './App.vue';
 export * from './utils/icon';
 
-import "./action/tree";import type { AlertOpts, CtxDispOpts, MessageOpinion, OpenerOption, TabWindow, vDir, vFile } from './env';
+import "./action/tree";import type { AlertOpts, Command, CtxDispOpts, MessageOpinion, OpenerOption, TabWindow, vDir, vFile } from './env';
 

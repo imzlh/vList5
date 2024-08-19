@@ -5,7 +5,7 @@
     import ASS from 'assjs';
     import { onMounted, onUnmounted, ref, shallowReactive, shallowRef, watch } from 'vue';
     import MediaSession,{ updateMediaSession, type mediaSessionCtrl } from '@/utils/mediaSession';
-import { parseSrt } from '@/utils/subsrt';
+    import { parseSrt } from '@/utils/subsrt';
 
     interface subOption {
         name: string,
@@ -65,7 +65,7 @@ import { parseSrt } from '@/utils/subsrt';
         }),
         video = shallowRef<HTMLVideoElement>(),
         cached = shallowRef<Array<[number,number]>>([]),
-        ev = defineEmits(['show']);
+        ev = defineEmits(['show', 'close']);
 
     // 时间栏
     const timer = setInterval(() => CFG.datetime = new Date(), 350);
@@ -236,6 +236,21 @@ import { parseSrt } from '@/utils/subsrt';
         init_sub_delay(parseFloat(val), parseFloat(val) - parseFloat(old));
     })
 
+    // 添加快捷命令
+    onUnmounted(await Global('ui.command').call({
+        "title": "vPlayer: 暂停/播放",
+        "name": "vplayer.toggle",
+        handler: () => video.value && (video.value.paused ? video.value.play() : video.value.pause())
+    }, {
+        "name": "vplayer.mute",
+        "title": "vPlayer: (取消)静音",
+        handler: () => video.value && (video.value.muted = !video.value.muted)
+    }, {
+        "title": "vPlayer: 聚焦",
+        "name": "vplauer.focus",
+        handler: () => video.value && requestAnimationFrame(() => video.value!.focus())
+    }))
+
     onMounted(function(){
         if(!video.value) return;
         const vid = video.value;
@@ -275,11 +290,13 @@ import { parseSrt } from '@/utils/subsrt';
                 });
             }else CTRL.play(pl);
         });
+
+        // 初始化文件
+        CTRL.play(file)
     });
 
     function keyev(kbd:KeyboardEvent){
         if(!video.value) return;
-        kbd.preventDefault();kbd.stopPropagation();
         switch(kbd.key){
             case 'ArrowRight':
                 video.value.currentTime += CONFIG.seek_time;
@@ -301,7 +318,12 @@ import { parseSrt } from '@/utils/subsrt';
             case 'Enter':
                 video.value.paused ? video.value.play() : video.value.pause();
             break;
+
+            default:
+                return;
         }
+
+        kbd.preventDefault();kbd.stopPropagation();
     }
 
     const touch = {
@@ -544,9 +566,6 @@ import { parseSrt } from '@/utils/subsrt';
         cancel();
         clearInterval(timer);
     });
-
-    // 初始化文件
-    CTRL.play(file);
 </script>
 
 <template>

@@ -316,7 +316,6 @@
     audio.oncanplay = () => audio.play();
 
     function keyev(kbd:KeyboardEvent){
-        kbd.preventDefault();kbd.stopPropagation();
         switch(kbd.key){
             case 'ArrowRight':
                 audio.currentTime += CONFIG.seek_time;
@@ -338,7 +337,11 @@
             case 'Enter':
                 audio.paused ? audio.play() : audio.pause();
             break;
+
+            default:
+                return
         }
+        kbd.preventDefault();kbd.stopPropagation();
     }
 
     function switchMode(){
@@ -631,7 +634,7 @@
                     background-position: center;
                     background-size: cover;
                     background-repeat: no-repeat;
-                    background-color: #ffffffad;
+                    background: linear-gradient(60deg, #3c9ea4, #cfe9bc);
                     border-radius: .3rem;
                 }
 

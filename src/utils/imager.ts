@@ -322,7 +322,10 @@ export class ImageManager{
             case 'Escape':
                 this.__reset();
                 break;
+            
+            default: return;
         }
+        e.preventDefault();
     }
 
     private __mouse(e: MouseEvent){

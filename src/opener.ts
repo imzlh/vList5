@@ -340,33 +340,7 @@ export const OPENER:Array<OpenerOption> = [
                 "option": file
             });
         }
-    },
-    // APlayer-ts
-    // @link https://github.com/liuly0322/aplayer-ts
-    // @link https://aplayer.js.org/
-    {
-        "name": "APlayer",
-        "icon": I_APLAYER,
-        "type": "media/audio",
-        "typeDesc": "播放音乐",
-        "format":[
-            "mp3",
-            "wav",
-            "flac",
-            "opus",
-            "mka",
-            "m4a",
-            "ogg"
-        ],
-        async open(file) {
-            Global('ui.window.add').call({
-                "content": (await import('@/opener/aplayer.vue')).default,
-                "icon": I_APLAYER,
-                "name": "APlayer",
-                "option": file
-            });
-        },
-    },
+    }
 ];
 
 export function regSelf(name:string,open:(file:vFile) => any){

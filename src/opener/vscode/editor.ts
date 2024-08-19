@@ -84,34 +84,40 @@ export default class Editor{
     }
 } 
 
-// 设置tsconfig
-languages.typescript.typescriptDefaults.setCompilerOptions({
-    target: languages.typescript.ScriptTarget.Latest,
-    allowNonTsExtensions: true,
-    moduleResolution: languages.typescript.ModuleResolutionKind.NodeJs,
-    module: languages.typescript.ModuleKind.ESNext,
-    noEmit: true,
-    allowJs: false,
-    typeRoots: ["node_modules/@types"]
-});
+    // 设置tsconfig
+    languages.typescript.typescriptDefaults.setCompilerOptions({
+        target: languages.typescript.ScriptTarget.Latest,
+        allowNonTsExtensions: true,
+        moduleResolution: languages.typescript.ModuleResolutionKind.NodeJs,
+        module: languages.typescript.ModuleKind.ESNext,
+        noEmit: true,
+        allowJs: false,
+        typeRoots: ["node_modules/@types"]
+    });
 
+const lib_imported: Array<string> = [];
 export async function analysis_import(pfile: vFile, session?: editor.IStandaloneCodeEditor){
-    const preg_import = /import\s+(?:.+\s+from\s+)?['"]([^'"]+\.(?:js|ts|tsx|jsx))['"]/g,
-        preg_cjs_import = /(?:require|import)\(['"]([^'"]+\.(ts|js|tsx|jsx))['"]\)/g,
-        ref_syntax = /\/\/\/\s*\<reference.+path=\"(.+\.ts)\".*\>[\r\n]+/g,
-        code = await (await fetch(pfile.url)).text();
+    const code = await (await fetch(pfile.url)).text();
 
-    for(const match of [
-        ...code.matchAll(preg_import),
-        ...code.matchAll(preg_cjs_import),
-        ...code.matchAll(ref_syntax)
-    ]){
-        const file = await FS.stat(new URL(match[1], pfile.url).pathname);
-        if(file.type == 'dir') continue;
-        const content = await analysis_import(file);
-        languages.typescript.typescriptDefaults.addExtraLib(content, 'inmemory:' + file.path);
+    // 分析导入
+    if(!lib_imported.includes(pfile.path)){
+        const preg_import = /import\s+(?:.+\s+from\s+)?['"]([^'"]+\.(?:js|ts|tsx|jsx))['"]/g,
+            preg_cjs_import = /(?:require|import)\(['"]([^'"]+\.(ts|js|tsx|jsx))['"]\)/g,
+            ref_syntax = /\/\/\/\s*\<reference.+path=\"(.+\.ts)\".*\>[\r\n]+/g;
+
+        for(const match of [
+            ...code.matchAll(preg_import),
+            ...code.matchAll(preg_cjs_import),
+            ...code.matchAll(ref_syntax)
+        ]){
+            const file = await FS.stat(new URL(match[1], pfile.url).pathname);
+            if(file.type == 'dir') continue;
+            const content = await analysis_import(file);
+            languages.typescript.typescriptDefaults.addExtraLib(content, 'inmemory:' + file.path);
+        }
+
+        lib_imported.push(pfile.path);
     }
-
     if(session){
         const model = editor.createModel(code, 'typescript', Uri.parse('inmemory:' + pfile.path));
         session.setModel(model);
