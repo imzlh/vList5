@@ -1,11 +1,9 @@
 <script lang="ts">
-    import { reactive, shallowRef, type Directive } from 'vue';
-    import { Global } from '@/utils';
-    import I_VLIST from '/favicon.svg';
-    import { nextTick } from 'vue';
+    import { computed, reactive, ref, shallowRef, type Directive } from 'vue';
+    import ObjTree from './objTree.vue';
 
     interface Log{
-        type: 'info' | 'warn' | 'error',
+        type: 'info' | 'warn' | 'error' | 'eval',
         message: string,
         time: string,
         trace?: Array<string>
@@ -13,12 +11,42 @@
 
     const logs = reactive<Array<Log>>([]),
         objCache = [] as Array<Object>,
-        viewObj = shallowRef<Object>();
+        viewObj = shallowRef<Object>(),
+        viewTeteTo = shallowRef<HTMLElement>(),
+        search = reactive({
+            text: '',
+            active: false,
+            curpos: 0,
+            resId: 0
+        }),
+        searchRes = computed(() => {
+            if(!search.text) return [];
+            const texts = search.text.split('.');
+            let target = window as Record<string, any>;
+            for(let i = 0; i < texts.length-1; i++){
+                if(!target[texts[i]]) return [];
+                target = target[texts[i]];
+            }
+
+            // 搜索
+            const allKeys: (obj: Record<string, any>) => string[] = obj => obj.__proto__ ? Object.keys(obj).concat(allKeys(obj.__proto__)) : Object.keys(obj);
+            return allKeys(target).filter(key => key.toLowerCase().includes(texts[texts.length-1].toLowerCase()));
+        });
+
+    const encodeHTMLChar = (str: string) => str.replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace('\n', '</span><br/><span>')
+        .replace('\t', '&nbsp;&nbsp;&nbsp;&nbsp;');
+
+    const vScroll = {
+        updated(el: HTMLElement, data){
+            data.value && el.scrollIntoView();
+        }
+    } as Directive;
 
     function highlight(input: any) {
         switch (typeof input) {
             case 'string':
-                return input;
+                return encodeHTMLChar(input);
             case 'number':
             case 'bigint':
                 return `<span num>${input}</span>`;
@@ -30,12 +58,12 @@
                 return `<span style="color: gray">undefined</span>`;
             case 'object':
                 if (input === null) return `<span style="color: gray">null</span>`;
-                else if (Array.isArray(input)) return `<span obj data-id="${objCache.push(input) - 1}">Array[${input.length}]</span>`;
+                else if (Array.isArray(input)) return `<span obj tabindex="-1" data-id="${objCache.push(input) - 1}">Array[${input.length}]</span>`;
                 else if (input instanceof Error) return `<span style="color: red">Error(${input.message})</span>`;
                 else if (input instanceof HTMLElement) return `<span dom><${input.tagName.toLowerCase()}${input.id ? '#' + input.id : ''
                     }${input.classList.length > 0 ? '.' + Array.from(input.classList).join('.') : ''
                     }}></span>`;
-                else return `<span obj data-id="${objCache.push(input) - 1}">Object(${input.constructor.name})</span>`;
+                else return `<span obj tabindex="-1" data-id="${objCache.push(input) - 1}">Object(${input.constructor.name})</span>`;
             case 'function':
                 return `<span func>${input.name || 'anonymous'}</span>`;
         }
@@ -50,7 +78,7 @@
                 let data = logs[i++];
                 switch(type){
                     case's': 
-                        return String(data);
+                        return encodeHTMLChar(String(data));
 
                     case 'i':
                     case 'd': 
@@ -69,19 +97,19 @@
                             let id = '';
                             if(data.id) id = data.tagName.toLowerCase() + '#' + data.id;
                             else if(classList.length > 0) id = data.tagName.toLowerCase() + '.' + classList.join('.');
-                            else id = '<' + data.tagName.toLowerCase() + '>';
+                            else id = '&lt;' + data.tagName.toLowerCase() + '&gt;';
                             return `<span dom>${id}</span>`;
                         }
                     case 'O':
                         const id = objCache.push(data) - 1;
-                        return `<span obj data-id="${id}">${data.constructor.name}</span>`;
+                        return `<span obj tabindex="-1" data-id="${id}">${data.constructor.name}</span>`;
 
                     case 'c':
                         unclosed_span++;
                         return `<span style="${data}">`;
 
                     default:
-                        return _;
+                        return encodeHTMLChar(_);
                     }
             }) + '</span>'.repeat(unclosed_span);
         }else{
@@ -94,66 +122,16 @@
         if(target.tagName.toLowerCase() =='span' && target.dataset.id){
             const id = parseInt(target.dataset.id!);
             viewObj.value = objCache[id];
+
+            let parent = target.parentElement;
+            while(!parent?.classList.contains('log'))
+                parent = parent!.parentElement;
+            viewTeteTo.value = parent as HTMLElement;
         }else{
             viewObj.value = undefined;
         }
     }
-
-    function createObjectDisplay(obj: Record<string, any>, container: HTMLElement) {
-        const objContainer = document.createElement('div');
-        objContainer.className = 'obj-wrapper';
-
-        for (const key in obj) {
-            if (obj.hasOwnProperty(key)) {
-                const value = obj[key];
-                const itemContainer = document.createElement('div');
-                itemContainer.className = 'item';
-                const keySpan = document.createElement('span');
-                keySpan.className = 'key';
-                keySpan.textContent = key + ': ';
-                itemContainer.appendChild(keySpan);
-
-                if (typeof value === 'object' && value !== null) {
-                    const details = document.createElement('details');
-                    const summary = document.createElement('summary');
-                    summary.textContent = Array.isArray(value) ? '[' + value.length + ']' : '{ ... }';
-                    details.appendChild(summary);
-
-                    if (Array.isArray(value)) {
-                        const arrayContainer = document.createElement('div');
-                        value.forEach((item, index) => {
-                            arrayContainer.appendChild(createObjectDisplay(item, arrayContainer));
-                            if (index < value.length - 1) {
-                                arrayContainer.appendChild(document.createTextNode(', '));
-                            }
-                        });
-                        details.appendChild(arrayContainer);
-                    } else {
-                        details.appendChild(createObjectDisplay(value, details));
-                    }
-
-                    itemContainer.appendChild(details);
-                } else {
-                    const valueSpan = document.createElement('span');
-                    valueSpan.innerHTML = highlight(value);
-                    const title = String(value);
-                    valueSpan.title = title.length > 100 ? title.substring(0, 100) + '...' : title;
-                    itemContainer.appendChild(valueSpan);
-                }
-
-                objContainer.appendChild(itemContainer);
-            }
-        }
-
-        container.appendChild(objContainer);
-        return objContainer;
-    }
-    const vPrint = {
-        mounted(el: HTMLElement, obj){
-            createObjectDisplay(obj.value, el);
-        }
-    } satisfies Directive;
-
+    
     // 拦截日志
     console.info = (...args) => logs.push({ type: 'info', message: formatLog(args), time: new Date().toLocaleString(), trace: Error().stack?.split('\n').slice(2) });
     console.warn = (...args) => logs.push({ type: 'warn', message: formatLog(args), time: new Date().toLocaleString(), trace: Error().stack?.split('\n').slice(2) });
@@ -163,11 +141,38 @@
     console.clear = () => {logs.splice(0, logs.length), objCache.splice(0, objCache.length)};
     document.addEventListener('DOMContentLoaded', () => console.info(`%c${name} V${version}`, 'color: #2cae61; padding: .5rem 1rem; background-color: #d5f9ff;'));
     window.addEventListener('error', (event) => logs.push({ type: 'error', message: event.message, time: new Date().toLocaleString(), trace: event.error.stack.split('\n').slice(2) }));
-    window.addEventListener('unhandledrejection', (event) => logs.push({ type: 'error', message: event.reason, time: new Date().toLocaleString(), trace: event.reason.stack.split('\n').slice(2) }));
+    window.addEventListener('unhandledrejection', (event) => logs.push({ type: 'error', message: event.reason, time: new Date().toLocaleString(), trace: event.reason.stack?.split('\n').slice(2) }));
 </script>
 
 <script lang="ts" setup>
     import { version, name } from '/package.json';
+
+    function autoComplete(event: KeyboardEvent){
+        if(event.key == 'ArrowUp'){
+            search.resId = search.resId == 0 ? searchRes.value.length - 1 : search.resId - 1;
+        }else if(event.key == 'ArrowDown'){
+            search.resId = search.resId == searchRes.value.length - 1 ? 0 : search.resId + 1;
+        }else if(event.key == 'Tab'){
+            const prefix = search.text.substring(0, search.text.lastIndexOf('.'));
+            search.text = (prefix ? prefix + '.' : '') + searchRes.value[search.resId];
+            search.resId = 0;
+        }else if(event.key == 'Enter'){
+            try{
+                logs.push({
+                    "type": "eval",
+                    "message": 
+                        `&gt; <span style="color: #5b9739; font-weight: 400;">${search.text}</span><br>
+                         &lt; <span>${highlight(eval(search.text))}</span>`,
+                    "time": '',
+                    "trace": []
+                });
+            }catch(e){
+                console.error('eval', e);
+            }
+            search.text = '', search.resId = 0, search.active = false;
+        }else return;
+        event.preventDefault();
+    }
 </script>
 
 <template>
@@ -187,28 +192,34 @@
         <div class="logs" @click="handleClick">
             <div v-for="log in logs" tabindex="-1" :type="log.type" :key="log.time" class="log">
                 <span v-html="log.message"></span>
-                <small>{{ log.time }}</small><br>
+                <small>{{ log.time }}</small>
                 <ul v-if="log.trace && log.trace.length > 0">
                     <li v-for="trace in log.trace">{{ trace }}</li>
                 </ul>
             </div>
+            <Teleport v-if="viewObj" :to="viewTeteTo">
+                <details class="obj item" @blur="viewObj = undefined" @click.stop tabindex="-1">
+                    <summary>{{ viewObj.constructor.name }}</summary>
+                    <ObjTree :obj="viewObj" />
+                </details>
+            </Teleport>
         </div>
 
-        <div class="obj-viewer" v-if="!!viewObj" v-print="viewObj" 
-            :objname="viewObj.constructor.name"
-        ></div>
+        <div class="command">
+            <div class="recommend" :show="searchRes.length && search.active" :style="{
+                left: `${search.curpos /2}em`,
+            }">
+                <div v-for="(cmd, index) in searchRes" :active="search.resId == index" v-scroll="search.resId == index" @click="search.text = (search.text ? search.text + '.' : '') + cmd">{{ cmd }}</div>
+            </div>
+            <input type="text"
+                @focus="search.active = true" @blur="search.active = false"
+                @keydown="autoComplete"
+                @selectionchange="search.curpos = ($event.target as HTMLInputElement).selectionStart || 0"
+                v-model="search.text" placeholder="> 输入命令"
+            >
+        </div>
     </div>
 </template>
-    <style>
-        .obj-wrapper {
-            border: 1px solid #ccc;
-            padding: 10px;
-            margin: 10px;
-        }
-        .key {
-            font-weight: bold;
-        }
-    </style>
 
 <style lang="scss">
     .debug-info{
@@ -218,7 +229,7 @@
             background-image: linear-gradient(45deg, #b1f8ff, #cbffa1);
             text-align: center;
             padding: 2rem 0;
-            height: 6rem;
+            height: 4.5rem;
 
             > .logo{
                 display: flex;
@@ -306,18 +317,125 @@
                     }
                 }
 
+                &[type=eval]{
+                    background-color: #f2f2f2;
+
+                    > span{
+                        padding-left: 0;
+                    }
+                }
+
                 > span{
-                    display: flex;
-                    align-items: center;
+                    // display: flex;
+                    // align-items: center;
+                    // flex-wrap: wrap;
                     font-size: .8rem;
                     font-weight: 300;
                     gap: .5rem;
+                    position: relative;
+                    padding-left: 1.5rem;
+                    display: block;
+
+                    > *{
+                        display: inline-block;
+                    }
 
                     &::before{
                         display: block;
                         width: 1rem;
                         height: 1rem;
                         flex-shrink: 0;
+                        position: absolute;
+                        left: 0;
+                        top: 50%;
+                        transform: translateY(-50%);
+                    }
+
+                    span{
+                        margin-left: .35rem;
+                    }
+                }
+
+                span{
+                    &[num] {
+                        color: #538bec;
+                    }
+
+                    &[obj] {
+                        color: #c02dc0;
+                        cursor: pointer;
+                        font-weight: 500;
+                        border-bottom: dashed .05rem rgb(54, 239, 177);
+                    }
+
+                    &[bool] {
+                        font-weight: 400;
+                        font-family: sans-serif;
+                        font-style: italic;
+                    }
+
+                    &[func] {
+                        color: #1fd7a6;
+                        border-bottom: dotted .05rem gray;
+
+                        &::before {
+                            content: 'f';
+                            font-size: 1rem;
+                            margin-right: .35rem;
+                            color: #11845f;
+                            font-style: italic;
+                            font-weight: 500;
+                            font-family: sans-serif;
+                        }
+                    }
+                }
+
+                details.obj {
+                    font-size: .8rem;
+
+                    &, details{
+                        > *:not(summary){
+                            margin-left: .75rem;
+                        }
+                    }
+
+                    summary {
+                        font-weight: 300;
+                        font-size: .85rem;
+                    }
+
+                    div.obj-wrapper {
+                        padding-left: .75rem;
+                    }
+
+                    div.item {
+                        display: flex;
+                        gap: .5rem;
+                        text-overflow: ellipsis;
+                        white-space: nowrap;
+                        overflow: hidden;
+                    }
+
+                    span {
+                        font-size: .8rem;
+                        white-space: nowrap;
+                        overflow: hidden;
+                        font-weight: 300;
+                        flex-shrink: 0;
+                    }
+
+                    span.key {
+                        &::after{
+                            content: ' : ';
+                        }
+
+                        color: #881391;
+                        font-weight: 400;
+                    }
+
+                    details {
+                        flex-grow: 1;
+                        font-weight: 300;
                     }
                 }
 
@@ -332,7 +450,8 @@
                     padding: .35rem 0 .35rem .5rem;
                     margin: 0;
                     list-style: none;
-                    font-size: 0.8rem;
+                    font-size: 0.7rem;
+                    line-height: 1.25rem;
                     font-weight: 200;
                     color: #9e6c33;
                     font-size: .8rem;
@@ -351,98 +470,50 @@
             }
         }
 
-        > .obj-viewer{
-            position: absolute;
-            top: 1rem;
-            left: 0; right: 0;
-            max-width: 25rem;
-            margin: auto;
-            z-index: 55;
-            padding: 1rem;
-            box-shadow: 0 0 1rem white;
-            border-radius: .5rem;
-            background-color: white;
-            font-size: .8rem;
-            max-height: 60vh;
-            overflow-y: auto;
-
-            &::before{
-                content: attr(objname) '{';
-            }
-
-            &::after{
-                content: '}';
-            }
-
-            summary{
-                font-weight: 300;
-                font-size: .85rem;
-            }
-
-            div.obj-wrapper{
+        > .command{
+            height: 1.5rem;
+            position: relative;
+            font-size: .75rem;
+            background-color: #e4e9fb;
+            
+            > input{
+                width: 100%;
+                height: 100%;
                 border: none;
-                margin: 0;
-                padding: 0 0 0 .75rem;
-            }
+                outline: none;
+                line-height: 1.5rem;
+                padding: 0 .75rem;
+                border-right: solid .2rem transparent;
+                letter-spacing: 1px;
+                box-sizing: border-box;
 
-            div.item{
-                display: flex;
-                gap: .5rem;
-                text-overflow: ellipsis;
-                white-space: nowrap;
-                overflow: hidden;
-
-                > span{
-                    font-size: .8rem;
-                    white-space: nowrap;
-                    overflow: hidden;
-                    font-weight: 300;
-                    flex-shrink: 0;
-                }
-
-                > span.key{
-                    color: #89a5ff;
-                    font-weight: 400;
-                }
-
-                > details{
-                    flex-grow: 1;
-                    font-weight: 300;
+                &:focus{
+                    border-right-color: #19a57a;
                 }
             }
-        }
 
-        > .logs, > .obj-viewer{
-            span{
-                &[num]{
-                    color: #538bec;
-                }
+            > .recommend{
+                position: absolute;
+                bottom: 90%;
+                box-shadow: 0 0 .5rem rgba(0,0,0,.2);
+                background-color: white;
+                z-index: 1;
+                max-height: 10rem;
+                border-radius: .2rem;
+                overflow-x: hidden;
+                overflow-y: auto;
 
-                &[obj]{
-                    color: #c02dc0;
+                > div{
+                    padding: 0 .5rem;
+                    line-height: 1.25rem;
                     cursor: pointer;
-                    font-weight: 500;
-                    border-bottom: dashed .05rem rgb(54, 239, 177);
-                }
 
-                &[bool]{
-                    font-weight: 400;
-                    font-family: sans-serif;
-                    font-style: italic;
-                }
+                    &:hover{
+                        background-color: rgb(230, 230, 230);
+                    }
 
-                &[func]{
-                    color: #1fd7a6;
-                    border-bottom: dotted .05rem gray;
-                    
-                    &::before{
-                        content: 'f';
-                        font-size: 1rem;
-                        margin-right: .35rem;
-                        color: #11845f;
-                        font-style: italic;
-                        font-weight: 500;
-                        font-family: sans-serif;
+                    &[active=true]{
+                        background-color: #dadcff;
                     }
                 }
             }
