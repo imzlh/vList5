@@ -239,20 +239,6 @@
 			}
 		}
 
-		&.default_app {
-			z-index: -1;
-			display: flex;
-			align-items: center;
-			justify-content: center;
-
-			svg {
-				display: block;
-				fill: rgb(178, 174, 167);
-				width: 100%;
-				max-width: 4rem;
-			}
-		}
-
 		> div{
 			outline: none;
 		}

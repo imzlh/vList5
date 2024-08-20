@@ -91,7 +91,7 @@
 
 			case 'ArrowLeft':
 			case 'Escape':
-				if(current_tree.parent && current_tree.parent.path != '/')
+				if(current_tree.parent && current_tree.path != '/')
 					current_index = current_tree.parent.child!.indexOf(current_tree),
 					current_tree = current_tree.parent;
 				handleUpdate();
@@ -107,21 +107,21 @@
 			break; }
 
 			case 'F2':
-				if(current.type == 'file')
+				if(current.path != '/')
 					current.rename = true;
 			break;
 
 			case 'Delete':
-            	FS.del(getActiveFile()[0].path).catch(e => Global('ui.message').call({
-					'type': 'error',
-					'content': {
-						'title': '删除失败',
-						'content': (e as Error).message
-					},
-					'title': '文件资源管理器',
-					'timeout': 10
-				}));
-				handleUpdate();
+				if(current.path != '/')
+					FS.del(getActiveFile()[0].path).catch(e => Global('ui.message').call({
+						'type': 'error',
+						'content': {
+							'title': '删除失败',
+							'content': (e as Error).message
+						},
+						'title': '文件资源管理器',
+						'timeout': 10
+					})).then(() => handleUpdate());
 			break;
 
 			default: return;
@@ -470,6 +470,7 @@
 			>.right {
 				position: relative;
 				overflow: hidden;
+				float: right;
 
 				> .mobile-tool{
 					display: none;

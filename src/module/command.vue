@@ -88,7 +88,7 @@
         <input type="text" v-model="ui.input" placeholder="输入命令" ref="inputEl"
             @blur="ui.display = false; ui.select = 0; ui.input = '';" @keydown="keyEV"
         >
-        <ul class="commands.value">
+        <ul class="commands">
             <li v-for="(command, i) in commands" v-show="!command.hide" @click="ui.display = false; command.handler();ui.select = 0; "
                 :select="ui.select == i"
             >
@@ -111,6 +111,10 @@
         box-shadow: 0 0 .5rem 0.35rem rgba(0, 0, 0, 0.1);
         width: 20rem;
         max-width: 90vw;
+
+        &:active{
+            display: block!important;
+        }
 
         *{
             box-sizing: border-box;

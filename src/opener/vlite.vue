@@ -631,10 +631,10 @@
                 > .cover{
                     flex-grow: 1;
                     padding-top: 100%;
+                    background-image: linear-gradient(60deg, #3c9ea4, #cfe9bc);
                     background-position: center;
                     background-size: cover;
                     background-repeat: no-repeat;
-                    background: linear-gradient(60deg, #3c9ea4, #cfe9bc);
                     border-radius: .3rem;
                 }
 
