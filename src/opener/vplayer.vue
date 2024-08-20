@@ -242,6 +242,10 @@
         "name": "vplayer.toggle",
         handler: () => video.value && (video.value.paused ? video.value.play() : video.value.pause())
     }, {
+        "name": "vplayer.speed",
+        "title": "vPlayer: 倍速播放",
+        handler: () => CFG.vid_rate = CFG.vid_rate <= 2 ? CFG.vid_rate + 0.5 : 0.5
+    }, {
         "name": "vplayer.mute",
         "title": "vPlayer: (取消)静音",
         handler: () => video.value && (video.value.muted = !video.value.muted)

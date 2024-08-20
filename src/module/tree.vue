@@ -1,7 +1,7 @@
 <script lang="ts">
     import type { MessageOpinion, vDir, vFile, FileOrDir } from '@/env';
     import { DEFAULT_FILE_ICON, FS, Global, UI, openFile, size2str, splitPath, clearActiveFile, getActiveFile } from '@/utils';
-    import { type PropType } from 'vue';
+    import { nextTick, type PropType } from 'vue';
     import { TREE_REG } from '@/action/tree';
 
     // DRAG的口令，用于鉴别
@@ -44,7 +44,8 @@
                     const text = el.value,
                         pos_end = text.lastIndexOf('.');
                     // 选中.前内容
-                    requestAnimationFrame(() => el.focus());el.setSelectionRange(0, pos_end);
+                    nextTick(() => requestAnimationFrame(() => el.focus()));
+                    el.setSelectionRange(0, pos_end)
                 }
             },
             into: {
@@ -238,16 +239,16 @@
 </script>
 
 <template>
-    <div class="parent selectable" ref="parent"
+    <div class="parent" ref="parent" v-bind="$attrs"
         :style="{ pointerEvents: data.lock ? 'none' : 'all' }"
-        @dblclick.stop="folder()" @click.stop="markup($event, data)" @contextmenu.stop.prevent="ctxmenu(data, $event)"
+        @dblclick.stop="folder()" @click="markup($event, data)" @contextmenu.stop.prevent="ctxmenu(data, $event)"
         @dragstart.stop="drag_start($event, data)" :draggable="(data).path != '/' && !(data as vDir).rename" @drop.stop="drag_onto($event, data)"
         @dragover.stop="drag_alert($event, data)"
         @dragleave.stop="($event.currentTarget as HTMLElement).classList.remove('moving')" :title="desc(data as any)"
         v-touch
         v-into="data.parent && data.parent.active.has(data)" tabindex="-1"
     >
-        <div class="btn-hide" :show="data.unfold" @click.stop="folder()"></div>
+        <div class="btn-hide" :show="data.unfold" @click="folder()"></div>
         <img :src="data.icon" v-if="data.icon">
         <input v-if="data.rename" :value="data.name"
             @change="rename(data, ($event.currentTarget as HTMLInputElement).value)"
@@ -263,19 +264,19 @@
         @contextmenu.stop.prevent="ctxmenu(data, $event)"
         @dragover.stop="drag_alert($event, data)" @drop.stop="drag_onto($event, data)"
         @dragleave.stop="($event.currentTarget as HTMLElement).classList.remove('moving')"
-        @click.stop="data.active = new Map()"
+        @click="data.active = new Map()"
     >
-        <template v-for="child in data.child" :key="child.name">
+        <template v-for="(child, id) in data.child" :key="child.name">
 
-            <tree v-if="child.type == 'dir'" :data="child" />
+            <tree v-if="child.type == 'dir'" :data="child" :data-position="data.path + ':' + id" />
 
-            <div v-else class="item selectable" :title="desc(child)" ref="elements"
-                @click.stop="markup($event, child)" @contextmenu.stop.prevent="ctxmenu(child, $event)"
-                v-touch
+            <div v-else class="item" :title="desc(child)" ref="elements"
+                @click="markup($event, child)" @contextmenu.stop.prevent="ctxmenu(child, $event)"
+                v-touch 
                 @dblclick.stop="openFile(child as vFile)" @dragstart.stop="drag_start($event, child)" :draggable="!(child as vFile).rename"
                 v-into="data.active.has(child)" :process="child.upload"
                 :style="{ '--status': child.upload || 0, pointerEvents: child.lock ? 'none' : 'all' }"
-                :type="child.type" tabindex="-1"
+                tabindex="-1" :data-position="data.path + ':' + id"
             >
                 <img :src="child.icon || DEFAULT_FILE_ICON">
                 <input v-if="(child as vFile).rename" :value="child.name"
@@ -342,7 +343,7 @@
                 background-color: rgba(114, 140, 255, 0.5);
             }
 
-            &[type=file]{
+            &.item{
                 padding-left: 1rem;
             }
 

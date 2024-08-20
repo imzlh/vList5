@@ -36,7 +36,7 @@
 		current = current_tree.child![current_index];
 		current.parent?.active.set(current, current.path);
 	}
-	watch(list_ele, ele => ele && ele.addEventListener('keydown', (ev:KeyboardEvent) => {
+	watch(list_ele, ele => ele && (ele.addEventListener('keydown', (ev:KeyboardEvent) => {
 		if((ev.target as HTMLElement).tagName == 'INPUT') return;
 		if(locked) return;
 
@@ -91,9 +91,9 @@
 
 			case 'ArrowLeft':
 			case 'Escape':
-				if(current_tree.parent)
-					current_tree = current_tree.parent,
-					current_index = 0;
+				if(current_tree.parent && current_tree.parent.path != '/')
+					current_index = current_tree.parent.child!.indexOf(current_tree),
+					current_tree = current_tree.parent;
 				handleUpdate();
 			break;
 
@@ -128,7 +128,19 @@
 		}
 
 		ev.preventDefault();
-	}));
+	}), ele.addEventListener('click', async e => {
+		if((e.target as HTMLElement).tagName == 'INPUT') return;
+		if(locked) return;
+		const target = e.target as HTMLElement;
+		// 切换活动ID
+		if((target.classList.contains('item') || target.classList.contains('parent')) && target.dataset.position){
+			const index = target.dataset.position.lastIndexOf(':'),
+				tree = await FS.stat(target.dataset.position!.substring(0, index)),
+				id = parseInt(target.dataset.position.substring(index + 1));
+			current_tree = tree.type == 'dir' ? tree : tree.parent!, 
+			current_index = id, handleUpdate();
+		}
+	})));
 
 	const tree_active = ref(false),
 		layout_displayLeft = ref(false),
@@ -267,7 +279,7 @@
 		<div class="files vlist" ref="list_ele" tabindex="-1"
 			@contextmenu.prevent @focus="tree_active = true" @blur="tree_active = false"
 		>
-			<Tree :data="TREE"/>
+			<Tree :data="TREE" />
 		</div>
 	</div>
 	<!-- 移动端时左侧的背层 -->

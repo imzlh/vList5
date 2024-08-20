@@ -200,7 +200,7 @@
             @pointerdown.stop.prevent="init_select" @click.prevent.stop="_prop.dir.active.clear()"
         >
             <template v-for="(fd,i) of flist" :key="fd.path">
-                <div :type="fd.type" ref="list_element" class="item selectable" tabindex="2"
+                <div :type="fd.type" ref="list_element" class="item" tabindex="2"
                     @pointerdown.stop @pointermove.prevent
                     @click.stop="$event.shiftKey || _prop.dir.active.clear(), _prop.dir.active.set(fd, fd.path)"
                     @dblclick.prevent="event('open', fd)"
@@ -232,7 +232,7 @@
 
             <tbody ref="container">
                 <template v-for="(fd,i) of flist" :key="fd.path">
-                    <tr :type="fd.type" ref="list_element" class="item selectable" tabindex="2" @pointerdown.stop @pointermove.prevent
+                    <tr :type="fd.type" ref="list_element" class="item" tabindex="2" @pointerdown.stop @pointermove.prevent
                         @click.stop="$event.shiftKey || _prop.dir.active.clear(), _prop.dir.active.set(fd, fd.path)"
                         @dblclick.prevent="event('open', fd)" @pointerdown.stop.prevent
                         @contextmenu.prevent="event('ctxmenu', fd, $event)" v-touch
