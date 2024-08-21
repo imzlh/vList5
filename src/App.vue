@@ -128,7 +128,7 @@
 		}
 
 		ev.preventDefault();
-	}), ele.addEventListener('click', async e => {
+	}), ele.addEventListener('pointerup', async e => {
 		if((e.target as HTMLElement).tagName == 'INPUT') return;
 		if(locked) return;
 		const target = e.target as HTMLElement;

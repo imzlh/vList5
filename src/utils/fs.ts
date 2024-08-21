@@ -505,7 +505,7 @@ export namespace FS{
      * 对于批量复制到一个地方`move()`更简便且节省带宽
      * @param fileList 文件列表，键值对应 `源文件:目标文件`
      */
-    export async function rename(fileList: Record<string,string>):Promise<void>{
+    export async function rename(fileList: Record<string,string>, highlight = true):Promise<void>{
         // 查重
         const items = Object.keys(fileList).concat(Object.values(fileList)),
             set = new Set(items);
@@ -528,16 +528,18 @@ export namespace FS{
             const index = (current.child as Array<FileOrDir>).findIndex(item => item.path == src);
             const node = current.child![index];
             index != -1 && (current.child as Array<FileOrDir>).splice(index, 1);
+            current.parent?.active.delete(node);
             // 找到目标节点并插入
             current = TREE;
             const paths2 = dst.split('/').filter(item => !!item);
             for(let i = 0; i < paths2.length - 1; i++){
                 const name = paths2[i];
                 if(!current.child) await loadTree(current, true);
-                current = (current.child as Array<FileOrDir>)
-                    .filter(item => item.name == name && item.type == 'dir')[0] as vDir;
+                current = current.child!.filter(item => item.name == name && item.type == 'dir')[0] as vDir;
             }
-            (current.child as Array<FileOrDir>).push(node);
+            node.type == 'file'
+                ? current.child!.push(node)
+                : current.child!.unshift(node);
             // 更改节点路径
             node.icon = getIcon(node.name, node.type == 'file');
             node.type == 'dir' && __update_child(node);
@@ -545,6 +547,7 @@ export namespace FS{
             node.path = dst;
             node.url = FILE_PROXY_SERVER + dst;
             node.name = paths2[paths2.length - 1];
+            if(highlight) current.active.set(node, node.path);
         }
     }
 
@@ -674,7 +677,7 @@ export namespace FS{
         }), files);
     }
 
-    async function __analysis_from_to(delete_origin = false, from: Array<string>, to: string){
+    async function __analysis_from_to(delete_origin = false, from: Array<string>, to: string, highlight = true){
         // 找到目标节点
         let current = TREE;
         const paths = to.split('/');
@@ -698,13 +701,14 @@ export namespace FS{
             }
             const index = (current.child as Array<FileOrDir>)
                 .findIndex(item => item.name == paths[paths.length - 1]);
-            if(delete_origin)
-                current.child && (current.child as Array<FileOrDir>).splice(index, 1);
             target.child || (target.child = []);
             current.child![index].type == 'file' 
                 ? target.child.push(current.child![index])
                 : target.child.unshift(current.child![index]);
+            if(delete_origin)
+                current.child && (current.child as Array<FileOrDir>).splice(index, 1);
             current.child![index].parent = target;
+            if(highlight) target.active.set(current.child![index], current.child![index].path);
         }
         // 更新子项目路径
         __update_child(target);

@@ -1,16 +1,7 @@
 <script lang="ts">
     export default {
         name: 'ObjTree',
-        props: {
-            obj: {
-                type: Object,
-                required: true
-            },
-            parent: {
-                type: Object,
-                default: null
-            }
-        },
+        props: ['obj', 'parent'],
         methods: {
             *renderObj() {
                 for(const key in this.obj) try{

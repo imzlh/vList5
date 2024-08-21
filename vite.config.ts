@@ -151,6 +151,8 @@ export default defineConfig({
         rollupOptions: {
             output:{
                 manualChunks(id) {
+                    // eval兼容包
+                    if(id.endsWith('eval.ts')) return 'eval';
                     // core
                     if(
                         ['svg', 'png', 'jpg', 'webp', 'ico'].some(item => id.endsWith('.' + item)) ||

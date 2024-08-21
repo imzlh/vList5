@@ -1,6 +1,7 @@
 <script lang="ts">
     import { computed, reactive, ref, shallowRef, type Directive } from 'vue';
     import ObjTree from './objTree.vue';
+import { _eval } from '@/utils/eval';
 
     interface Log{
         type: 'info' | 'warn' | 'error' | 'eval',
@@ -65,7 +66,7 @@
                     }}></span>`;
                 else return `<span obj tabindex="-1" data-id="${objCache.push(input) - 1}">Object(${input.constructor.name})</span>`;
             case 'function':
-                return `<span func>${input.name || 'anonymous'}</span>`;
+                return `<span func tabindex="-1" data-id="${objCache.push(input.__proto__) - 1}">${input.name || 'anonymous'}</span>`;
         }
     }
 
@@ -153,8 +154,12 @@
         }else if(event.key == 'ArrowDown'){
             search.resId = search.resId == searchRes.value.length - 1 ? 0 : search.resId + 1;
         }else if(event.key == 'Tab'){
-            const prefix = search.text.substring(0, search.text.lastIndexOf('.'));
-            search.text = (prefix ? prefix + '.' : '') + searchRes.value[search.resId];
+            const prefix = search.text.substring(0, search.text.lastIndexOf('.')),
+                complete = searchRes.value[search.resId];
+            if(/^[0-9]+$/.test(complete)) search.text = (prefix || 'window') + '[' + complete + ']';
+            else if(/^[0-9]/.test(complete) || /[^a-zA-Z0-9_]/.test(complete))
+                search.text = (prefix || 'window') + '["' + complete + '"]';
+            else search.text = (prefix ? prefix + '.' : '') + complete;
             search.resId = 0;
         }else if(event.key == 'Enter'){
             try{
@@ -162,7 +167,7 @@
                     "type": "eval",
                     "message": 
                         `&gt; <span style="color: #5b9739; font-weight: 400;">${search.text}</span><br>
-                         &lt; <span>${highlight(eval(search.text))}</span>`,
+                         &lt; <span>${highlight(_eval(search.text))}</span>`,
                     "time": '',
                     "trace": []
                 });
@@ -425,12 +430,12 @@
                     }
 
                     span.key {
+                        color: #881391;
+                        font-weight: 400;
+                        
                         &::after{
                             content: ' : ';
                         }
-
-                        color: #881391;
-                        font-weight: 400;
                     }
 
                     details {
