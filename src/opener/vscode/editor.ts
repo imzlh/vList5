@@ -14,7 +14,6 @@ export default class Editor{
         this.file = file;
 
         // 绑定基础功能
-        this.editor.addCommand(KeyCode.Ctrl | KeyCode.KeyS, () => this.save() as any);
         this.editor.addAction({
             "id": "api.fs.save",
             "label": "vList: 保存文件(save file)",
@@ -39,7 +38,8 @@ export default class Editor{
         // 获取内容
         try{
             await analysis_import(this.file, this.editor);
-        }catch{
+        }catch(e){
+            console.error(e);
             Global('ui.message').call({
                 "type": "error",
                 "title": "文件资源管理器",
@@ -95,7 +95,8 @@ export default class Editor{
         typeRoots: ["node_modules/@types"]
     });
 
-const lib_imported: Array<string> = [];
+const lib_imported: Array<string> = [],
+    fmodels = {} as Record<string, editor.IModel>;
 export async function analysis_import(pfile: vFile, session?: editor.IStandaloneCodeEditor){
     const code = await (await fetch(pfile.url)).text();
 
@@ -111,7 +112,8 @@ export async function analysis_import(pfile: vFile, session?: editor.IStandalone
             ...code.matchAll(ref_syntax)
         ]){
             const file = await FS.stat(new URL(match[1], pfile.url).pathname);
-            if(file.type == 'dir') continue;
+            if(languages.typescript.typescriptDefaults.getExtraLibs()['inmemory:' + file.path] || file.type == 'dir')
+                continue;
             const content = await analysis_import(file);
             languages.typescript.typescriptDefaults.addExtraLib(content, 'inmemory:' + file.path);
         }
@@ -119,7 +121,9 @@ export async function analysis_import(pfile: vFile, session?: editor.IStandalone
         lib_imported.push(pfile.path);
     }
     if(session){
-        const model = editor.createModel(code, 'typescript', Uri.parse('inmemory:' + pfile.path));
+        var model;
+        if(pfile.path in fmodels) (model = fmodels[pfile.path]).setValue(code);
+        else fmodels[pfile.path] = model = editor.createModel(code, 'typescript', Uri.parse('inmemory:' + pfile.path));
         session.setModel(model);
     }
 
