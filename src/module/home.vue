@@ -134,9 +134,9 @@ import { _eval } from '@/utils/eval';
     }
     
     // 拦截日志
-    console.info = (...args) => logs.push({ type: 'info', message: formatLog(args), time: new Date().toLocaleString(), trace: Error().stack?.split('\n').slice(2) });
-    console.warn = (...args) => logs.push({ type: 'warn', message: formatLog(args), time: new Date().toLocaleString(), trace: Error().stack?.split('\n').slice(2) });
-    console.error = (...args) => logs.push({ type: 'error', message: formatLog(args), time: new Date().toLocaleString(), trace: Error().stack?.split('\n').slice(2) });
+    console.info = (...args) => void logs.push({ type: 'info', message: formatLog(args), time: new Date().toLocaleString(), trace: Error().stack?.split('\n').slice(2) });
+    console.warn = (...args) => void logs.push({ type: 'warn', message: formatLog(args), time: new Date().toLocaleString(), trace: Error().stack?.split('\n').slice(2) });
+    console.error = (...args) => void logs.push({ type: 'error', message: formatLog(args), time: new Date().toLocaleString(), trace: Error().stack?.split('\n').slice(2) });
     console.trace = console.log = console.info;
     if(import.meta.env.DEV) console.debug = console.info;
     console.clear = () => {logs.splice(0, logs.length), objCache.splice(0, objCache.length)};
@@ -162,19 +162,22 @@ import { _eval } from '@/utils/eval';
             else search.text = (prefix ? prefix + '.' : '') + complete;
             search.resId = 0;
         }else if(event.key == 'Enter'){
-            try{
+            _eval(search.text).then(res =>{
                 logs.push({
                     "type": "eval",
                     "message": 
                         `&gt; <span style="color: #5b9739; font-weight: 400;">${search.text}</span><br>
-                         &lt; <span>${highlight(_eval(search.text))}</span>`,
+                         &lt; <span>${highlight(res)}</span>`,
                     "time": '',
                     "trace": []
                 });
-            }catch(e){
-                console.error('eval', e);
-            }
-            search.text = '', search.resId = 0, search.active = false;
+                search.text = '', search.resId = 0, search.active = false;
+            }).catch(err => logs.push({
+                "type": "error",
+                "message": highlight(err),
+                "time": '',
+                "trace": []
+            }));
         }else return;
         event.preventDefault();
     }

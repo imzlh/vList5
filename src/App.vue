@@ -29,10 +29,10 @@
 	async function handleUpdate(){
 		old_fd && old_fd.parent?.active.clear();
 		old_fd = current;
-		locked = true;
+		locked = UI.loading = true;
 		if(!current_tree.child) document.documentElement.focus(), await FS.loadTree(current_tree);
 		current_tree.unfold = true;
-		locked = false;
+		locked = UI.loading = false;
 		current = current_tree.child![current_index];
 		current.parent?.active.set(current, current.path);
 	}
@@ -259,11 +259,14 @@
 			: size_w.value - UIMAIN['layout.left'].value -3
 		),
 		filelist_width: UIMAIN['layout.left'] as Ref<number>,
-		fullscreen
+		fullscreen,
+		loading: false
 	};
 </script>
 
 <template>
+	<!-- 加载进度条 -->
+	<div class="loading" v-if="UI.loading"></div>
 	<!-- 左侧文件 -->
 	<div class="left" :style="{
 		width: UI.filelist_width.value + 'px',
@@ -338,6 +341,29 @@
 		left: 0;
 		right: 0;
 		bottom: 0;
+
+		@keyframes loading_anim {
+			0%{
+				left: -10vw;
+				width: 0;
+			}50%{
+				left: 10vw;
+				width: 70vw;
+			}75%{
+				left: 120vw;
+				width: 0;
+			}
+		}
+
+		> .loading{
+			position: fixed;
+			top: 0;
+			height: .2rem;
+			border-radius: .1rem;
+			background-color: #65b6c6;
+			z-index: 50;
+			animation: loading_anim 2s linear infinite;
+		}
 
 		>.left,
 		>.resizer,
