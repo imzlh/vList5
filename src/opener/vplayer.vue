@@ -137,16 +137,26 @@
     }
 
     // 切换字幕
-    watch(() => CFG.subtitle[CFG.sub_current], function(val:subOption){
+    let blob: undefined | string;
+    watch(() => CFG.subtitle[CFG.sub_current], function(val, old){
         if(!val) return;
-        if(val.sub_type == 'vtt') return ass && ass.hide();
-        else if(val.sub_type == 'srt'){
-            ass && ass.hide();
+        if(blob) URL.revokeObjectURL(blob), blob = undefined;
+        if(old?.sub_type == 'ass') ass && ass.destroy();
+        else if(old?.sub_type == 'srt') video.value!.children[0].remove();
+        
+        if(val.sub_type == 'srt'){
             if(val.text)
                 parseSrt(val.text, video.value!);
             else
                 fetch(val.url!).then(res => res.text()).then(text => parseSrt(text, video.value!))
                     .then(() => CFG.alert = 'SRT字幕加载成功');
+        }
+        else if(val.sub_type == 'vtt'){
+            if(val.text){
+                const blob = new Blob([val.text], { type: 'text/vtt' });
+                const url = URL.createObjectURL(blob);
+                (video.value!.children[0] as HTMLTrackElement).src = url;
+            }
         }
         else if(CFG.disp_sub) load_sub(val) .then(() => CFG.alert = '字幕加载成功');
 
@@ -157,7 +167,11 @@
 
     // 调整字幕显示状况
     watch(() => CFG.disp_sub,function(val){
-        if(!CFG.subtitle[CFG.sub_current]) return ass && ass.hide();
+        if(!CFG.subtitle[CFG.sub_current]){
+            ass && ass.hide();
+            video.value?.children[0]?.remove();
+            return;
+        }
 
         // ASS需要初始化
         if(CFG.subtitle[CFG.sub_current].sub_type == 'ass'){
@@ -173,10 +187,13 @@
             }else{
                 val ? ass.show() : ass.hide();
             }
+        // 调整texttrack
+        }else{
+            video.value!.textTracks[0].mode = val ? 'showing' : 'hidden';
         }
 
         // 偏移设置
-        else if(CFG.sub_offset)
+        if(CFG.sub_offset)
             init_sub_delay(parseFloat(CFG.sub_offset), parseFloat(CFG.sub_offset));
     });
 
@@ -198,7 +215,8 @@
         CFG.error = false;
 
         // 字幕设置
-        ass && ass.destroy();   // 销毁ASS
+        ass && ass.destroy();               // 销毁ASS
+        video.value.children[0]?.remove();   // 清理track
         CFG.subtitle = val.subtitle;
         if(CFG.subtitle.length > 0) CFG.sub_current = 0;
         else CFG.sub_current = -1;
@@ -582,10 +600,8 @@
             @touchstart.stop.prevent="touch.start" @touchmove.stop.prevent="touch.move" @touchend.stop.prevent="touch.end"
         >
             <video ref="video">
-                <track :default="CFG.disp_sub" v-if="CFG.subtitle[CFG.sub_current] && CFG.subtitle[CFG.sub_current].sub_type == 'vtt'"
+                <track default v-if="CFG.subtitle[CFG.sub_current]?.sub_type == 'vtt'"
                     kind="captions" label="vtt sub" :src="CFG.subtitle[CFG.sub_current].url" />
-                <track v-else-if="CFG.subtitle[CFG.sub_current] && CFG.subtitle[CFG.sub_current].sub_type == 'srt'"
-                    kind="subtitles" label="srt sub" src="about:blank" />
             </video>
             <!-- 错误提示 -->
             <div class="error" :display="CFG.error">
@@ -900,14 +916,14 @@
 
                 &::cue{
                     background-color: transparent;
-                    text-shadow: black 2px 0 0,
-                        black 0 2px 0,
-                        black -2px 0 0,
-                        black 0 -2px 0,
-                        black 2px 2px 0,
-                        black -2px -2px 0,
-                        black 2px -2px 0,
-                        black -2px 2px 0;
+                    text-shadow: black 1px 0 0,
+                        black 0 1px 0,
+                        black -1px 0 0,
+                        black 0 -1px 0,
+                        black 1px 1px 0,
+                        black -1px -1px 0,
+                        black 1px -1px 0,
+                        black -1px 1px 0;
                 }
             }
         }

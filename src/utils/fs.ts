@@ -515,7 +515,7 @@ export namespace FS{
         // 重命名
         await __request('rename', fileList, false);
         // 将这些文件从原TREE位置删除
-        for(const [src, dst] of Object.entries(fileList)){
+        for(let [src, dst] of Object.entries(fileList)){
             // 找到原节点
             let current = TREE;
             const paths = src.split('/').filter(item => !!item);
@@ -541,6 +541,7 @@ export namespace FS{
                 ? current.child!.push(node)
                 : current.child!.unshift(node);
             // 更改节点路径
+            if(node.type == 'dir' && dst[dst.length -1] != '/') dst += '/';
             node.icon = getIcon(node.name, node.type == 'file');
             node.type == 'dir' && __update_child(node);
             node.parent = current;
@@ -720,8 +721,8 @@ export namespace FS{
             if(item.type == 'dir')
                 __update_child(item);
             else
-                item.path = parent.path + item.name,
-                item.url = FILE_PROXY_SERVER + parent.path + item.name;
+                item.path = parent.path + item.name + (item.type == 'file' ? '' : '/'),
+                item.url = FILE_PROXY_SERVER + parent.path + item.name + (item.type == 'file' ? '' : '/');
     }
 
     export async function  copy(from:Array<string>|string,to:string){

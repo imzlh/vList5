@@ -281,6 +281,16 @@ TREE_REG.register(() => ({
                 });
             },
         }, {
+            'text': '全选',
+            'icon': I_MATCH,
+            async handle() {
+                const item = getActiveFile()[0] as vDir;
+                clearActiveFile();
+                if(!item.child) await FS.loadTree(item);
+                item.unfold = true;
+                item.child!.forEach(child => item.active.set(child, child.path));
+            },
+        }, {
             'text': '全部展开',
             'icon': I_FOLDER,
             handle() {
@@ -350,14 +360,20 @@ TREE_REG.register(() => ({
         {
             'text': '批量排序',
             'icon': I_ORDER,
-            handle() {
+            async handle() {
                 const ordered = getActiveFile().sort((a, b) => a.name.localeCompare(b.name)),
                     obj = {} as Record<string, string>,
-                    reload = [] as Array<string>;
+                    reload = [] as Array<string>
+                const start = parseInt(await new Promise(rs => Global('ui.alert').call({
+                    "type": "prompt",
+                    "title": "排序",
+                    "message": "请输入起始值，默认为1",
+                    "callback": rs as any
+                }))) || 1;
                 for (let i = 0; i < ordered.length; i++) {
                     const info = splitPath(ordered[i]);
                     ordered[i].lock = true;
-                    obj[ordered[i].path] = info.dir + (i + 1).toString().padStart(3, '0') + '.' + info.ext;
+                    obj[ordered[i].path] = info.dir + (i + start).toString().padStart(3, '0') + '.' + info.ext;
                     if (!reload.includes(info.dir)) reload.push(info.dir);
                 }
                 FS.rename(obj)
@@ -372,7 +388,7 @@ TREE_REG.register(() => ({
                         "timeout": 5
                     } satisfies MessageOpinion));
             },
-        }
+        }, 
     ]
 }), {
     single: false,
