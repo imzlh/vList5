@@ -175,8 +175,8 @@
 
 	function handleAppClick(el: MouseEvent){
 		const target = el.target as HTMLElement;
-		if(target.classList.contains('app-meta-header') && taskmode.value)
-			taskmode.value = false
+		if((target.classList.contains('app-meta-header') || target.classList.contains('default_app')) && taskmode.value)
+			taskmode.value = false;
 	}
 
 	nextTick(() => Global('ui.command').call({
@@ -270,7 +270,7 @@
 	<!-- 左侧文件 -->
 	<div class="left" :style="{
 		width: UI.filelist_width.value + 'px',
-		left: layout_displayLeft ? '1rem' : '-200vw'
+		left: layout_displayLeft ? '0' : '-200vw'
 	}">
 		<div class="h">
 			<img v-if="UIMAIN.favicon.value" :src="UIMAIN.favicon.value" />
@@ -286,7 +286,7 @@
 		</div>
 	</div>
 	<!-- 移动端时左侧的背层 -->
-	<div class="left-overflow" :style="{
+	<div class="left-mask" :style="{
 		opacity: layout_displayLeft ? '1' : '0',
 		display: layout_displayLeft ? 'block' : 'none'
 	}" @click="layout_displayLeft = false"></div>
@@ -503,7 +503,7 @@
 				}
 			}
 
-			> .left-overflow{
+			> .left-mask{
 				display: none !important;
 			}
 		}
@@ -514,16 +514,17 @@
 		body {
 			>.left {
 				position: fixed;
-				top: 1rem;
-				width: calc(100vw - 2rem) !important;
-				height: calc(100vh - 2rem);
-				border-radius: 0.8rem;
-				// padding: 1rem;
+				top: 0;
+				height: 100%;
+				bottom: 0;
 				z-index: 55;
+				width: calc(100vw - 2rem) !important;
+				left: 0;
+				box-shadow: 0 .25rem 1rem #646464;
 			}
 
 			// 遮罩
-			.left-overflow{
+			.left-mask{
 				position: fixed;
 				top: 0;
 				width: 100vw;
@@ -600,8 +601,8 @@
 						}
 					}
 
-					> .app.default_app{
-						display: none !important;
+					> .app.default_app > *{
+						pointer-events: none;
 					}
 				}
 

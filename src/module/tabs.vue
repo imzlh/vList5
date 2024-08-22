@@ -1,7 +1,7 @@
 <script setup lang="ts">
 	import type { CtxDispOpts, TabWindow } from '@/env';
 	import { Global } from '@/utils';
-	import { ref, reactive, toRaw, markRaw, watch, nextTick } from 'vue';
+	import { ref, reactive, toRaw, markRaw, watch, nextTick, computed } from 'vue';
 	import I_OFF from "/icon/off.webp";
 	import Home from './home.vue';
 
@@ -70,21 +70,27 @@
 			>
 				<img :src="data.icon" onerror="this.style.display = 'none';" class="icon">
 				<span>{{ data.name }}</span>
-				<i class="close" @click.stop="delete tabs[i];current = '';"></i>
+				<i class="close" @click.stop="delete tabs[i];"></i>
 			</div>
 		</template>
 	</TransitionGroup>
+
+	<div class="app default_app" :style="{
+		display: (!tabs[current] || Object.keys(tabs).length == 0) ? 'block' : 'none'
+	}" @click="current = '__main__'">
+		<Home />
+	</div>
 
 	<template v-for="(data, i) in tabs" :key="i">
 		<div v-if="data" :key="data.name + i" class="app" v-show="i == current">
 			<div class="app-meta-header" @click="current = i">
 				<img :src="data.icon" onerror="this.style.display = 'none';" class="icon">
 				<span>{{ data.name }}</span>
-				<i class="close" @click="delete tabs[i];current = '';"></i>
+				<i class="close" @click="delete tabs[i];"></i>
 			</div>
 			<suspense>
 				<component :is="toRaw(data.content)" :option="data.option" :visibility="current == i"
-					@close="delete tabs[i];current = '';" @hide="current = ''" @show="current = i" @chTitle="data.name = $event"
+					@close="delete tabs[i];" @hide="current = ''" @show="current = i" @chTitle="data.name = $event"
 				/>
 
 				<template #fallback>
@@ -93,11 +99,6 @@
 			</suspense>
 		</div>
 	</template>
-
-	<div class="app default_app" v-show="current == ''">
-		<Home />
-	</div>
-
 </template>
 
 

@@ -139,4 +139,4 @@ export interface Stream {
     mediaType: 'Audio' | 'Video' | 'Subtitle' | 'Attachment' | 'Data'
 }
 
-export default function (el: HTMLDivElement): Export;
+export default function (el: HTMLDivElement): Promise<Export>;

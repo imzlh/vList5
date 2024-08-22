@@ -76,10 +76,12 @@
     const exitFullScreen = () => document.exitFullscreen();
 
     const player = ref<Export>();
-    onMounted(function(){
-        player.value = createAV(videoel.value as HTMLDivElement);
-        CTRL.play(file);
-    });
+    onMounted(() => 
+        createAV(videoel.value as HTMLDivElement).then(val => {
+            player.value = val;
+            CTRL.play(file);
+        })
+    );
     onUnmounted(() => player.value?.destroy());
 
     watch(() => _prop.visibility, val => val && player.value && (

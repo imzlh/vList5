@@ -170,14 +170,11 @@ export default defineConfig({
                     // imgedit
                     if(id.includes('react') || id.includes('imgedit'))
                         return 'imgedit';
-                    // avplayer
-                    if(id.includes('avplayer'))
-                        return 'avplayer';
                     // asciinema
                     if(id.includes('asciinema'))
                         return 'asciinema';
                     // additional pack
-                    if(id.includes('psd') || id.includes('libmedia') || id.includes('artplayer'))
+                    if(id.includes('psd') || id.includes('avplayer') || id.includes('libmedia') || id.includes('artplayer'))
                         return 'additional';
                 },
             },

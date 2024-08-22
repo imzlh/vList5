@@ -30,12 +30,14 @@ window.CSS = {
         console.debug('Register property:', def.name);
     }
 };
-const script = document.createElement('script');
-script.src = AVPLAYER_SRC;
-document.body.append(script);
-await new Promise(rs => script.onload = rs);
-window.CSS = _CSS;
-AVPlayer.level = 3; // WARN LEVEL
+async function importAVPlayer(){
+    const script = document.createElement('script');
+    script.src = AVPLAYER_SRC;
+    document.body.append(script);
+    await new Promise(rs => script.onload = rs);
+    window.CSS = _CSS;
+    AVPlayer.level = 3; // WARN LEVEL
+}
 
 const CODEC_MAP = {
     12: MP4_WASM,
@@ -174,7 +176,8 @@ fn fragment(fragData: VertexOut) -> @location(0) vec4f
     console.warn('Your device doesnot support WebGPU.');
 }
 
-export default function create(el){
+export default async function create(el){
+    if(!globalThis.AVPlayer) await importAVPlayer();
     const player = new globalThis.AVPlayer({
         "container": el,
         "enableHardware": true,
