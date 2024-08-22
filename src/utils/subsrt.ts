@@ -1,24 +1,20 @@
 export function parseSrt(content: string, video: HTMLVideoElement) {
-    const lines = content.split(/\r?\n\r?\n/),
+    const lines = content.split(/(?:\r?\n){2,}/),
         track = video.addTextTrack('subtitles', 'SRT Subtitle', 'zh-CN');
     track.mode = 'showing';
 
     for (let i = 0; i < lines.length; i++) {
         if(!lines[i]) continue;
-        const res = lines[i].match(/(\d{2}:\d{2}:\d{2},\d{3}) --> (\d{2}:\d{2}:\d{2},\d{3})\s*(.*)/);
-        if (!res) throw new Error(`Invalid SRT format at group ${i + 1}`);
-        const start = time2num(res[1]),
-            end = time2num(res[2]),
-            text = res[3].trim();
-        if (start > end) throw new Error(`Invalid SRT format at group ${i + 1}`);
+        const res = lines[i].match(/^(\d+)\r?\n(\d{2}):(\d{2}):(\d{2}),(\d{3})\s*-->\s*(\d{2}):(\d{2}):(\d{2}),(\d{3})\s*([\w\W]*)\s*$/);
+        if (!res || res[1] != (i + 1).toString()) throw new Error(`Invalid SRT format at group ${i + 1}`);
+        const start = parseInt(res[2]) * 3600 + parseInt(res[3]) * 60 + parseInt(res[4]) + parseInt(res[5]) / 1000,
+            end = parseInt(res[6]) * 3600 + parseInt(res[7]) * 60 + parseInt(res[8]) + parseInt(res[9]) / 1000;
+        if (start > end) throw new Error(`Invalid SRT timestrap at group ${i + 1}`);
         if(start == end) continue; // 跳过空字幕
 
-        // 跳过ASS m字段
-        if(/^\s*m[1-9a-z,-\s]+$/.test(text)) continue;
-
         // 尝试解析部分ASS Tag
-        const cue = new VTTCue(start, end, text);
-        cue.text = text.replace(/\{(\\[a-z].+?)+\}/g, (_, match) => {
+        const cue = new VTTCue(start, end, '');
+        cue.text = res[10].replace(/\{(\\[a-z].+?)+\}/g, (_, match) => {
             for(const tag of match.split('\\').filter(Boolean)){
                 // \an, \a 字幕位置
                 if(tag.startsWith('a')){
@@ -53,9 +49,4 @@ export function parseSrt(content: string, video: HTMLVideoElement) {
         });
         track.addCue(cue);
     }
-}
-
-function time2num(time: string): number {
-    const [hours, minutes, seconds, ms] = time.split(/[:,]/).map(Number);
-    return hours * 3600 + minutes * 60 + seconds + ms / 1000;
 }
