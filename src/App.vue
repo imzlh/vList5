@@ -220,7 +220,7 @@
 		'个性化',
 		{
 			"type": "text",
-			"default": "izCloud",
+			"default": "vList",
 			"key": "appname",
 			"name": "应用名称",
 			"desc": "在左上角显示的应用名称"

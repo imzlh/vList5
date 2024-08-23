@@ -1582,6 +1582,8 @@ const folderIcon: FolderIcon[] = [
             'txt', 'ass', 'vtt', 'srt', 'ssa'
         ]
     },{
+        name: 'epub', fileExtensions: ['epub']
+    },{
         name: 'cast', fileExtensions: ['cast']
     },
     {

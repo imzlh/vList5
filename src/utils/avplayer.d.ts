@@ -118,7 +118,7 @@ export interface Export {
     },
     func: {
         snapshot: (type?: string) => void,
-        seek: (time: bigint | number) => void,
+        seek: (time: bigint) => void,
         resize: [number, number],
         extSub: (source: Subtitle) => Promise<Stream> 
     }

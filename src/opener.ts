@@ -43,7 +43,7 @@ export const OPENER:Array<OpenerOption> = [
             "dockerfile", "docker",
             "py", "jspy",
             "html", "htm", "xhtml",
-            "txt", "log"
+            "log", "ass", "vtt", "ssa", "srt"
         ],
         async open(file) {
             if(file.size > 1 * 1024 * 1024)
@@ -272,6 +272,44 @@ export const OPENER:Array<OpenerOption> = [
                 "option": file
             });
         },
+    },
+    // epub.js
+    // @link https://github.com/futurepress/epub.js
+    {
+        "name": "epub浏览器",
+        "icon": I_DESIGNER,
+        "type": "application/epub",
+        "typeDesc": "轻松浏览epub格式电子书",
+        "format": [
+            "epub"
+        ],
+        async open(file) {
+            Global('ui.window.add').call({
+                "content": (await import('@/opener/epub.vue')).default,
+                "icon": I_DESIGNER,
+                "name": file.name + " - epub",
+                "option": file
+            });
+        }
+    },
+    // txtReader
+    // Copyright(C) 2024 izGroup
+    {
+        "name": "TXT阅读",
+        "icon": I_DESIGNER,
+        "type": "text/plain",
+        "typeDesc": "在线阅读TXT小说",
+        "format": [
+            "txt"
+        ],
+        async open(file) {
+            Global('ui.window.add').call({
+                "content": (await import('@/opener/txtreader.vue')).default,
+                "icon": I_DESIGNER,
+                "name": file.name + " - TXT阅读",
+                "option": file
+            });
+        }
     },
     // font-viewer V1
     // Copyright(C) 2024 izGroup

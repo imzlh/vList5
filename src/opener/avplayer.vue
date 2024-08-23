@@ -225,7 +225,11 @@
             case 'Enter':
                 player.value.play = !player.value.play;
             break;
+
+            default:
+                return;
         }
+        e.preventDefault();
     }
 
     function float(num: bigint, n: number){
@@ -246,6 +250,13 @@
         })
     });
 
+    watch(() => _prop.visibility, dis => dis && player.value && updateMediaSession({
+        "title": ui.videos[ui.videoID]?.name || '未在播放',
+        "artist": "vPlayer",
+        "album": "vPlayer",
+        "artwork": []
+    }))
+
     watch(root, val => acceptDrag(val as HTMLElement, f => 
         f.type == 'file' && (function(){
             const info = splitPath(f);
@@ -262,16 +273,9 @@
     watch(UI.app_width, w => player.value && (player.value.func.resize = [w, UI.height_total.value]));
 </script>
 
-<script lang="ts">
-    const DEFS = {
-        0: BigInt(0),
-        100: BigInt(100)
-    }
-</script>
-
 <template>
     <div class="av-container" ref="root" v-touch tabindex="-1"
-        @contextmenu.prevent="ctxmenu" @keydown.prevent.stop="basicKbdHandle"
+        @contextmenu.prevent="ctxmenu" @keydown.stop="basicKbdHandle"
         @dblclick.prevent="player && (player.play = !player.play)"
         @pointermove="active" @click="active"
     >
@@ -281,7 +285,7 @@
         }" :active="ui.tool">
             <div class="time">
                 <div class="current">{{ time2str(player.time.current) }}</div>
-                <div class="timebar" @click="player.func.seek($event.offsetX / ($event.currentTarget as HTMLElement).clientWidth * Number(player.time.total))">
+                <div class="timebar" @click="player.func.seek(BigInt(Math.floor($event.offsetX / ($event.currentTarget as HTMLElement).clientWidth * Number(player.time.total / 10000n))) * 1000000n)">
                     <div class="prog" :style="{ width: float((player.time.current || 0n) * 10000n / (player.time.total || 1n), 2)+ '%' }"></div>
                     <div class="chapter" v-if="player.time.total">
                         <div v-for="(chap, i) in player.tracks.chapter" :style="{
@@ -381,7 +385,7 @@
             @click="ui.speed = ui.about = ui.track = ui.playlist = false"
         ></div>
 
-        <div class="frame speed" v-show="ui.speed">
+        <div class="frame speed" :display="ui.speed">
             <h1>播放速度</h1>
             <ul class="select">
                 <li v-speed=".75">0.75x</li>
@@ -391,7 +395,7 @@
                 <li v-speed="2">2x</li>
             </ul>
         </div>
-        <div class="about frame" v-show="ui.about">
+        <div class="about frame" :display="ui.about">
             <h1>统计信息</h1>
             <table v-if="player?.status">
                 <tr>
@@ -424,8 +428,8 @@
                 </tr>
                 <tr>
                     <td>视频丢包率</td>
-                    <td v-if="player.status.videoPacketCount > DEFS[0]">
-                        {{ player.status.videoDropPacketCount / player.status.videoPacketCount * DEFS[100] }}%
+                    <td v-if="player.status.videoPacketCount > 0n">
+                        {{ player.status.videoDropPacketCount / player.status.videoPacketCount * 100n }}%
                     </td>
                     <td v-else> 0 </td>
                 </tr>
@@ -451,7 +455,7 @@
             </table>
         </div>
 
-        <div class="frame track" v-show="ui.track">
+        <div class="offcv track" :display="ui.track">
             <ul v-if="player?.tracks.audio">
                 <h1>音频轨道({{ player.tracks.audio.length }})</h1>
                 <li v-for="item in player.tracks.audio"
@@ -475,10 +479,10 @@
             </ul>
         </div>
 
-        <div class="frame videos" v-show="ui.playlist">
+        <div class="offcv videos" :display="ui.playlist">
             <h1>播放列表</h1>
             <div>
-                <div :active="ui.videoID == i" v-for="(item,i) in ui.videos">
+                <div :active="ui.videoID == i" v-for="(item,i) in ui.videos" @click="ui.videoID = i">
                     {{ item.name }}
                 </div>
             </div>
@@ -655,6 +659,7 @@
             color: white;
             max-width: 90%;
             box-sizing: border-box;
+            transition: all .2s;
 
             h1{
                 margin: 0;
@@ -688,6 +693,12 @@
                     }
                 }
             }
+
+            &[display=false]{
+                transform: rotateX( 90deg );
+                top: -100%;
+                opacity: 0;
+            }
         }
 
         > .about{
@@ -719,13 +730,27 @@
             }
         }
 
+        > .offcv{
+            position: absolute;
+            right: 0;
+            top: 0;
+            z-index: 5;
+            background-color: rgb(255 255 255 / 60%);
+            width: 80%;
+            padding: 2rem;
+            box-sizing: border-box;
+            height: 100%;
+            backdrop-filter: blur(.35rem);
+            max-width: 20rem;
+            transition: all .2s;
+
+            &[display=false]{
+                transform: translateX( 120% );
+                opacity: 0;
+            }
+        }
+
         > .track{
-            display: flex;
-            width: 35rem;
-            flex-wrap: wrap;
-            max-width: 90%;
-            gap: 1rem;
-            justify-items: center;
 
             h1{
                 font-size: 1.25rem;

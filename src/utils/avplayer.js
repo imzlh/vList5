@@ -234,7 +234,7 @@ export default async function create(el){
                 let url = URL.createObjectURL(data);
                 window.open(url).onbeforeunload = () => URL.revokeObjectURL(url);
             }, 'image/' + type, 1),
-            seek: time => player.seek(Number(time)),
+            seek: time => player.seek(time),
             resize: markRaw([0, 0]),
             extSub: track => player.loadExternalSubtitle(track).then(() => {
                 const stream = player.getStreams().at(-1);
