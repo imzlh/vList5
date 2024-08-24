@@ -142,7 +142,14 @@
         if(!val) return;
         if(blob) URL.revokeObjectURL(blob), blob = undefined;
         if(old?.sub_type == 'ass') ass && ass.destroy();
-        else if(old?.sub_type == 'srt') video.value!.children[0].remove();
+        else if(old?.sub_type == 'srt' && video.value && video.value.textTracks[0]?.cues){
+            // BUG: https://github.com/whatwg/html/issues/1921
+            // 删除textTrack所有cue
+            for(const cue of video.value.textTracks[0].cues)
+                video.value.textTracks[0].removeCue(cue);
+            // 隐藏
+            video.value.textTracks[0].mode = 'hidden';
+        }
         
         if(val.sub_type == 'srt'){
             if(val.text)

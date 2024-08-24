@@ -14,13 +14,6 @@ import I_MEDIA from '/app/video.webp';
 import I_PS from '/app/ps.webp';
 import I_ASCIINEMA from '/app/asciinema.svg';
 
-import Imager from './opener/imager.vue';
-import Browser from './opener/browser.vue';
-import Vplayer from './opener/vplayer.vue';
-import Vlite from '@/opener/vlite.vue';
-import FontView from '@/opener/font-view.vue';
-import Hex from '@/opener/hex.vue';
-
 export const OPENER:Array<OpenerOption> = [
     // Monaco-Editor(VsCode)
     // @link https://microsoft.github.io/monaco-editor/
@@ -121,7 +114,7 @@ export const OPENER:Array<OpenerOption> = [
         ],
         async open(file) {
             Global('ui.window.add').call({
-                "content": Imager,
+                "content": (await import('@/opener/imager.vue')).default,
                 "icon": I_IMAGER,
                 "name": "imgViewer",
                 "option": file
@@ -140,7 +133,7 @@ export const OPENER:Array<OpenerOption> = [
         ],
         async open(file) {
             Global('ui.window.add').call({
-                "content": Browser,
+                "content": (await import('@/opener/browser.vue')).default,
                 "icon": I_CHROME,
                 "name": file.name + " - Chrome",
                 "option": file
@@ -163,7 +156,7 @@ export const OPENER:Array<OpenerOption> = [
         ],
         async open(file) {
             Global('ui.window.add').call({
-                "content": Vplayer,
+                "content": (await import('@/opener/vplayer.vue')).default,
                 "icon": I_VPLAYER,
                 "name": "vPlayer",
                 "option": file
@@ -189,7 +182,7 @@ export const OPENER:Array<OpenerOption> = [
         ],
         async open(file) {
             Global('ui.window.add').call({
-                "content": Vlite,
+                "content": (await import('@/opener/vlite.vue')).default,
                 "icon": I_VLITE,
                 "name": "vLite",
                 "option": file
@@ -327,7 +320,7 @@ export const OPENER:Array<OpenerOption> = [
         ],
         async open(file) {
             Global('ui.window.add').call({
-                "content": FontView,
+                "content": (await import('@/opener/font-view.vue')).default,
                 "icon": I_DESIGNER,
                 "name": "Font-" + clipFName(file,20),
                 "option": file
@@ -346,7 +339,7 @@ export const OPENER:Array<OpenerOption> = [
         ],
         async open(file) {
             Global('ui.window.add').call({
-                "content": Hex,
+                "content": (await import('@/opener/hex.vue')).default,
                 "icon": I_HEX,
                 "name": "Hex-" + clipFName(file,20),
                 "option": file
