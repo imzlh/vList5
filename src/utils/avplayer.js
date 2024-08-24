@@ -7,6 +7,7 @@
 
 import PCM_WASM from 'libmedia/dist/decode/pcm-simd.wasm?url';
 import H264_WASM from 'libmedia/dist/decode/h264-simd.wasm?url';
+import OGV_WASM from 'libmedia/dist/decode/theora-simd.wasm?url';
 import AAC_WASM from 'libmedia/dist/decode/aac-simd.wasm?url';
 import MP3_WASM from 'libmedia/dist/decode/mp3-simd.wasm?url';
 import HEVC_WASM from 'libmedia/dist/decode/hevc-simd.wasm?url';
@@ -16,6 +17,9 @@ import AV1_WASM from 'libmedia/dist/decode/av1-simd.wasm?url';
 import OPUS_WASM from 'libmedia/dist/decode/opus-simd.wasm?url';
 import FLAC_WASM from 'libmedia/dist/decode/flac-simd.wasm?url';
 import OGG_WASM from 'libmedia/dist/decode/vorbis-simd.wasm?url';
+import AC3_WASM from 'libmedia/dist/decode/vorbis-simd.wasm?url';
+import EAC3_WASM from 'libmedia/dist/decode/eac3-simd.wasm?url';
+import DTS_WASM from 'libmedia/dist/decode/dca-simd.wasm?url';
 import VP9_WASM from 'libmedia/dist/decode/vp9-simd.wasm?url';
 import RSP_WASM from 'libmedia/dist/resample/resample-simd.wasm?url';
 import SP_WASM from 'libmedia/dist/stretchpitch/stretchpitch-simd.wasm?url';
@@ -42,6 +46,7 @@ async function importAVPlayer(){
 const CODEC_MAP = {
     12: MP4_WASM,
     27: H264_WASM,
+    30: OGV_WASM,
     167: VP9_WASM,
     173: HEVC_WASM,
     196: VVC_WASM,
@@ -51,28 +56,12 @@ const CODEC_MAP = {
     86021: OGG_WASM,
     86028: FLAC_WASM,
     86076: OPUS_WASM,
+    86019: AC3_WASM,
+    86056: EAC3_WASM,
+    86020: DTS_WASM,
 };
 
 let webgpu = false;
-const BUFFER_SIZE = 1000; 
-const shader = `@group(0) @binding(0)
-var<storage, read_write> output: array<f32>;
-
-@compute @workgroup_size(64)
-fn main(
-  @builtin(global_invocation_id)
-  global_id : vec3u,
-
-  @builtin(local_invocation_id)
-  local_id : vec3u,
-) {
-  if (global_id.x >= ${BUFFER_SIZE}u) {
-    return;
-  }
-
-  output[global_id.x] =
-    f32(global_id.x) * 1000. + f32(local_id.x);
-}`;
 
 // 测试WebGPU是否可用
 // @link https://mdn.github.io/dom-examples/webgpu-render-demo/script.js
@@ -291,19 +280,19 @@ export default async function create(el){
     });
 
     // 欺骗ASS.js
-    el.videoHeight = el.videoWidth = 
-    el.currentTime = 0;
-    el.paused = true;
+    // el.videoHeight = el.videoWidth = 
+    // el.currentTime = 0;
+    // el.paused = true;
 
-    watch(() => refs.time.total, total => el.duration = (total || 0n) / 1000n);
-    player.on('ended', () => el.dispatchEvent(new Event('ended')));
-    player.on('loading', () => el.dispatchEvent(new Event('waiting')));
-    player.on('loaded', () => el.dispatchEvent(new Event('load')));
-    player.on('played', () => el.dispatchEvent(new Event('play')));
-    player.on('paused', () => el.dispatchEvent(new Event('pause')));
-    player.on('seeking', () => el.dispatchEvent(new Event('seeking')));
-    player.on('seeked', () => el.dispatchEvent(new Event('seeked')));
-    player.on('time', time => el.currentTime = time / 1000n);
+    watch(() => refs.time.total, total => el.duration = total || 0n);
+    // player.on('ended', () => el.dispatchEvent(new Event('ended')));
+    // player.on('loading', () => el.dispatchEvent(new Event('waiting')));
+    // player.on('loaded', () => el.dispatchEvent(new Event('load')));
+    // player.on('played', () => el.dispatchEvent(new Event('play')));
+    // player.on('paused', () => el.dispatchEvent(new Event('pause')));
+    // player.on('seeking', () => el.dispatchEvent(new Event('seeking')));
+    // player.on('seeked', () => el.dispatchEvent(new Event('seeked')));
+    player.on('time', time => el.currentTime = time);
 
     return refs;
 }

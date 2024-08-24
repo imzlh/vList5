@@ -87,13 +87,25 @@
                 break;
         }
     }
+    function handleKbd(event: KeyboardEvent){
+        switch(event.key){
+            case 'ArrowRight':
+                next();
+                break;
+            case 'ArrowLeft':
+                prev();
+                break;
+            default: return;
+        }
+        event.preventDefault();
+    }
 </script>
 
 <template>
     <div class="txt-wrapper">
         <div class="txt-content" ref="container"
             :style="{ fontSize: `${FONT_SIZE}px` }"
-            @click="handleClick"
+            @click="handleClick" @keypress="handleKbd"
             @touchstart="handleTouch" @touchmove="handleTouch" @touchend="handleTouch"
         ></div>
         <div class="prev" @click="prev"></div>
