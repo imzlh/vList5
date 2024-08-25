@@ -328,11 +328,13 @@
         if(!video.value) return;
         switch(kbd.key){
             case 'ArrowRight':
-                video.value.currentTime += CONFIG.seek_time;
+                if(kbd.ctrlKey) CFG.current ++;
+                else video.value.currentTime += CONFIG.seek_time;
             break;
 
             case 'ArrowLeft':
-                video.value.currentTime -= CONFIG.seek_time;
+                if(kbd.ctrlKey) CFG.current --;
+                else video.value.currentTime -= CONFIG.seek_time;
             break;
 
             case 'ArrowUp':

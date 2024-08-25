@@ -1210,6 +1210,12 @@ const folderIcon: FolderIcon[] = [
             'vcxproj',
             'vcxproj.filters',
         ],
+    },{
+        "name": "vdb",
+        "fileExtensions": [
+            "vdb",
+            "vtc"
+        ]
     },
     {
         name: 'database',

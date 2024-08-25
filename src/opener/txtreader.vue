@@ -1,6 +1,6 @@
 <script lang="ts" setup>
     import type { vFile } from "@/env";
-    import { FS, getConfig, Global, regConfig, UI } from "@/utils";
+    import { FS, getConfig, Global, openSetting, regConfig, reqFullscreen, UI } from "@/utils";
     import { generateTxtDB, loadTxtDB, TxtDB } from "@/utils/txtdb";
     import { onMounted, reactive, ref, render, watch } from "vue";
 
@@ -9,7 +9,9 @@
         container = ref<HTMLDivElement>(),
         ui = reactive({
             helper: false,
-            chapter: false
+            chapter: false,
+            goto: false,
+            state: 0
         });
 
     let contents: undefined | string;
@@ -91,7 +93,10 @@
                     pos2 += step;
                 }
             }else{
-                return backward ? index - pos2 : pos2 + index;
+                const end = backward ? index - pos2 : pos2 + index,
+                    start = backward ? index - charlen : index;
+                ui.state = start / (contents?.length || db!.length) * 100;
+                return end;
             }
             container.value.innerText = (backward
                ? content.substring(pos2, content.length)
@@ -99,8 +104,8 @@
         }
     }
 
-    const next = () => renderContent(endpos! +1).then(pos => {startpos = endpos!, endpos = pos}),
-        prev = () => endpos && endpos > 0 && renderContent(endpos!, true).then(pos => {endpos = startpos, startpos = pos});
+    const next = () => startpos <= (contents?.length || db!.length) && renderContent(endpos! +1).then(pos => {startpos = endpos!, endpos = pos}),
+        prev = () => endpos != null && endpos >= 0 && renderContent(endpos!, true).then(pos => {endpos = startpos, startpos = pos});
 
     let startpos = 0;
     let endpos: null | number = null;
@@ -179,13 +184,20 @@
             "default": 16,
             "step": 1,
             "desc": "显示的字体大小"
+        },{
+            "name": "夜间模式",
+            "key": "dark",
+            "type": "check",
+            "default": false,
+            "desc": "是否使用暗色夜间模式"
         }
     ]);
-    const CONFIG = getConfig('TxtReader');
+    const CONFIG = getConfig('TxtReader'),
+        fullscreen = () => UI.fullscreen.value ? document.exitFullscreen() : reqFullscreen();
 </script>
 
 <template>
-    <div class="txt-wrapper">
+    <div class="txt-wrapper" :dark="CONFIG.dark.value">
         <div class="txt-content" ref="container"
             :style="{ fontSize: `${CONFIG.fontSize.value}px` }"
             @click="handleClick" @keypress="handleKbd" @wheel="handleWheel"
@@ -195,12 +207,37 @@
         <div class="next" @click="next"></div>
         <div class="mask" v-show="ui.helper || ui.chapter" @click="ui.helper = ui.chapter = false"></div>
         <div class="helper" v-show="ui.helper">
+            <button :active="ui.goto" @click="ui.goto = !ui.goto" v-if="cached">
+                <svg viewBox="0 0 16 16">
+                    <path fill-rule="evenodd" d="M3.646 9.146a.5.5 0 0 1 .708 0L8 12.793l3.646-3.647a.5.5 0 0 1 .708.708l-4 4a.5.5 0 0 1-.708 0l-4-4a.5.5 0 0 1 0-.708zm0-2.292a.5.5 0 0 0 .708 0L8 3.207l3.646 3.647a.5.5 0 0 0 .708-.708l-4-4a.5.5 0 0 0-.708 0l-4 4a.5.5 0 0 0 0 .708z"/>
+                </svg>
+                <span>转到</span>
+            </button>
             <button @click="ui.chapter = !ui.chapter" v-if="cached">
                 <svg viewBox="0 0 16 16">
                     <path fill-rule="evenodd" d="M2.5 12a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5zm0-4a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5zm0-4a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5z"/>
                 </svg>
                 <span>目录</span>
             </button>
+            <button @click="openSetting('TxtReader')">
+                <svg viewBox="0 0 16 16">
+                    <path d="M2.5 3.5a.5.5 0 0 1 0-1h11a.5.5 0 0 1 0 1h-11zm2-2a.5.5 0 0 1 0-1h7a.5.5 0 0 1 0 1h-7zM0 13a1.5 1.5 0 0 0 1.5 1.5h13A1.5 1.5 0 0 0 16 13V6a1.5 1.5 0 0 0-1.5-1.5h-13A1.5 1.5 0 0 0 0 6v7zm1.5.5A.5.5 0 0 1 1 13V6a.5.5 0 0 1 .5-.5h13a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-.5.5h-13z"/>
+                </svg>
+                <span>设置</span>
+            </button>
+            <button @click="fullscreen">
+                <svg viewBox="0 0 16 16">
+                    <path d="M0 3.5A1.5 1.5 0 0 1 1.5 2h13A1.5 1.5 0 0 1 16 3.5v9a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 0 12.5v-9zM1.5 3a.5.5 0 0 0-.5.5v9a.5.5 0 0 0 .5.5h13a.5.5 0 0 0 .5-.5v-9a.5.5 0 0 0-.5-.5h-13z"/>
+                    <path d="M2 4.5a.5.5 0 0 1 .5-.5h3a.5.5 0 0 1 0 1H3v2.5a.5.5 0 0 1-1 0v-3zm12 7a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1 0-1H13V8.5a.5.5 0 0 1 1 0v3z"/>
+                </svg>
+                <span>全屏</span>
+            </button>
+        </div>
+        <div class="goto" v-if="ui.goto">
+            <input type="range" min="0" max="1" step="0.001" @change="
+                startpos = ($event.target as HTMLInputElement).valueAsNumber * db!.length;
+                renderContent(startpos).then(ed => endpos = ed);
+            " :value="ui.state / 100">
         </div>
         <ol class="chapters" v-if="ui.chapter">
             <template v-for="item in db!.chapter"> 
@@ -213,6 +250,7 @@
                 </li>
             </template>
         </ol>
+        <span class="state">{{ ui.state.toFixed(2) }}%</span>
     </div>
 </template>
 
@@ -303,7 +341,7 @@
                     display: block;
                 }
 
-                &:hover{
+                &:hover, &[active=true]{
                     background-color: #ebebeb;
                 }
             }
@@ -340,6 +378,83 @@
             &[display=false]{
                 transform: translateX( 120% );
                 opacity: 0;
+            }
+        }
+
+        > .goto{
+            position: absolute;
+            bottom: 4.5rem;
+            left: 1rem;
+            right: 1rem;
+            margin: auto;
+            max-width: 15rem;
+            background-color: white;
+            padding: .5rem 1.25rem;
+            border-radius: .35rem;
+            box-shadow: 0 0 .5rem .05rem #d9d9d9;
+
+            > input{
+                width: 100%;
+
+                &::-webkit-slider-thumb {
+                    transform: scale(1.2);
+                    box-shadow: 0 0 .75rem rgb(121, 183, 249);
+                    border-radius: 2rem;
+                }
+            }
+        }
+
+        > .state{
+            position: absolute;
+            top: .75rem;
+            right: .5rem;
+            font-size: 0.85em;
+            color: rgb(202 202 202);
+        }
+
+        &[dark=true]{
+            background-color: #605b5b;
+
+            > .txt-content{
+                color: #fff;
+            }
+
+            > .prev, > .next{
+                filter: invert(1);
+            }
+
+            > .helper{
+                background-color: #262626;
+
+                > *{
+                    color: #fff;
+
+                    &:hover, &[active=true]{
+                        background-color: #575757;
+                    }
+                }
+            }
+
+            > .chapters{
+                background-color: #1f1f1f;
+                box-shadow: 0 0 .85rem #111;
+
+                > li{
+                    color: #fff;
+
+                    &:hover{
+                        background-color: #707070;
+                    }
+                }
+            }
+
+            > .goto{
+                background-color: #585858;
+                box-shadow: 0 0 .5rem -.05rem #4e4e4e;
+            }
+
+            > .state{
+                color: #999;
             }
         }
     }

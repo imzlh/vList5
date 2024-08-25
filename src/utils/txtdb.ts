@@ -74,6 +74,10 @@ export class BinReader{
     get offset(){
         return this.pointer;
     }
+
+    close(){
+        return this.pipe.cancel();
+    }
 }
 
 export class TxtDB{
@@ -94,20 +98,26 @@ export class TxtDB{
         start_id < 0 && (start_id = 0);
         end_id || (end_id = start_id);
         if(start_id > end_id) throw new Error("Invalid range");
-        if(end_id > this.chapters.length) throw new Error("Out of range");
         // 检查缓存
         const cache_miss = [] as Array<number>;
         for(let i = start_id; i < end_id; i++)
             if(!this.cache[i]) cache_miss.push(i);
         if(cache_miss.length){
             const start = cache_miss[0] * this.chunk_size * 3 + this.body_offset,
-                end = Math.max(
-                    (cache_miss.at(-1)! +1) * this.chunk_size * 3 + this.body_offset,
+                request_end = (cache_miss.at(-1)! +1) * this.chunk_size * 3 + this.body_offset;
+            if(start > this.file.size) throw new Error("Out of range");
+            const end = Math.min(
+                Math.max(
+                    request_end,
                     Math.ceil(this.loadonce_minsize / 3 / this.chunk_size + cache_miss[0]) * this.chunk_size * 3 + this.body_offset
                 ),
-                data = new Uint8Array(await (await fetch(this.file.url, {
-                    headers: { Range: `bytes=${start}-${end}` }
-                })).arrayBuffer());
+                this.file.size
+            );
+            if(end <= start) throw new Error("Out ofrange");
+            const fe = await fetch(this.file.url, {
+                headers: { Range: `bytes=${start}-${end -1}` }
+            }),
+            data = new Uint8Array(await fe.arrayBuffer());
             // 拆分
             const i_end = data.length / 3 / this.chunk_size;
             for(let i = 0; i < i_end; i ++){
@@ -122,6 +132,8 @@ export class TxtDB{
     }
     
     async read(start: number, end: number): Promise<string>{
+        if(start > this.length) return "";
+        else if(end > this.length) end = this.length;
         const start_id = Math.floor(start / this.chunk_size),
             start_offset = start % this.chunk_size,
             end_id = Math.ceil(end / this.chunk_size),
@@ -131,6 +143,10 @@ export class TxtDB{
 
     get chapter(){
         return this.chapters.map(([title, offset, _]) => ({ title, offset: offset * this.chunk_size }));
+    }
+
+    get length(){
+        return (this.file.size - this.body_offset) / 3;
     }
 }
 
@@ -155,6 +171,7 @@ export async function loadTxtDB(file: vFile): Promise<TxtDB>{
         chapters.push([title, offset, '']);
     }
 
+    reader.close();
     return new TxtDB(chapters, chunk_size, file, reader.offset);
 }
 

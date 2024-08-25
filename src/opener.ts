@@ -13,6 +13,8 @@ import I_DESIGNER from '/app/desginer.webp';
 import I_MEDIA from '/app/video.webp';
 import I_PS from '/app/ps.webp';
 import I_ASCIINEMA from '/app/asciinema.svg';
+import I_NOTES from '/app/notes.webp';
+import I_TEXT from '/app/text.webp';
 
 export const OPENER:Array<OpenerOption> = [
     // Monaco-Editor(VsCode)
@@ -270,7 +272,7 @@ export const OPENER:Array<OpenerOption> = [
     // @link https://github.com/futurepress/epub.js
     {
         "name": "epub浏览器",
-        "icon": I_DESIGNER,
+        "icon": I_NOTES,
         "type": "application/epub",
         "typeDesc": "轻松浏览epub格式电子书",
         "format": [
@@ -279,7 +281,7 @@ export const OPENER:Array<OpenerOption> = [
         async open(file) {
             Global('ui.window.add').call({
                 "content": (await import('@/opener/epub.vue')).default,
-                "icon": I_DESIGNER,
+                "icon": I_NOTES,
                 "name": file.name + " - epub",
                 "option": file
             });
@@ -289,7 +291,7 @@ export const OPENER:Array<OpenerOption> = [
     // Copyright(C) 2024 izGroup
     {
         "name": "TXT阅读",
-        "icon": I_DESIGNER,
+        "icon": I_NOTES,
         "type": "text/plain",
         "typeDesc": "在线阅读TXT小说",
         "format": [
@@ -298,7 +300,7 @@ export const OPENER:Array<OpenerOption> = [
         async open(file) {
             Global('ui.window.add').call({
                 "content": (await import('@/opener/txtreader.vue')).default,
-                "icon": I_DESIGNER,
+                "icon": I_NOTES,
                 "name": file.name + " - TXT阅读",
                 "option": file
             });
