@@ -241,7 +241,7 @@
 <template>
     <div class="parent" ref="parent" v-bind="$attrs"
         :style="{ pointerEvents: data.lock ? 'none' : 'all' }"
-        @dblclick.stop="folder()" @click="markup($event, data)" @contextmenu.stop.prevent="ctxmenu(data, $event)"
+        @dblclick.stop="folder()" @click.stop="markup($event, data)" @contextmenu.stop.prevent="ctxmenu(data, $event)"
         @dragstart.stop="drag_start($event, data)" :draggable="(data).path != '/' && !(data as vDir).rename" @drop.stop="drag_onto($event, data)"
         @dragover.stop="drag_alert($event, data)"
         @dragleave.stop="($event.currentTarget as HTMLElement).classList.remove('moving')" :title="desc(data as any)"
@@ -254,7 +254,7 @@
             @change="rename(data, ($event.currentTarget as HTMLInputElement).value)"
             @contextmenu="(data as vDir).rename = false"
             @blur="(data as vDir).rename = false"
-            @keydown.stop @drop.stop.prevent
+            @keydown.stop @drop.stop.prevent @click.stop @keyup.stop
             v-focus
         >
         <span class="text" v-else>{{ data.dispName || data.name }}</span>
@@ -271,7 +271,7 @@
             <tree v-if="child.type == 'dir'" :data="child" :data-position="data.path + ':' + id" />
 
             <div v-else class="item" :title="desc(child)" ref="elements"
-                @click="markup($event, child)" @contextmenu.stop.prevent="ctxmenu(child, $event)"
+                @click.stop="markup($event, child)" @contextmenu.stop.prevent="ctxmenu(child, $event)"
                 v-touch 
                 @dblclick.stop="openFile(child as vFile)" @dragstart.stop="drag_start($event, child)" :draggable="!(child as vFile).rename"
                 v-into="data.active.has(child)" :process="child.upload"
@@ -283,7 +283,7 @@
                     @change="rename(child, ($event.currentTarget as HTMLInputElement).value)"
                     @contextmenu="(child as vFile).rename = false"
                     @blur="(child as vFile).rename = false"
-                    @keydown.stop @drop.stop.prevent
+                    @keydown.stop @drop.stop.prevent @click.stop @keyup.stop
                     v-focus
                 >
                 <span class="text" v-else>{{ child.dispName || child.name }}</span>
@@ -304,6 +304,8 @@
             outline: none;
             border-radius: .15rem;
             background-color: #ffffffb5;
+            width: 100%;
+            box-sizing: border-box;
         }
 
         .moving{

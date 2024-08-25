@@ -1,4 +1,9 @@
 @font-face {
     font-family: 'Barlow';
-    src: url('/font/Barlow-Bold.woff2');
+    src: url('/font/Barlow-Bold.woff2') format('woff2');
+}
+
+@font-face{
+    font-family: 'Repair';
+    src: url('/font/Repair-Regular.woff2') format('woff2');
 }

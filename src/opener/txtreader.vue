@@ -257,6 +257,11 @@
 <style lang="scss" >
     @import "@/icon.scss";
 
+    @font-face {
+        font-family: 'GenJyuuGothic';
+        src: url('/font/GenJyuuGothic-Regular.woff2') format('woff2');
+    }
+
     .txt-wrapper {
         position: relative;
         height: 100%;
@@ -276,6 +281,7 @@
             word-wrap: break-word;
             line-height: 1.5;
             color: #333;
+            font-family: 'GenJyuuGothic', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
 
             padding: 1rem;
             box-sizing: border-box;
@@ -410,6 +416,7 @@
             right: .5rem;
             font-size: 0.85em;
             color: rgb(202 202 202);
+            font-family: 'Repair';
         }
 
         &[dark=true]{

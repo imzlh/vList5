@@ -1,10 +1,10 @@
 <script setup lang="ts">
     import type { MessageOpinion, vFile } from '@/env';
     import { regSelf } from '@/opener';
-    import { FS, Global, UI, acceptDrag, clipFName, regConfig, reqFullscreen, splitPath } from '@/utils';
+    import { FS, Global, UI, acceptDrag, clipFName, reqFullscreen, splitPath } from '@/utils';
     import ASS from 'assjs';
     import { onMounted, onUnmounted, ref, shallowReactive, shallowRef, watch } from 'vue';
-    import MediaSession,{ updateMediaSession, type mediaSessionCtrl } from '@/utils/mediaSession';
+    import MediaSession, { updateMediaSession } from '@/utils/mediaSession';
     import { parseSrt } from '@/utils/subsrt';
 
     interface subOption {
@@ -1001,6 +1001,9 @@
                 top: -2rem;left: 0;right: 0;
                 padding: .5rem;
                 font-size: .95rem;
+                font-family: 'Repair';
+                font-weight: 600;
+                letter-spacing: 1px;
 
                 .total{
                     float: right;
