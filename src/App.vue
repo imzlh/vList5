@@ -26,8 +26,8 @@
 		old_fd: undefined | FileOrDir,
 		current: FileOrDir = current_tree.child![current_index],
 		locked = false;
-	async function handleUpdate(){
-		old_fd && old_fd.parent?.active.clear();
+	async function handleUpdate(multi = false){
+		multi || (old_fd && old_fd.parent?.active.delete(old_fd));
 		old_fd = current;
 		locked = UI.loading = true;
 		if(!current_tree.child) document.documentElement.focus(), await FS.loadTree(current_tree);
@@ -66,12 +66,12 @@
 		switch(ev.key){
 			case 'ArrowUp':
 				current_index = Math.max(0, current_index - 1);
-				handleUpdate();
+				handleUpdate(ev.shiftKey);
 			break;
 				
 			case 'ArrowDown':
 				current_index = current_index >= current_tree.child!.length - 1 ? 0 : current_index + 1;
-				handleUpdate();	
+				handleUpdate(ev.shiftKey);	
 			break;
 
 			case 'Enter':{
@@ -86,7 +86,7 @@
 				if(current.type == 'dir')
 					current_tree = current,
 					current_index = 0;
-				handleUpdate();
+				handleUpdate(ev.shiftKey);
 			break;
 
 			case 'ArrowLeft':
@@ -94,7 +94,7 @@
 				if(current_tree.parent && current_tree.path != '/')
 					current_index = current_tree.parent.child!.indexOf(current_tree),
 					current_tree = current_tree.parent;
-				handleUpdate();
+				handleUpdate(ev.shiftKey);
 			break;
 
 			case 'F5':{
@@ -103,7 +103,7 @@
 					FS.loadTree(cur.parent).then(() => cur!.parent!.unfold = true);
 				else if(cur.type == 'dir')
 					FS.loadTree(cur).then(() => cur!.unfold = true);
-				handleUpdate();
+				handleUpdate(ev.shiftKey);
 			break; }
 
 			case 'F2':
@@ -121,7 +121,7 @@
 						},
 						'title': '文件资源管理器',
 						'timeout': 10
-					})).then(() => handleUpdate());
+					})).then(() => handleUpdate(ev.shiftKey));
 			break;
 
 			default: return;
@@ -138,7 +138,7 @@
 				tree = await FS.stat(target.dataset.position!.substring(0, index)),
 				id = parseInt(target.dataset.position.substring(index + 1));
 			current_tree = tree.type == 'dir' ? tree : tree.parent!, 
-			current_index = id, handleUpdate();
+			current_index = id, handleUpdate(true);
 		}
 	})));
 

@@ -4,7 +4,6 @@ import I_HEX from '/app/hex.webp';
 import type { MessageOpinion, OpenerOption, vFile } from './env';
 import { clipFName, Global } from './utils';
 import I_ART from '/app/artplayer.webp';
-import I_APLAYER from '/app/aplayer.webp';
 import I_VLITE from "/app/vlite.svg";
 import I_MUYA from '/app/muya.webp';
 import I_VPLAYER from '/app/vplayer.webp';
@@ -14,7 +13,6 @@ import I_MEDIA from '/app/video.webp';
 import I_PS from '/app/ps.webp';
 import I_ASCIINEMA from '/app/asciinema.svg';
 import I_NOTES from '/app/notes.webp';
-import I_TEXT from '/app/text.webp';
 
 export const OPENER:Array<OpenerOption> = [
     // Monaco-Editor(VsCode)
@@ -22,7 +20,7 @@ export const OPENER:Array<OpenerOption> = [
     {
         "name": "VSCode",
         "type": "text/coder",
-        "typeDesc": "在线编辑代码",
+        "typeDesc": "在线编辑大部分代码，基于微软Monaco",
         "icon": I_VSCODE,
         "format": [
             "php",
@@ -65,7 +63,7 @@ export const OPENER:Array<OpenerOption> = [
     {
         "name": "Muya",
         "type": "text/markdown",
-        "typeDesc": "在线编辑预览Markdown",
+        "typeDesc": "在线编辑预览Markdown，所见即所得",
         "icon": I_MUYA,
         "format": [
             "md"
@@ -84,7 +82,7 @@ export const OPENER:Array<OpenerOption> = [
     {
         "name": "Asciinema",
         "type": "text/asciinema",
-        "typeDesc": "在线播放Asciinema录像",
+        "typeDesc": "在线播放Asciinema终端录制的动画",
         "icon": I_ASCIINEMA,
         "format": [
             "cast"
@@ -104,7 +102,7 @@ export const OPENER:Array<OpenerOption> = [
         "name": "Imager",
         "type": "media/image",
         "icon": I_IMAGER,
-        "typeDesc": "简约的图片浏览器",
+        "typeDesc": "简约而强大的图片浏览器",
         "format": [
             "avif",
             "webp",
@@ -129,7 +127,7 @@ export const OPENER:Array<OpenerOption> = [
         "name": "Chrome",
         "icon": I_CHROME,
         "type": "application/html",
-        "typeDesc": "使用你的浏览器打开",
+        "typeDesc": "使用你的浏览器打开这个文件",
         "format": [
             "pdf"
         ],
@@ -147,7 +145,7 @@ export const OPENER:Array<OpenerOption> = [
     {
         "name": "vPlayer",
         "type": "media/video",
-        "typeDesc": "播放视频",
+        "typeDesc": "使用强大的vPlayer播放视频，支持字幕",
         "icon": I_VPLAYER,
         "format": [
             "mp4",
@@ -171,7 +169,7 @@ export const OPENER:Array<OpenerOption> = [
         "name": "vLite",
         "icon": I_VLITE,
         "type": "media/audio",
-        "typeDesc": "高颜值的音乐播放器",
+        "typeDesc": "高颜值的音乐播放器，支持歌词",
         "format":[
             "mp3",
             "wav",
@@ -196,7 +194,7 @@ export const OPENER:Array<OpenerOption> = [
     {
         "name": "avPlayer",
         "type": "media/*",
-        "typeDesc": "播放任何视频音频，基于ffmpeg",
+        "typeDesc": "播放vPlayer不支持的视频音频，基于ffmpeg",
         "icon": I_MEDIA,
         "format":[
             "webm",
@@ -231,7 +229,7 @@ export const OPENER:Array<OpenerOption> = [
         "name": "imgEditor",
         "icon": I_DESIGNER,
         "type": "media/image",
-        "typeDesc": "图片编辑器",
+        "typeDesc": "简单的在线图片编辑器",
         "format": [
             "jpg", "jpeg", "jxl",
             "png",
@@ -249,12 +247,12 @@ export const OPENER:Array<OpenerOption> = [
         },
     },
     // psd.js
-    // Copyright(C) 2021 izGroup
+    // Copyright(C) 2024 izGroup
     {
         "name": "PS预览器",
         "icon": I_PS,
         "type": "media/image",
-        "typeDesc": "PS预览器",
+        "typeDesc": "PS图片预览，支持PSD图层",
         "format": [
             "psd",
             "psb"
@@ -293,7 +291,7 @@ export const OPENER:Array<OpenerOption> = [
         "name": "TXT阅读",
         "icon": I_NOTES,
         "type": "text/plain",
-        "typeDesc": "在线阅读TXT小说",
+        "typeDesc": "在线顺畅阅读TXT小说",
         "format": [
             "txt"
         ],
@@ -353,7 +351,7 @@ export const OPENER:Array<OpenerOption> = [
     {
         "name": "ArtPlayer",
         "type": "media/video",
-        "typeDesc": "播放视频",
+        "typeDesc": "(deprecated)使用artplayer播放视频",
         "icon": I_ART,
         "format": [
             "mp4",

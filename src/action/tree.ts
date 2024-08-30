@@ -256,16 +256,14 @@ TREE_REG.register(() => ({
                         }
 
                         if (!item.child) await FS.loadTree(item);
-                        if (!item.child) return; // for TypeScript TypeCheck
+                        item.unfold = true;
 
                         clearActiveFile();
-                        for (let i = 0; i < item.child.length; i++)
-                            if (preg.test(item.child[i].name)) {
-                                item.active.set(item.child[i], item.child[i].path);
-                                getActiveFile().push(item.child[i]);
+                        for (let i = 0; i < item.child!.length; i++)
+                            if (preg.test(item.child![i].name)) {
+                                item.active.set(item.child![i], item.child![i].path);
+                                getActiveFile().push(item.child![i]);
                             }
-
-                        (document.querySelector('.left > div.files') as HTMLElement).focus();
                     },
                 } satisfies AlertOpts);
             },

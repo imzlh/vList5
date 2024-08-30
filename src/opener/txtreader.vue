@@ -14,6 +14,14 @@
             state: 0
         });
 
+    if(!history[file.path]) history[file.path] = { bookmarks: [], readed: 0 };
+
+    const cache = history[file.path], bookmark = reactive<Array<number>>(cache.bookmarks);
+
+    // 读书进度缓存
+    watch(() => ui.state, readed => cache.readed = readed);
+    watch(() => bookmark, () => cache.bookmarks = bookmark);
+
     let contents: undefined | string;
     let db: TxtDB | undefined;
     let cached = CONFIG.cache.value;
@@ -194,6 +202,13 @@
     ]);
     const CONFIG = getConfig('TxtReader'),
         fullscreen = () => UI.fullscreen.value ? document.exitFullscreen() : reqFullscreen();
+
+    // 读书进度书签缓存
+    const history = JSON.parse(localStorage.getItem("v_txtCache") || "{}") as Record<string, {
+        bookmarks: Array<number>,
+        readed: number
+    }>;
+    window.addEventListener('beforeunload', () => localStorage.setItem("v_txtCache", JSON.stringify(history)));
 </script>
 
 <template>
@@ -207,6 +222,13 @@
         <div class="next" @click="next"></div>
         <div class="mask" v-show="ui.helper || ui.chapter" @click="ui.helper = ui.chapter = false"></div>
         <div class="helper" v-show="ui.helper">
+            <button @click="bookmark.push(endpos! / db!.length)" v-if="cached">
+                <svg viewBox="0 0 16 16">
+                    <path d="M2 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v13.5a.5.5 0 0 1-.777.416L8 13.101l-5.223 2.815A.5.5 0 0 1 2 15.5V2zm2-1a1 1 0 0 0-1 1v12.566l4.723-2.482a.5.5 0 0 1 .554 0L13 14.566V2a1 1 0 0 0-1-1H4z"/>
+                    <path d="M8 4a.5.5 0 0 1 .5.5V6H10a.5.5 0 0 1 0 1H8.5v1.5a.5.5 0 0 1-1 0V7H6a.5.5 0 0 1 0-1h1.5V4.5A.5.5 0 0 1 8 4z"/>
+                </svg>
+                <span>书签</span>
+            </button>
             <button :active="ui.goto" @click="ui.goto = !ui.goto" v-if="cached">
                 <svg viewBox="0 0 16 16">
                     <path fill-rule="evenodd" d="M3.646 9.146a.5.5 0 0 1 .708 0L8 12.793l3.646-3.647a.5.5 0 0 1 .708.708l-4 4a.5.5 0 0 1-.708 0l-4-4a.5.5 0 0 1 0-.708zm0-2.292a.5.5 0 0 0 .708 0L8 3.207l3.646 3.647a.5.5 0 0 0 .708-.708l-4-4a.5.5 0 0 0-.708 0l-4 4a.5.5 0 0 0 0 .708z"/>
@@ -239,17 +261,24 @@
                 renderContent(startpos).then(ed => endpos = ed);
             " :value="ui.state / 100">
         </div>
-        <ol class="chapters" v-if="ui.chapter">
-            <template v-for="item in db!.chapter"> 
-                <li  v-if="item.title" @click="
-                    startpos = item.offset ;
-                    renderContent(item.offset).then(ed => endpos = ed);
-                    ui.chapter = ui.helper = false" :data-offset="item.offset
-                ">
-                    {{ item.title }}
-                </li>
-            </template>
-        </ol>
+        <div class="chapters" v-if="ui.chapter">
+            <div v-for="(mark, id) of bookmark"
+                @click="renderContent(mark * db!.length).then(ed => endpos = ed)"
+            >
+                书签 {{ id +1 }} ({{ mark.toFixed(2) }}%)
+            </div>
+            <ol>
+                <template v-for="item in db!.chapter"> 
+                    <li  v-if="item.title" @click="
+                        startpos = item.offset ;
+                        renderContent(item.offset).then(ed => endpos = ed);
+                        ui.chapter = ui.helper = false" :data-offset="item.offset
+                    ">
+                        {{ item.title }}
+                    </li>
+                </template>
+            </ol>
+        </div>
         <span class="state">{{ ui.state.toFixed(2) }}%</span>
     </div>
 </template>
@@ -360,7 +389,7 @@
             z-index: 5;
             background-color: rgb(250 247 247);
             width: 80%;
-            padding: 0.75rem 0.75rem 0.75rem 2.25rem;
+            padding: .75rem .75rem .75rem 0;
             box-sizing: border-box;
             height: 100%;
             max-width: 15rem;
@@ -371,7 +400,24 @@
             font-size: .8em;
             margin: 0;
 
-            > li{
+            > div{
+                display: block;
+                position: absolute;
+                width: 100%;
+                box-sizing: border-box;
+                margin-left: 1.5rem;
+
+                &::before{
+                    content: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" fill="%23007bff" viewBox="0 0 16 16"><path d="M2 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v13.5a.5.5 0 0 1-.777.416L8 13.101l-5.223 2.815A.5.5 0 0 1 2 15.5V2zm2-1a1 1 0 0 0-1 1v12.566l4.723-2.482a.5.5 0 0 1 .554 0L13 14.566V2a1 1 0 0 0-1-1H4z"/></svg>');
+                    position: absolute;
+                    left: -1.25rem;
+                    top: .35rem;
+                    height: 1rem;
+                    width: 1rem;
+                }
+            }
+
+            > ol > li, > div{
                 padding: .35rem .25rem;
                 cursor: pointer;
                 transition: background-color .2s ease-in-out;

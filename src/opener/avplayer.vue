@@ -128,7 +128,6 @@
                             id = i;
                         // 转换
                         ui.videos.push({...item, name: info.name});
-                        i++;
                     }
                 });
                 // 更新
@@ -289,8 +288,7 @@
                     <div class="prog" :style="{ width: float((player.time.current || 0n) * 10000n / (player.time.total || 1n), 2)+ '%' }"></div>
                     <div class="chapter" v-if="player.time.total">
                         <div v-for="(chap, i) in player.tracks.chapter" :style="{
-                            left: (chap.start || 0n) / player.time.total * 100n + '%',
-                            width: (chap.end || player.time.total) - (chap.start || 0n) + '%'
+                            left: (chap.start || 0n) / player.time.total / 10000n + '%'
                         }" :title="'Chapter' + i"></div>
                     </div>
                 </div>
@@ -579,6 +577,7 @@
                         transition: all .2s;
                         background-color: rgba(19, 108, 180, 0.5);
                         position: relative;
+                        max-width: 100%;
 
                         &::after{
                             float: right;
@@ -595,13 +594,20 @@
 
                     > .chapter{
                         position: absolute;
-                        top: -.3rem;
+                        top: -.4rem;
                         bottom: 100%;
                         width: 100%;
+                        overflow: hidden;
 
-                        > div{
+                        &::after{
+                            content: '';
+                            display: block;
+                            right: 0;
+                        }
+
+                        > div, &::after{
                             position: absolute;
-                            border: solid .1rem rgb(184, 184, 184);
+                            border: solid .05rem rgb(184, 184, 184);
                             border-bottom: none;border-top: none;
                             height: .25rem;
                         }
