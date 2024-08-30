@@ -511,6 +511,7 @@ export namespace FS{
             set = new Set(items);
         if(set.size != items.length)
             throw new Error('Duplicate file path');
+        if(items.length == 0) return;
 
         // 重命名
         await __request('rename', fileList, false);
@@ -599,6 +600,7 @@ export namespace FS{
     }
 
     export async function del(files:Array<string>|string){
+        if(files?.length == 0) return;
         await __request('delete', { files: typeof files == 'string' ? [files] : files });
         // 删除源节点
         for(const file of typeof files == 'string' ? [files] : files){
@@ -643,6 +645,7 @@ export namespace FS{
     }
 
     export async function  mkdir(dirs: Array<string>|string){
+        if(dirs?.length == 0) return;
         await __request('mkdir', { files: typeof dirs == 'string' ? [dirs] : dirs });
         // 在文件夹下创建文件夹
         await __create((name, dirpath, parent) => ({
@@ -661,6 +664,7 @@ export namespace FS{
         if(mode && mode > 0o7777)
             throw new Error('Mode Error');
         files = typeof files == 'string' ? [files] : files;
+        if(files.length == 0) return;
         await __request('touch', { 
             files,
             mode
@@ -727,6 +731,7 @@ export namespace FS{
 
     export async function  copy(from:Array<string>|string,to:string){
         from = typeof from == 'string' ? [from] : from;
+        if(from.length == 0) return;
         await __request('copy', {
             from,
             to
@@ -736,6 +741,7 @@ export namespace FS{
 
     export async function  move(from:Array<string>|string, to:string, deep_move = false){
         from = typeof from == 'string' ? [from] : from;
+        if(from.length == 0) return;
         await __request(deep_move ? 'fmove' : 'move', {
             from,
             to

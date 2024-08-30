@@ -141,8 +141,8 @@ import { _eval } from '@/utils/eval';
     if(import.meta.env.DEV) console.debug = console.info;
     console.clear = () => {logs.splice(0, logs.length), objCache.splice(0, objCache.length)};
     document.addEventListener('DOMContentLoaded', () => console.info(`%c${name} V${version}`, 'color: #2cae61; padding: .5rem 1rem; background-color: #d5f9ff;'));
-    window.addEventListener('error', (event) => logs.push({ type: 'error', message: event.message, time: new Date().toLocaleString(), trace: event.error.stack.split('\n').slice(2) }));
-    window.addEventListener('unhandledrejection', (event) => logs.push({ type: 'error', message: event.reason, time: new Date().toLocaleString(), trace: event.reason.stack?.split('\n').slice(2) }));
+    window.addEventListener('error', (event) => logs.push({ type: 'error', message: event.message, time: new Date().toLocaleString(), trace: event.error.stack.split('\n').slice(1) }));
+    window.addEventListener('unhandledrejection', (event) => logs.push({ type: 'error', message: event.reason, time: new Date().toLocaleString(), trace: event.reason.stack?.split('\n').slice(1) }));
 </script>
 
 <script lang="ts" setup>

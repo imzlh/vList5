@@ -17,6 +17,7 @@ import I_RENAME from '/icon/rename.webp';
 import I_OPEN from "/icon/open.webp";
 import I_OPENER from '/icon/opener.webp';
 import I_DELETE from '/icon/del.svg';
+import I_BANGUMI from '/icon/bangumi.webp';
 
 import Upload from '@/module/upload.vue';
 import EXPLORER from '@/module/explorer.vue';
@@ -266,6 +267,33 @@ TREE_REG.register(() => ({
                             }
                     },
                 } satisfies AlertOpts);
+            },
+        }, {
+            "text": "番剧快速重命名",
+            "icon": I_BANGUMI,
+            async handle() {
+                // 将视频(mkv mp4等) 字幕(srt ass vtt等)分别分类重命名
+                const dir = getActiveFile()[0] as vDir;
+                if (!dir.child) await FS.loadTree(dir);
+                const video = dir.child!.filter(item => item.name.endsWith('.mkv') || item.name.endsWith('.mp4')),
+                    subtitle = dir.child!.filter(item => item.name.endsWith('.ass') || item.name.endsWith('.srt') || item.name.endsWith('.vtt')),
+                    rename = {} as Record<string, string>,
+                    dels = [] as Array<string>;
+                for (let i = 0; i < video.length; i++) {
+                    const info = splitPath(video[i]);
+                    rename[video[i].path] = info.dir + (i +1).toString().padStart(3, '0') + '.' + info.ext;
+                }
+                let subi = 1;
+                for (let i = 0; i < subtitle.length; i++) {
+                    const info = splitPath(subtitle[i]);
+                    if(info.name.toLowerCase().includes('cht') || info.name.toLowerCase().includes('tc'))
+                        dels.push(subtitle[i].path);
+                    else 
+                        rename[subtitle[i].path] = info.dir + (subi ++).toString().padStart(3, '0') + '.' + info.ext;
+                }
+
+                FS.rename(rename);
+                FS.del(dels);
             },
         }, {
             'text': 'explorer窗格',
