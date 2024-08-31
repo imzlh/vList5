@@ -155,12 +155,12 @@ export default defineConfig({
                     if(id.endsWith('eval.ts')) return 'eval';
                     // core
                     if(
-                        ['svg', 'png', 'jpg', 'webp', 'ico'].some(item => id.endsWith('.' + item)) ||
-                        ((!id.includes('node_modules') || ['vue'].some(item => id.includes(item)))
-                        && !['markdown.vue', 'aplayer.vue', 'artplayer.vue', 'vscode.vue', 'imgedit', 'psd', 'avplayer', 'libmedia', 'vscode'].some(item => id.includes(item)))
+                        ['.svg', '.png', '.jpg', '.webp', '.ico', '.woff2'].some(item => id.endsWith(item)) ||
+                        ((!id.includes('/node_modules/') || ['vue'].some(item => id.includes(item)))
+                        && !['/markdown.vue', '/aplayer.vue', '/artplayer.vue', '/vscode.vue', '/imgedit', '/psd', '/avplayer', '/vscode', '/epub.vue', '/asciinema'].some(item => id.includes(item)))
                     ) return 'main';
                     // monaco
-                    if(id.includes('monaco-editor') || id.includes('vscode') || id.includes('@types'))
+                    if(id.includes('monaco-editor') || id.includes('/vscode'))
                         return 'vscode';
                     // muya
                     if((id.includes('muya') && !['prism' ,'mermaid', 'mindmap', 'vega', 'flowchart'].some(item => id.includes(item))) || id.includes('markdown.vue'))
@@ -174,7 +174,7 @@ export default defineConfig({
                     if(id.includes('asciinema'))
                         return 'asciinema';
                     // additional pack
-                    if(id.includes('psd') || id.includes('avplayer') || id.includes('libmedia') || id.includes('artplayer'))
+                    if(id.includes('psd') || id.includes('avplayer') || id.includes('libmedia') || id.includes('artplayer') || id.includes('epub'))
                         return 'additional';
                 },
             },

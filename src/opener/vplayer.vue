@@ -521,6 +521,7 @@
                     if (CONFIG.video.includes(info.ext.toLowerCase())) {
                         if (item.name == file.name)
                             id = i;
+                        i ++;
                         // 转换
                         (item as videoOption).vid_name = info.name;
                         CFG.playlist.push(item as videoOption);

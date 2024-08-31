@@ -58,7 +58,7 @@
             track: false,
             playlist: false,
             speed: false,
-            videos: [] as Array<vFile & { name: string }>,
+            videos: [] as Array<vFile & { name: string, sub: Record<string, string> }>,
             videoID: 0,
             tool: false
         }),
@@ -120,16 +120,26 @@
                 const list = (await FS.list(dir || '/')).filter(item => item.type == 'file') as vFile[];
                 ui.videos = [];
                 let i = 0;
+                const subMap = {} as Record<string, Record<string, string>>;
                 list.forEach(item => {
                     const info = splitPath(item);
                     // 是视频
                     if (CONFIG.media.includes(info.ext.toLowerCase())) {
                         if (item.name == file.name)
                             id = i;
+                        i ++;
                         // 转换
-                        ui.videos.push({...item, name: info.name});
+                        ui.videos.push({...item, name: info.name, sub: {}});
+                    // 字幕
+                    }else if(CONFIG.subtitle.includes(info.ext.toLowerCase())){
+                        const sub = subMap[info.name] || (subMap[info.name] = {});
+                        sub[info.ext.toLowerCase()] = item.url;
                     }
                 });
+                // 匹配字幕
+                ui.videos.forEach(item => 
+                    item.name in subMap && (item.sub = subMap[item.name])
+                );
                 // 更新
                 this.dir = dir;
             }
@@ -246,7 +256,14 @@
             "artist": "vPlayer",
             "album": "vPlayer",
             "artwork": []
-        })
+        });
+        watch(() => player.value?.time.current, val => val && vid.sub && Object.entries(vid.sub).forEach(([ext, url]) => 
+            player.value?.func.extSub({
+                "title": ext,
+                "source": url,
+                "lang": "zh-CN"
+            })
+        ), { once: true });
     });
 
     watch(() => _prop.visibility, dis => dis && player.value && updateMediaSession({
@@ -288,7 +305,7 @@
                     <div class="prog" :style="{ width: float((player.time.current || 0n) * 10000n / (player.time.total || 1n), 2)+ '%' }"></div>
                     <div class="chapter" v-if="player.time.total">
                         <div v-for="(chap, i) in player.tracks.chapter" :style="{
-                            left: (chap.start || 0n) / player.time.total / 10000n + '%'
+                            left: float((chap.start || 0n) / player.time.total, 4) + '%'
                         }" :title="'Chapter' + i"></div>
                     </div>
                 </div>
@@ -391,6 +408,7 @@
                 <li v-speed="1.25">1.25x</li>
                 <li v-speed="1.5">1.5x</li>
                 <li v-speed="2">2x</li>
+                <li v-speed="3">3x</li>
             </ul>
         </div>
         <div class="about frame" :display="ui.about">
