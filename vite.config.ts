@@ -26,8 +26,11 @@ export default defineConfig({
             "injectRegister": "inline",
             "workbox": {
                 "globPatterns": [
-                    '**/*.{js,css,html,webp,wasm,ico}',
-                    '!type/(*.svg)' // 文件类型图标会被忽略
+                    '**/*.{js,css,html,webp,ico,svg,woff2}'
+                ],
+                maximumFileSizeToCacheInBytes: 8 * 1024 * 1024,
+                globIgnores: [
+                    'type/(*.svg)'
                 ]
             },
             manifest: {
