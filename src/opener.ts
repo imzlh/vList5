@@ -246,25 +246,6 @@ export const OPENER:Array<OpenerOption> = [
             });
         },
     },
-    // excalidraw
-    // @link https://github.com/excalidraw/excalidraw
-    // {
-    //     "name": "Excalidraw",
-    //     "icon": I_DESIGNER,
-    //     "type": "media/image",
-    //     "typeDesc": "在线涂涂画画并同步到你的服务器",
-    //     "format": [
-    //         "excalidraw"
-    //     ],
-    //     async open(file) {
-    //         Global('ui.window.add').call({
-    //             "content": (await import('@/opener/whiteboard.vue')).default,
-    //             "icon": I_DESIGNER,
-    //             "name": file.name + " - Excalidraw",
-    //             "option": file
-    //         });
-    //     },
-    // },
     // psd.js
     // Copyright(C) 2024 izGroup
     {
