@@ -1,7 +1,7 @@
 <script lang="ts" setup>
     import type { vFile } from "@/env";
     import { FS, getConfig, Global, openSetting, regConfig, reqFullscreen, UI } from "@/utils";
-    import { generateTxtDB, loadTxtDB, TxtDB } from "@/utils/txtdb";
+    import { generateTxtDB, loadTxtDB, TxtDB } from './txt/txtdb';
     import { onMounted, reactive, ref, render, watch } from "vue";
 
     const _prop = defineProps(['option']),

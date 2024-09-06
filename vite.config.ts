@@ -154,30 +154,82 @@ export default defineConfig({
         rollupOptions: {
             output:{
                 manualChunks(id) {
+                    // // eval兼容包
+                    // if(id.endsWith('eval.ts')) return 'eval';
+                    // // 获取信息
+                    // const ext = id.split('.').pop()!,
+                    //     module = id.includes('/node_modules/');
+                    // // 排除静态资源
+                    // if(
+                    //     !module && ![
+                    //         'ts',
+                    //         'js',
+                    //         'tsx',
+                    //         'jsx',
+                    //         'scss'
+                    //     ].includes(ext.toLowerCase())
+                    // ) return 'main';
+                    // // 打包全部module
+                    // if(module
+                    //     ? id.includes('vue')
+                    //     : id.includes('/module/')
+                    //         || id.includes('/action/') 
+                    //         || id.match(/\/src\/[^/\\]+/)
+                    // )
+                    //     return 'main';
+                    // // 将monaco vscode asciinema epub markdown muya imgedit分开打包
+                    // if(
+                    //     module 
+                    //         ? id.includes('monaco-editor')
+                    //         : id.includes('vscode')
+                    // ) return 'vscode';
+                    // else if(
+                    //     module
+                    //         ? id.includes('muya') || id.includes('prism')
+                    //         : id.includes('markdown')
+                    // ) return 'muya';
+                    // else if(
+                    //     module
+                    //         ? id.includes('imgedit')
+                    //         : id.includes('react')
+                    // ) return 'imgedit';
+                    // else if(
+                    //     id.includes('epub')
+                    // ) return 'epub';
+                    // else if(
+                    //     id.includes('asciinema')
+                    // ) return 'asciinema';
+                    // else return 'opener';
                     // eval兼容包
                     if(id.endsWith('eval.ts')) return 'eval';
                     // core
                     if(
-                        ['.svg', '.png', '.jpg', '.webp', '.ico', '.woff2'].some(item => id.endsWith(item)) ||
-                        ((!id.includes('/node_modules/') || ['vue'].some(item => id.includes(item)))
-                        && !['/markdown.vue', '/aplayer.vue', '/artplayer.vue', '/vscode.vue', '/imgedit', '/psd', '/avplayer', '/vscode', '/epub.vue', '/asciinema'].some(item => id.includes(item)))
+                        ['svg', 'png', 'jpg', 'webp', 'ico'].some(item => id.endsWith('.' + item)) ||
+                        ((!id.includes('node_modules/') || ['vue', 'libmedia'].some(item => id.includes(item)))
+                        && ![
+                            '/asciinema',
+                            '/markdown.vue',
+                            '/artplayer.vue',
+                            '/imgedit', 
+                            '/vscode',
+                            '/epub',
+                            '/psd'
+                        ].some(item => id.includes(item)))
                     ) return 'main';
                     // monaco
-                    if(id.includes('monaco-editor') || id.includes('/vscode'))
+                    if(id.includes('/monaco-editor/') || id.includes('/vscode') || id.includes('/@types/'))
                         return 'vscode';
                     // muya
-                    if((id.includes('muya') && !['prism' ,'mermaid', 'mindmap', 'vega', 'flowchart'].some(item => id.includes(item))) || id.includes('markdown.vue'))
+                    if(id.includes('muya') || id.includes('/markdown.vue'))
                         return 'muya';
-                    if(id.includes('prism'))
-                        return 'prism';
                     // imgedit
-                    if(id.includes('react') || id.includes('imgedit'))
+                    if(id.includes('react') || id.includes('/imgedit'))
                         return 'imgedit';
                     // asciinema
-                    if(id.includes('asciinema'))
+                    if(id.includes('/asciinema'))
                         return 'asciinema';
                     // additional pack
-                    if(id.includes('psd') || id.includes('avplayer') || id.includes('libmedia') || id.includes('artplayer') || id.includes('epub'))
+                    if(id.includes('/psd') || id.includes('/artplayer') || id.includes('/epub.vue') || id.includes('vue-reader'))
                         return 'additional';
                 },
             },

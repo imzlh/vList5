@@ -1,6 +1,6 @@
 <script lang="ts" setup>
     import { onUnmounted, ref, watch } from 'vue';
-    import {mount} from '@/utils/imgedit';
+    import {mount} from './image/imgedit';
 
     const _prop = defineProps(['visibility', 'option']),
         file = _prop.option,

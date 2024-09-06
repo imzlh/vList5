@@ -3,7 +3,7 @@
     import { regSelf } from '@/opener';
     import { Global, reqFullscreen } from '@/utils';
     import { onMounted, onUnmounted, ref, shallowRef } from 'vue';
-    import { ImageManager } from '@/utils/imager';
+    import { ImageManager } from './image/imager';
     import I_DESIGNER from '/app/desginer.webp';
 
     const boxElem = ref<HTMLDivElement>(),

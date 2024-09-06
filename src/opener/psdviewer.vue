@@ -1,8 +1,7 @@
 <script lang="ts" setup>
-    import { UI } from '@/App.vue';
     import type { vFile } from '@/env';
     import { Global } from '@/utils';
-    import PSD from '@/utils/psd';
+    import PSD from './psd/psd';
     import { onMounted, ref } from 'vue';
     import I_PS from '/app/ps.webp';
 

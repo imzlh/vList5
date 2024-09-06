@@ -1,10 +1,10 @@
 <script lang="ts" setup>
     import { onMounted, onUnmounted, reactive, ref, watch, type Directive } from 'vue';
-    import createAV, { type Export } from '@/utils/avplayer';
+    import createAV, { type Export } from './avplayer/avplayer';
     import type { CtxDispOpts, MessageOpinion, vFile } from '@/env';
     import { reqFullscreen, UI } from '@/App.vue';
     import { acceptDrag, FS, Global, splitPath } from '@/utils';
-    import MediaSession, { updateMediaSession } from '@/utils/mediaSession';
+    import MediaSession, { updateMediaSession } from '@/opener/media/mediaSession';
 
     const CONFIG = {
         seek_time: 10,

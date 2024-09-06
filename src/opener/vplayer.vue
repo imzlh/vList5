@@ -4,8 +4,8 @@
     import { FS, Global, UI, acceptDrag, clipFName, reqFullscreen, splitPath } from '@/utils';
     import ASS from 'assjs';
     import { onMounted, onUnmounted, ref, shallowReactive, shallowRef, watch } from 'vue';
-    import MediaSession, { updateMediaSession } from '@/utils/mediaSession';
-    import { parseSrt } from '@/utils/subsrt';
+    import MediaSession, { updateMediaSession } from './media/mediaSession';
+    import { parseSrt } from './media/subsrt';
 
     interface subOption {
         name: string,

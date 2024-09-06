@@ -1,5 +1,5 @@
 import Editor, { TABS, TOOLS } from 'react-filerobot-image-editor';
-import { FS, splitPath } from '../utils';
+import { FS, splitPath } from '../../utils';
 import { createRoot } from 'react-dom/client';
 import React from 'react';
 

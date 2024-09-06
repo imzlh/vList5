@@ -14,6 +14,7 @@
     "@muyajs/core": "^0.0.32",
     "@petamoriken/float16": "^3.8.7",
     "@vitejs/plugin-vue": "^5.0.4",
+    "@vue/tsconfig": "^0.5.1",
     "@webtoon/psd": "^0.4.0",
     "artplayer": "^5.1.5",
     "asciinema-player": "^3.8.0",
@@ -29,7 +30,6 @@
     "vite-plugin-pwa": "^0.20.0",
     "vue": "^3.4.21",
     "vue-reader": "^1.2.15",
-    "@vue/tsconfig": "^0.5.1",
     "vue-tsc": "^2.0.11"
   },
   "devDependencies": {
