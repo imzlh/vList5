@@ -29,11 +29,11 @@
     "vite-plugin-pwa": "^0.20.0",
     "vue": "^3.4.21",
     "vue-reader": "^1.2.15",
+    "@vue/tsconfig": "^0.5.1",
     "vue-tsc": "^2.0.11"
   },
   "devDependencies": {
     "@types/node": "^20.14.11",
-    "@vue/tsconfig": "^0.5.1",
     "cheap": "https://github.com/zhaohappy/cheap.git",
     "libmedia-common": "https://github.com/zhaohappy/common.git",
     "npm-run-all2": "^6.1.2"
