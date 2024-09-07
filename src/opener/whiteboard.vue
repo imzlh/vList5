@@ -12,7 +12,8 @@
     const container = ref<HTMLDivElement>(),
         _prop = defineProps(['option']),
         file = _prop.option as vFile,
-        editor = ref<Editor>();
+        editor = ref<Editor>(),
+        debug = ref(import.meta.env.DEV);
 
     fetch(file.url).then(res => res.json()).catch(e =>
         Global('ui.message').call({
@@ -54,20 +55,37 @@
 </script>
 
 <template>
-    <div ref="container" style="width: 100%; height: 100%;"></div>
-    <div class="tools">
+    <div ref="container" class="v-tl-container" :debug="debug"></div>
+    <div class="v-tl-tools">
         <button @click="save">保存</button>
+        <button @click="debug = !debug">调试</button>
     </div>
 </template>
 
-<style scoped lang="scss">
-    .container {
+<style lang="scss">
+    .v-tl-container {
+        width: 100%;
+        height: 100%;
+        padding-top: 3rem;
+        box-sizing: border-box;
+        background-image: linear-gradient(0deg, #f1f1f1, #ffffff);
+        background-size: 100% 3rem;
+        background-repeat: no-repeat;
+
+        &[debug=false] .tlui-debug-panel{
+            display: none !important;
+        }
+
         .tl-error-boundary__refresh{
+            display: none !important;
+        }
+
+        .tl-error-boundary__reset{
             display: none !important;
         }
     }
 
-    .tools{
+    .v-tl-tools{
         position: absolute;
         top: -.1rem;
         right: -.1rem;
@@ -76,15 +94,18 @@
         padding: .5rem .75rem;
         border-radius: 0 0 0 .35rem;
         background-color: rgb(237, 240, 242);
+        display: flex;
+        gap: .5rem;
 
         > button{
             outline: none;
-            padding: .3rem .65rem;
+            padding: .3rem .75rem;
             border-radius:.2rem;
             background-color: #a6efff;
             color: white;
             cursor: pointer;
             border: none;
+            transition: background-color .2s ease-in-out;
 
             &:hover{
                 background-color: #a4caff;

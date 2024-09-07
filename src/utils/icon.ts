@@ -1068,6 +1068,7 @@ const folderIcon: FolderIcon[] = [
             'pgm',
             'pnm',
             'icns',
+            'tldb'
         ],
     },
     { name: 'javascript', fileExtensions: ['esx', 'mjs', 'js'] },
