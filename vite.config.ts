@@ -154,6 +154,7 @@ export default defineConfig({
         rollupOptions: {
             output:{
                 manualChunks(id) {
+                    id = id.toLowerCase();
                     // // eval兼容包
                     // if(id.endsWith('eval.ts')) return 'eval';
                     // // 获取信息
@@ -205,7 +206,10 @@ export default defineConfig({
                     // core
                     if(
                         ['svg', 'png', 'jpg', 'webp', 'ico'].some(item => id.endsWith('.' + item)) ||
-                        ((!id.includes('node_modules/') || ['vue', '/libmedia', '/react/', '/react-dom/'].some(item => id.includes(item)))
+                        ((!id.includes('node_modules/') || [
+                            'vue',
+                            '/libmedia'
+                        ].some(item => id.includes(item)))
                         && ![
                             '/asciinema',
                             '/markdown.vue',
@@ -213,7 +217,8 @@ export default defineConfig({
                             '/imgedit', 
                             '/vscode',
                             '/epub',
-                            '/psd'
+                            '/psd',
+                            '/whiteboard'
                         ].some(item => id.includes(item)))
                     ) return 'main';
                     // monaco
@@ -222,14 +227,14 @@ export default defineConfig({
                     // muya
                     if(id.includes('muya') || id.includes('/markdown.vue'))
                         return 'muya';
-                    // imgedit
-                    if(id.includes('react') || id.includes('/imgedit'))
-                        return 'imgedit';
+                    // 所有React组件
+                    if(id.includes('react') || id.includes('/imgedit') ||  id.includes('/whiteboard') || id.includes('tldraw'))
+                        return 'reactapp';
                     // asciinema
                     if(id.includes('/asciinema'))
                         return 'asciinema';
                     // additional pack
-                    if(id.includes('/psd') || id.includes('/artplayer') || id.includes('/epub.vue') || id.includes('vue-reader') || id.includes('/whiteboard') || id.includes('tldraw'))
+                    if(id.includes('/psd') || id.includes('/artplayer') || id.includes('/epub.vue') || id.includes('vue-reader'))
                         return 'additional';
                 },
             },
