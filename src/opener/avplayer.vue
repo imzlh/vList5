@@ -57,7 +57,6 @@
             about: false,
             track: false,
             playlist: false,
-            speed: false,
             videos: [] as Array<vFile & { name: string, sub: Record<string, string> }>,
             videoID: 0,
             tool: false
@@ -175,7 +174,7 @@
             'content': [
                 {
                     "text": "播放速度",
-                    handle: () => ui.speed = true
+                    handle: () => ui.playlist = true
                 },{
                     "text": "播放列表",
                     handle: () => ui.playlist = true
@@ -295,50 +294,13 @@
         @dblclick.prevent="player && (player.play = !player.play)"
         @pointermove="active" @click="active"
     >
-        <div class="video" ref="videoel"></div>
+        <div class="video" ref="videoel"
+            @ended="CTRL.next()"
+        ></div>
         <div class="bar" v-if="player" :style="{
             pointerEvents: player.time.total == 0n ? 'none' : 'all'
         }" :active="ui.tool">
-            <div class="time">
-                <div class="current">{{ time2str(player.time.current) }}</div>
-                <div class="timebar" @click="player.func.seek(BigInt(Math.floor($event.offsetX / ($event.currentTarget as HTMLElement).clientWidth * Number(player.time.total / 1000n))) * 1000n)">
-                    <div class="prog" :style="{ width: float((player.time.current || 0n) * 10000n / (player.time.total || 1n), 2)+ '%' }"></div>
-                    <div class="chapter" v-if="player.time.total">
-                        <div v-for="(chap, i) in player.tracks.chapter" :style="{
-                            left: float((chap.start || 0n) / player.time.total, 4) + '%'
-                        }" :title="'Chapter' + i"></div>
-                    </div>
-                </div>
-                <div class="total">{{ time2str(player.time.total) }}</div>
-            </div>
-            
             <div class="icons">
-
-                <!-- 播放列表 -->
-                <div small @click="ui.playlist = !ui.playlist">
-                    <svg viewBox="0 0 16 16">
-                        <path fill-rule="evenodd" d="M2.5 12a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5zm0-4a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5zm0-4a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5z"/>
-                    </svg>
-                </div>
-
-                <!-- 速度 -->
-                <div small @click="ui.speed = !ui.speed">
-                    <svg viewBox="0 0 16 16">
-                        <path
-                            d="M8.515 1.019A7 7 0 0 0 8 1V0a8 8 0 0 1 .589.022l-.074.997zm2.004.45a7.003 7.003 0 0 0-.985-.299l.219-.976c.383.086.76.2 1.126.342l-.36.933zm1.37.71a7.01 7.01 0 0 0-.439-.27l.493-.87a8.025 8.025 0 0 1 .979.654l-.615.789a6.996 6.996 0 0 0-.418-.302zm1.834 1.79a6.99 6.99 0 0 0-.653-.796l.724-.69c.27.285.52.59.747.91l-.818.576zm.744 1.352a7.08 7.08 0 0 0-.214-.468l.893-.45a7.976 7.976 0 0 1 .45 1.088l-.95.313a7.023 7.023 0 0 0-.179-.483zm.53 2.507a6.991 6.991 0 0 0-.1-1.025l.985-.17c.067.386.106.778.116 1.17l-1 .025zm-.131 1.538c.033-.17.06-.339.081-.51l.993.123a7.957 7.957 0 0 1-.23 1.155l-.964-.267c.046-.165.086-.332.12-.501zm-.952 2.379c.184-.29.346-.594.486-.908l.914.405c-.16.36-.345.706-.555 1.038l-.845-.535zm-.964 1.205c.122-.122.239-.248.35-.378l.758.653a8.073 8.073 0 0 1-.401.432l-.707-.707z" />
-                        <path d="M8 1a7 7 0 1 0 4.95 11.95l.707.707A8.001 8.001 0 1 1 8 0v1z" />
-                        <path
-                            d="M7.5 3a.5.5 0 0 1 .5.5v5.21l3.248 1.856a.5.5 0 0 1-.496.868l-3.5-2A.5.5 0 0 1 7 9V3.5a.5.5 0 0 1 .5-.5z" />
-                    </svg>
-                </div>
-
-                <!-- 轨道设置 -->
-                <div small @click="ui.track = !ui.track">
-                    <svg viewBox="0 0 16 16">
-                        <path d="M14 4.577v6.846L8 15V1l6 3.577zM8.5.134a1 1 0 0 0-1 0l-6 3.577a1 1 0 0 0-.5.866v6.846a1 1 0 0 0 .5.866l6 3.577a1 1 0 0 0 1 0l6-3.577a1 1 0 0 0 .5-.866V4.577a1 1 0 0 0-.5-.866L8.5.134z"/>
-                    </svg>
-                </div>
-
                 <!--上一个-->
                 <div @click.stop="CTRL.prev()">
                     <svg viewBox="0 0 16 16">
@@ -365,11 +327,48 @@
                             d="M12.5 4a.5.5 0 0 0-1 0v3.248L5.233 3.612C4.693 3.3 4 3.678 4 4.308v7.384c0 .63.692 1.01 1.233.697L11.5 8.753V12a.5.5 0 0 0 1 0V4z" />
                     </svg>
                 </div>
-                
+            </div>
+
+            <div class="time">
+                <div class="current">{{ time2str(player.time.current) }}</div>
+                <div class="timebar" @click="player.func.seek(BigInt(Math.floor($event.offsetX / ($event.currentTarget as HTMLElement).clientWidth * Number(player.time.total / 1000n))) * 1000n)">
+                    <div class="prog" :style="{ width: float((player.time.current || 0n) * 10000n / (player.time.total || 1n), 2)+ '%' }"></div>
+                    <div class="chapter" v-if="player.time.total">
+                        <div v-for="(chap, i) in player.tracks.chapter" :style="{
+                            left: float((chap.start || 0n) / player.time.total, 4) + '%'
+                        }" :title="'Chapter' + i"></div>
+                    </div>
+                </div>
+                <div class="total">{{ time2str(player.time.total) }}</div>
+            </div>
+            
+            <div class="icons" style="flex-shrink: 1;overflow-x: auto;">
+
+                <!-- 播放列表 -->
+                <div small @click="ui.playlist = !ui.playlist">
+                    <svg viewBox="0 0 16 16">
+                        <path fill-rule="evenodd" d="M2.5 12a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5zm0-4a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5zm0-4a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5z"/>
+                    </svg>
+                </div>
+
+                <!-- 轨道设置 -->
+                <div small @click="ui.track = !ui.track">
+                    <svg viewBox="0 0 16 16">
+                        <path d="M14 4.577v6.846L8 15V1l6 3.577zM8.5.134a1 1 0 0 0-1 0l-6 3.577a1 1 0 0 0-.5.866v6.846a1 1 0 0 0 .5.866l6 3.577a1 1 0 0 0 1 0l6-3.577a1 1 0 0 0 .5-.866V4.577a1 1 0 0 0-.5-.866L8.5.134z"/>
+                    </svg>
+                </div>
+
                 <!-- 信息 -->
                 <div @click="ui.about = !ui.about" small>
                     <svg viewBox="0 0 16 16">
                         <path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16zm.93-9.412-1 4.705c-.07.34.029.533.304.533.194 0 .487-.07.686-.246l-.088.416c-.287.346-.92.598-1.465.598-.703 0-1.002-.422-.808-1.319l.738-3.468c.064-.293.006-.399-.287-.47l-.451-.081.082-.381 2.29-.287zM8 5.5a1 1 0 1 1 0-2 1 1 0 0 1 0 2z"/>
+                    </svg>
+                </div>
+
+                <!-- 下一帧 -->
+                <div small @click="player.func.nextFrame()">
+                    <svg viewBox="0 0 16 16">
+                        <path d="m12.14 8.753-5.482 4.796c-.646.566-1.658.106-1.658-.753V3.204a1 1 0 0 1 1.659-.753l5.48 4.796a1 1 0 0 1 0 1.506z"/>
                     </svg>
                 </div>
 
@@ -396,21 +395,10 @@
             
         </div>
 
-        <div class="frame-mask" v-show="ui.speed || ui.about || ui.track || ui.playlist"
-            @click="ui.speed = ui.about = ui.track = ui.playlist = false"
+        <div class="frame-mask" v-show="ui.about || ui.track || ui.playlist"
+            @click="ui.about = ui.track = ui.playlist = false"
         ></div>
 
-        <div class="frame speed" :display="ui.speed">
-            <h1>播放速度</h1>
-            <ul class="select">
-                <li v-speed=".75">0.75x</li>
-                <li v-speed="1">1x</li>
-                <li v-speed="1.25">1.25x</li>
-                <li v-speed="1.5">1.5x</li>
-                <li v-speed="2">2x</li>
-                <li v-speed="3">3x</li>
-            </ul>
-        </div>
         <div class="about frame" :display="ui.about">
             <h1>统计信息</h1>
             <table v-if="player?.status">
@@ -496,6 +484,16 @@
         </div>
 
         <div class="offcv videos" :display="ui.playlist">
+            <h1>播放速度</h1>
+            <ul class="select">
+                <li v-speed=".5">0.5x</li>
+                <li v-speed=".75">0.75x</li>
+                <li v-speed="1">1x</li>
+                <li v-speed="1.25">1.25x</li>
+                <li v-speed="1.5">1.5x</li>
+                <li v-speed="2">2x</li>
+                <li v-speed="3">3x</li>
+            </ul>
             <h1>播放列表</h1>
             <div>
                 <div :active="ui.videoID == i" v-for="(item,i) in ui.videos" @click="ui.videoID = i">
@@ -538,13 +536,12 @@
             bottom: 0;
             left: 50%;
             transform: translateX(-50%);
-            padding: .35rem;
+            padding: .2rem;
+            display: flex;
+            gap: .5rem;
 
             width: 90%;
             border-radius: .35rem .35rem 0 0 ;
-
-            background-color: rgba(255, 255, 255, 0.9);
-
             transition: all .2s;
 
             &[active=false]:not(:hover){
@@ -556,15 +553,31 @@
                 display: flex;
                 gap: .35rem;
                 align-items: center;
+
+                padding: .25rem .35rem;
+                border-radius: .25rem;
+                background-color: rgba(100, 100, 100, 0.6);
+                backdrop-filter: blur(.2rem);
+                border: solid .1rem rgba(209, 209, 209, 0.5);
+                color: white;
             }
 
             > .time{
                 font-size: .8rem;
+                min-width: 10rem;
                 display: flex;
+                flex-grow: 1;
+                gap: .75rem;
+                padding: .25rem .5rem;
+                font-family: 'Repair';
 
-                > .total{
-                    color: #615a5a;
+                > span{
+                    min-width: 3rem;
                 }
+
+                // > .total{
+                //     color: #615a5a;
+                // }
 
                 > .timebar{
                     border-radius: 0.25rem;
@@ -575,6 +588,7 @@
                     transition: all .2s;
                     flex-grow: 1;
                     min-width: 50%;
+                    flex-shrink: 0;
 
                     &:hover{
                         height: .5rem;
@@ -605,7 +619,7 @@
                             height: 1rem;
                             width: 1rem;
                             border-radius: 1rem;
-                            background-color: white;
+                            background-color: rgba(255, 255, 255);
                             border: solid .05rem gray;
                         }
                     }
@@ -641,24 +655,28 @@
                     border-radius: .25rem;
                     transition: all .2s;
 
+                    &[large] svg{
+                        transform: scale(1.35);
+                    }
+
                     > svg{
                         display: block;
-                        width: 1.2rem;
-                        height: 1.2rem;
+                        // width: 1.2rem;
+                        // height: 1.2rem;
                         fill: currentColor;
                         opacity: .7;
-                    }
+                    // }
 
-                    &[small] svg{
+                    // &[small] svg{
                         width: 1rem;
                         height: 1rem;
-                        opacity: .4;
+                        // opacity: .4;
                     }
 
-                    &[large] svg{
-                        width: 1.5rem;
-                        height: 1.5rem;
-                    }
+                    // &[large] svg{
+                    //     width: 1.5rem;
+                    //     height: 1.5rem;
+                    // }
 
                     &:hover{
                         background-color: rgb(175 175 175 / 30%);
@@ -692,30 +710,6 @@
                 font-weight: 200;
                 color: #9ed1fe;
                 padding-left: .5rem;
-            }
-
-            > .select{
-                padding: 0;
-                display: flex;
-                border-radius: .25rem;
-                overflow: hidden;
-                border: solid .1rem #ffffffb8;
-
-                > *{
-                    padding: .3rem;
-                    flex-grow: 1;
-                    text-align: center;
-                    color: white;
-                    transition: all .2s;
-                    min-width: 3rem;
-                    list-style: none;
-                    user-select: none;
-
-                    &[active=true]{
-                        background-color: #ffffffb8;
-                        color: rgb(66, 62, 62);
-                    }
-                }
             }
 
             &[display=false]{
@@ -808,6 +802,31 @@
             overflow-y: auto;
             font-size: .8rem;
             overflow: hidden;
+
+            > .select{
+                padding: 0;
+                display: flex;
+                flex-wrap: wrap;
+                border-radius: .25rem;
+                overflow: hidden;
+                border: solid .1rem #ffffffb8;
+
+                > *{
+                    padding: .3rem;
+                    flex-grow: 1;
+                    text-align: center;
+                    color: white;
+                    transition: all .2s;
+                    min-width: 3rem;
+                    list-style: none;
+                    user-select: none;
+
+                    &[active=true]{
+                        background-color: #ffffffb8;
+                        color: rgb(66, 62, 62);
+                    }
+                }
+            }
 
             > div{
                 overflow-y: auto;

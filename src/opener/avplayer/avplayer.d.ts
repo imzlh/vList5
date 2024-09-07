@@ -103,7 +103,6 @@ export interface Export {
         subTrack: number,
         chapter: Array<Chapter>
     },
-    ended: boolean,
     play: boolean,
     stop: boolean,
     destroy: () => void,
@@ -114,13 +113,15 @@ export interface Export {
         flip: {
             vertical: boolean,
             horizontal: boolean
-        }
+        },
+        subDelay: number
     },
     func: {
         snapshot: (type?: string) => void,
         seek: (time: bigint) => void,
         resize: [number, number],
-        extSub: (source: Subtitle) => Promise<Stream> 
+        extSub: (source: Subtitle) => Promise<Stream>,
+        nextFrame: () => void
     }
 }
 

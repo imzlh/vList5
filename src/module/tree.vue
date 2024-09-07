@@ -254,7 +254,7 @@
             @change="rename(data, ($event.currentTarget as HTMLInputElement).value)"
             @contextmenu="(data as vDir).rename = false"
             @blur="(data as vDir).rename = false"
-            @keydown.stop @drop.stop.prevent @click.stop @keyup.stop
+            @keydown.stop @drop.stop.prevent @click.stop @keyup.stop @dblclick.stop
             v-focus
         >
         <span class="text" v-else>{{ data.dispName || data.name }}</span>
@@ -283,7 +283,7 @@
                     @change="rename(child, ($event.currentTarget as HTMLInputElement).value)"
                     @contextmenu="(child as vFile).rename = false"
                     @blur="(child as vFile).rename = false"
-                    @keydown.stop @drop.stop.prevent @click.stop @keyup.stop
+                    @keydown.stop @drop.stop.prevent @click.stop @keyup.stop @dblclick.stop
                     v-focus
                 >
                 <span class="text" v-else>{{ child.dispName || child.name }}</span>

@@ -27,20 +27,21 @@ import { markRaw, reactive, watch } from 'vue';
 import AVPLAYER_SRC from 'libmedia/dist/avplayer/avplayer?url';
 
 // 初始化avPlayer
-const _CSS = window.CSS;
-window.CSS = {
-    ..._CSS,
-    registerProperty(def){
-        console.debug('Register property:', def.name);
-    }
-};
 async function importAVPlayer(){
+    const _CSS = window.CSS;
+    window.CSS = {
+        ..._CSS,
+        // 空函数，用于导入ASS时避免出错
+        registerProperty(){}
+    };
+
     const script = document.createElement('script');
     script.src = AVPLAYER_SRC;
     document.body.append(script);
     await new Promise(rs => script.onload = rs);
+    
+    AVPlayer.setLogLevel(import.meta.DEV ? 1 : 4); // WARN LEVEL
     window.CSS = _CSS;
-    AVPlayer.level = 3; // WARN LEVEL
 }
 
 const CODEC_MAP = {
@@ -184,7 +185,8 @@ export default async function create(el){
             }
         },
         "enableWebGPU": webgpu,
-        "simd": true
+        "simd": true,
+        "preLoadTime": 2
     });
 
     const refs = reactive({
@@ -205,7 +207,6 @@ export default async function create(el){
             subTrack: 0,
             chapter: []
         },
-        ended: false,
         play: false,
         stop: false,
         destroy: () => player.destroy(),
@@ -213,6 +214,8 @@ export default async function create(el){
         display: {
             fill: false,
             rotate: 0,
+            subDelay: 0,
+            subtitle: false,
             flip: {
                 vertical: false,
                 horizontal: false
@@ -230,7 +233,11 @@ export default async function create(el){
                 refs.tracks.subtitle.push(stream);
                 refs.tracks.subTrack = stream.id;
                 return stream;
-            })
+            }),
+            nextFrame(){
+                refs.play = false;
+                player.playNextFrame();
+            }
         }
     });
 
@@ -270,6 +277,8 @@ export default async function create(el){
     watch(() => refs.display.flip.horizontal, flip => player.enableHorizontalFlip(flip));
     watch(() => refs.display.flip.vertical, flip => player.enableVerticalFlip(flip));
     watch(() => refs.func.resize, size => player.resize(size[0], size[1]));
+    watch(() => refs.display.subDelay, delay => player.setSubTitleDelay(delay));
+    watch(() => refs.display.subtitle, sub => player.setSubtitleEnable(sub));
 
     player.on('ended', () => refs.ended = true);
     player.on('time', pts => refs.time.current = pts);
@@ -279,19 +288,14 @@ export default async function create(el){
         refs.tracks.subTrack = player.getSelectedSubtitleStreamId();
     });
 
-    // 欺骗ASS.js
-    // el.videoHeight = el.videoWidth = 
-    // el.currentTime = 0;
-    // el.paused = true;
-
     watch(() => refs.time.total, total => el.duration = total || 0n);
-    // player.on('ended', () => el.dispatchEvent(new Event('ended')));
-    // player.on('loading', () => el.dispatchEvent(new Event('waiting')));
-    // player.on('loaded', () => el.dispatchEvent(new Event('load')));
-    // player.on('played', () => el.dispatchEvent(new Event('play')));
-    // player.on('paused', () => el.dispatchEvent(new Event('pause')));
-    // player.on('seeking', () => el.dispatchEvent(new Event('seeking')));
-    // player.on('seeked', () => el.dispatchEvent(new Event('seeked')));
+    player.on('ended', () => el.dispatchEvent(new Event('ended')));
+    player.on('loading', () => el.dispatchEvent(new Event('waiting')));
+    player.on('loaded', () => el.dispatchEvent(new Event('load')));
+    player.on('played', () => el.dispatchEvent(new Event('play')));
+    player.on('paused', () => el.dispatchEvent(new Event('pause')));
+    player.on('seeking', () => el.dispatchEvent(new Event('seeking')));
+    player.on('seeked', () => el.dispatchEvent(new Event('seeked')));
     player.on('time', time => el.currentTime = time);
 
     return refs;

@@ -9,6 +9,7 @@
 
 <body style="margin: 0;">
     <div id="fps">0</div>
+    <div id="logo">izLab</div>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script>
         // fps
@@ -48,29 +49,29 @@
         scene.add(stars);
         
         let render_fps = 0;
+        let rev = false;
+        let moving = false;
         function animate() {
             const positions = starGeometry.attributes.position.array;
             const opacities = starGeometry.attributes.opacity.array;
 
             requestAnimationFrame(animate);
+            if(moving) return;
             render_fps ++;
 
-            if (camera.position.z < -1000){
-                camera.position.z = 0;
-                for(let i = 0; i < opacities.length; i++){
-                    opacities[i] = Math.random();
-                }
-                return;
-            }
+            if (camera.position.z < -1000)
+                rev = true;
+            if (camera.position.z > 0)
+                rev = false;
         
             for (let i = 0; i < opacities.length; i++) {
                 opacities[i] = Math.sin(performance.now() / 500 + positions[i * 3] * 0.01) * 0.5 + 0.5;
             }
             starGeometry.attributes.opacity.needsUpdate = true;
         
-            camera.position.z -= 1;
-            stars.rotation.x += 0.001;
-            stars.rotation.y += 0.002;
+            camera.position.z += rev ? 1 : -1;
+            stars.rotation.x += rev ? 0.001 : -0.001;
+            stars.rotation.y += rev ? 0.002 : -0.002;
         
             renderer.render(scene, camera);
         }
@@ -89,11 +90,29 @@
 
         // 开始动画
         animate();
+
+        // 监测鼠标事件
+        document.addEventListener('pointerdown', function(e){
+            function handleMove(e){
+                moving = true; render_fps ++;
+                stars.rotation.x += (e.clientX - window.innerWidth / 2) * 0.0001;
+                stars.rotation.y += (e.clientY - window.innerHeight / 2) * 0.0001;
+                renderer.render(scene, camera);
+            }
+
+            document.addEventListener('pointermove', handleMove);
+            document.addEventListener('pointerup', () => {
+                document.removeEventListener('pointermove', handleMove);
+                moving = false
+            });
+        });
+        document.addEventListener('wheel', e => stars.rotation.z += e.deltaY * 0.0001)
     </script>
     <style>
         canvas{
             width: 100%;
             height: 100%;
+            z-index: -1;
         }
 
         #fps{
@@ -107,6 +126,20 @@
         #fps::after{
             content: ' fps';
             color: gray;
+        }
+
+        #logo{
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 1;
+            color: transparent;
+            font-size: 60px;
+            letter-spacing: 5px;
+            background-image: linear-gradient(45deg, #dedede96, #e6ffe8, #bebebe82);
+            background-clip: text;
+            font-weight: 600;
         }
     </style>
 </body>

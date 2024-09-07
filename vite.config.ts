@@ -205,7 +205,7 @@ export default defineConfig({
                     // core
                     if(
                         ['svg', 'png', 'jpg', 'webp', 'ico'].some(item => id.endsWith('.' + item)) ||
-                        ((!id.includes('node_modules/') || ['vue', 'libmedia'].some(item => id.includes(item)))
+                        ((!id.includes('node_modules/') || ['vue', '/libmedia', '/react/', '/react-dom/'].some(item => id.includes(item)))
                         && ![
                             '/asciinema',
                             '/markdown.vue',
@@ -229,7 +229,7 @@ export default defineConfig({
                     if(id.includes('/asciinema'))
                         return 'asciinema';
                     // additional pack
-                    if(id.includes('/psd') || id.includes('/artplayer') || id.includes('/epub.vue') || id.includes('vue-reader'))
+                    if(id.includes('/psd') || id.includes('/artplayer') || id.includes('/epub.vue') || id.includes('vue-reader') || id.includes('/whiteboard') || id.includes('tldraw'))
                         return 'additional';
                 },
             },

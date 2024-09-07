@@ -1,3 +1,4 @@
+import type { AlertOpts, Command, CtxDispOpts, MessageOpinion, OpenerOption, TabWindow, vDir, vFile } from './env';
 const pool = {};
 
 /**
@@ -57,7 +58,7 @@ class ReactiveData<T>{
     }
 
     get data(): T{
-        console.debug('Reading trace(',this.fullname,').');
+        if(import.meta.env.DEV) console.debug('Reading trace(',this.fullname,').');
         return this.parent[this.key];
     }
 
@@ -107,5 +108,4 @@ export { FACTION } from './action/action';
 export * from './App.vue';
 export * from './utils/icon';
 
-import "./action/tree";import type { AlertOpts, Command, CtxDispOpts, MessageOpinion, OpenerOption, TabWindow, vDir, vFile } from './env';
-
+import "./action/tree";
