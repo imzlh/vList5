@@ -224,6 +224,9 @@ export default defineConfig({
                     // monaco
                     if(id.includes('/monaco-editor/') || id.includes('/vscode') || id.includes('/@types/'))
                         return 'vscode';
+                    // prism
+                    if(id.includes('/prism'))
+                        return 'prism';
                     // muya
                     if(id.includes('muya') || id.includes('/markdown.vue'))
                         return 'muya';

@@ -55,7 +55,7 @@
 </script>
 
 <template>
-    <div ref="container" class="v-tl-container" :debug="debug"></div>
+    <div ref="container" class="v-tl-container" :debug="debug" v-bind="$attrs"></div>
     <div class="v-tl-tools">
         <button @click="save">保存</button>
         <button @click="debug = !debug">调试</button>

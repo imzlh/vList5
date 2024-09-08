@@ -24,12 +24,12 @@
     .asciinema-wrapper {
         width: 100%;
         height: 100%;
-        background-color: black
+        background-color: black;
     }
+</style>
 
-    /* @media screen and (min-width: 30rem){
-        .asciinema-wrapper {
-            margin-top: 2rem;
-        }
-    } */
+<style>
+    .asciinema-wrapper .ap-wrapper {
+        align-items: center;
+    }
 </style>
