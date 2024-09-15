@@ -1,0 +1,84 @@
+<!-- WebView 模板 -->
+<div id="root">
+    <iframe id="frame"></iframe>
+
+    <div id="btns">
+        <div data-role="fullscreen">
+            <svg viewBox="0 0 16 16">
+                <path fill-rule="evenodd" d="M5.828 10.172a.5.5 0 0 0-.707 0l-4.096 4.096V11.5a.5.5 0 0 0-1 0v3.975a.5.5 0 0 0 .5.5H4.5a.5.5 0 0 0 0-1H1.732l4.096-4.096a.5.5 0 0 0 0-.707zm4.344-4.344a.5.5 0 0 0 .707 0l4.096-4.096V4.5a.5.5 0 1 0 1 0V.525a.5.5 0 0 0-.5-.5H11.5a.5.5 0 0 0 0 1h2.768l-4.096 4.096a.5.5 0 0 0 0 .707z"/>
+            </svg>
+        </div>
+
+        <div data-role="exit-fullscreen" hidden>
+            <svg viewBox="0 0 16 16">
+                <path fill-rule="evenodd" d="M.172 15.828a.5.5 0 0 0 .707 0l4.096-4.096V14.5a.5.5 0 1 0 1 0v-3.975a.5.5 0 0 0-.5-.5H1.5a.5.5 0 0 0 0 1h2.768L.172 15.121a.5.5 0 0 0 0 .707zM15.828.172a.5.5 0 0 0-.707 0l-4.096 4.096V1.5a.5.5 0 1 0-1 0v3.975a.5.5 0 0 0 .5.5H14.5a.5.5 0 0 0 0-1h-2.768L15.828.879a.5.5 0 0 0 0-.707z"/>
+            </svg>
+        </div>
+
+        <div data-role="reload">
+            <svg viewBox="0 0 16 16">
+                <path fill-rule="evenodd" d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2v1z"/>
+                <path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466z"/>
+            </svg>
+        </div>
+    </div>
+</div>
+
+<style>
+    #root{
+        position: relative;
+        width: 100%;
+        height: 100%;
+    }
+
+    #frame {
+        width: 100%;
+        height: 100%;
+        border: none;
+    }
+
+    #btns {
+        display: flex;
+        position: absolute;
+        z-index: 1;
+        background-color: rgba(255, 255, 255, 0.6);
+        top: 0;
+        right: 0;
+    }
+
+    #root[right-bottom] #btns{
+        bottom: 0;
+        right: 0;
+    }
+    
+    #root[left-bottom] #btns{
+        bottom: 0;
+        left: 0;
+    }
+    
+    #root[left-top] #btns{
+        top: 0;
+        left: 0;
+    }
+
+    #btns > div {
+        cursor: pointer;
+        width: .8rem;
+        height: .8rem;
+        padding: .3rem .75rem;
+        transition: all .2s ease-in-out;
+    }
+
+    #btns > div:hover {
+        background-color: #c6c6c66f;
+    }
+
+    #btns > div svg {
+        display: block;
+        width: .8rem;
+        height: .8rem;
+        fill: currentColor;
+
+        pointer-events: none;
+    }
+</style>

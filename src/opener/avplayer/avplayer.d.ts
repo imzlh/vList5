@@ -140,4 +140,19 @@ export interface Stream {
     mediaType: 'Audio' | 'Video' | 'Subtitle' | 'Attachment' | 'Data'
 }
 
+/**
+ * 额外支持的DOM事件
+ */
+export type Events = 'ended' | 'waiting' | 'load' | 'play' | 'pause' |'seeking' |'seeked' | 'time' | 'progress';
+
+/**
+ * progress事件的参数
+ */
+export enum AVState {
+    OPEN_FILE,
+    ANALYZE_FILE,
+    LOAD_AUDIO_DECODER,
+    LOAD_VIDEO_DECODER
+}
+
 export default function (el: HTMLDivElement): Promise<Export>;

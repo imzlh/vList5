@@ -6,14 +6,19 @@
 </script>
 
 <template>
-    <iframe class="browser" :src="file.url" frameborder="0"></iframe>
+    <div v-webview.right-bottom="file.url"></div>
 </template>
 
-<style lang="scss">
-    iframe.browser{
+<style lang="scss" scoped>
+    div{
         width: 100%;
         height: 100%;
         border: none;
         outline: none;
+
+        > div{
+            width: 100%;
+            height: 100%;
+        }
     }
 </style>

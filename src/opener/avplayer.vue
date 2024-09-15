@@ -1,6 +1,6 @@
 <script lang="ts" setup>
     import { onMounted, onUnmounted, reactive, ref, watch, type Directive } from 'vue';
-    import createAV, { type Export } from './avplayer/avplayer';
+    import createAV, { AVState, type Export } from './avplayer/avplayer';
     import type { CtxDispOpts, MessageOpinion, vFile } from '@/env';
     import { reqFullscreen, UI } from '@/App.vue';
     import { acceptDrag, FS, Global, splitPath } from '@/utils';
@@ -59,7 +59,8 @@
             playlist: false,
             videos: [] as Array<vFile & { name: string, sub: Record<string, string> }>,
             videoID: 0,
-            tool: false
+            tool: false,
+            alert: ''
         }),
         root = ref<HTMLElement>();
     
@@ -247,6 +248,26 @@
         return n1 + '.' + n2;
     }
 
+    function prog(prog: CustomEvent<AVState>){
+        switch(prog.detail){
+            case AVState.ANALYZE_FILE:
+                ui.alert = '分析文件中...';
+            break;
+
+            case AVState.LOAD_AUDIO_DECODER:
+                ui.alert = '加载音频解码器...';
+            break;
+
+            case AVState.LOAD_VIDEO_DECODER:
+                ui.alert = '加载视频解码器...';
+            break;
+
+            case AVState.OPEN_FILE:
+                ui.alert = '打开文件中...';
+            break;
+        }
+    }
+
     watch(() => ui.videos[ui.videoID], function(vid){
         if(!vid || !player.value) return;
         player.value.url = vid.url;
@@ -295,8 +316,11 @@
         @pointermove="active" @click="active"
     >
         <div class="video" ref="videoel"
-            @ended="CTRL.next()"
+            @ended="CTRL.next()" @progress="prog($event as any)" @load="ui.alert = ''"
         ></div>
+
+        <div class="alert" :show="ui.alert">{{ ui.alert }}</div>
+
         <div class="bar" v-if="player" :style="{
             pointerEvents: player.time.total == 0n ? 'none' : 'all'
         }" :active="ui.tool">
@@ -315,7 +339,7 @@
                         <path
                             d="m11.596 8.697-6.363 3.692c-.54.313-1.233-.066-1.233-.697V4.308c0-.63.692-1.01 1.233-.696l6.363 3.692a.802.802 0 0 1 0 1.393z" />
                     </svg>
-                    <svg viewBox="0 0 16 16" v-show="player.play" style="transform: scale(1.2);">
+                    <svg viewBox="0 0 16 16" v-show="player.play">
                         <path
                             d="M5.5 3.5A1.5 1.5 0 0 1 7 5v6a1.5 1.5 0 0 1-3 0V5a1.5 1.5 0 0 1 1.5-1.5zm5 0A1.5 1.5 0 0 1 12 5v6a1.5 1.5 0 0 1-3 0V5a1.5 1.5 0 0 1 1.5-1.5z" />
                     </svg>
@@ -562,17 +586,40 @@
                 color: white;
             }
 
+            > .alert{
+                position: absolute;
+                background-color: rgba(254, 254, 254, 0.8);
+                padding: .25rem .5rem;
+                font-size: .8rem;
+                border-radius: .2rem;
+                color: white;
+                max-width: 60%;
+
+                transition: all .2s;
+                transform: translate(-100%, -100%);
+                bottom: 0;
+                right: 0;
+                opacity: 0;
+
+                &[show=true]{
+                    bottom: 3rem;
+                    right: 1rem;
+                    transform: none;
+                    opacity: 1;
+                }
+            }
+
             > .time{
                 font-size: .8rem;
-                min-width: 10rem;
+                min-width: 12rem;
                 display: flex;
                 flex-grow: 1;
                 gap: .75rem;
                 padding: .25rem .5rem;
                 font-family: 'Repair';
 
-                > span{
-                    min-width: 3rem;
+                > *{
+                    min-width: 2rem;
                 }
 
                 // > .total{
@@ -587,7 +634,6 @@
                     height: .2rem;
                     transition: all .2s;
                     flex-grow: 1;
-                    min-width: 50%;
                     flex-shrink: 0;
 
                     &:hover{
@@ -655,8 +701,12 @@
                     border-radius: .25rem;
                     transition: all .2s;
 
-                    &[large] svg{
-                        transform: scale(1.35);
+                    &[large]{
+                        transform: scale(1.2);
+
+                        > svg{
+                            transform: scale(1.35);
+                        }
                     }
 
                     > svg{
@@ -809,20 +859,20 @@
                 flex-wrap: wrap;
                 border-radius: .25rem;
                 overflow: hidden;
-                border: solid .1rem #ffffffb8;
+                border: solid .1rem #756e6eb8;
 
                 > *{
                     padding: .3rem;
                     flex-grow: 1;
                     text-align: center;
-                    color: white;
+                    color: rgb(90, 87, 87);
                     transition: all .2s;
                     min-width: 3rem;
                     list-style: none;
                     user-select: none;
 
                     &[active=true]{
-                        background-color: #ffffffb8;
+                        background-color: #c9c5c5b8;
                         color: rgb(66, 62, 62);
                     }
                 }

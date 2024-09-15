@@ -297,6 +297,14 @@ export default async function create(el){
     player.on('seeking', () => el.dispatchEvent(new Event('seeking')));
     player.on('seeked', () => el.dispatchEvent(new Event('seeked')));
     player.on('time', time => el.currentTime = time);
+    player.on('progress', prop => el.dispatchEvent(new CustomEvent('progress', {detail: prop})))
 
     return refs;
+}
+
+export /* enum */ const AVState = {
+    OPEN_FILE: 0,
+    ANALYZE_FILE: 1,
+    LOAD_AUDIO_DECODER: 2,
+    LOAD_VIDEO_DECODER: 3
 }

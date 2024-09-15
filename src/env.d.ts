@@ -35,9 +35,9 @@ interface TabWindow {
     onDestroy?: Function,
 
     /**
-     * 窗口的组件
+     * 窗口的组件，允许为string指明URL
      */
-    content: Component,
+    content: Component | string,
 
     /**
      * 窗口的图标

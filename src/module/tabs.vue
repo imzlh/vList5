@@ -89,7 +89,8 @@
 				<i class="close" @click="delete tabs[i];"></i>
 			</div>
 			<suspense>
-				<component :is="toRaw(data.content)" :option="data.option" :visibility="current == i"
+				<div class="webview" v-if="typeof data.content === 'string'" v-webview="data.content"></div>
+				<component v-else :is="toRaw(data.content)" :option="data.option" :visibility="current == i"
 					@close="delete tabs[i];" @hide="current = ''" @show="current = i" @chTitle="data.name = $event"
 				/>
 
@@ -242,6 +243,11 @@
 
 		> div{
 			outline: none;
+		}
+
+		> div.webview{
+			width: 100%;
+			height: 100%;
 		}
 
 		.tab-loading{

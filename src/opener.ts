@@ -124,7 +124,7 @@ export const OPENER:Array<OpenerOption> = [
     // browser.vue
     // copyright(C) 2024 izGroup
     {
-        "name": "Chrome",
+        "name": "WebView",
         "icon": I_CHROME,
         "type": "application/html",
         "typeDesc": "使用你的浏览器打开这个文件",
@@ -135,7 +135,7 @@ export const OPENER:Array<OpenerOption> = [
             Global('ui.window.add').call({
                 "content": (await import('@/opener/browser.vue')).default,
                 "icon": I_CHROME,
-                "name": file.name + " - Chrome",
+                "name": file.name + " - WebView",
                 "option": file
             });
         },

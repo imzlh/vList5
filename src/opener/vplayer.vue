@@ -6,6 +6,7 @@
     import { onMounted, onUnmounted, ref, shallowReactive, shallowRef, watch } from 'vue';
     import MediaSession, { updateMediaSession } from './media/mediaSession';
     import { parseSrt } from './media/subsrt';
+    import I_IMAGE from '/app/vplayer.webp';
 
     interface subOption {
         name: string,
@@ -578,9 +579,12 @@
                     const url = URL.createObjectURL(blob);
                     if(open){
                         CFG.alert = '截图完成';
-                        const win = window.open(url);
-                        if(win) win.onbeforeunload = () =>
-                            URL.revokeObjectURL(url);    // 销毁链接
+                        Global('ui.window.add').call({
+                            "name": "屏幕截图-" + new Date().toLocaleString(),
+                            "content": url,
+                            "onDestroy": () => URL.revokeObjectURL(url),
+                            "icon": I_IMAGE
+                        });
                     }
                     resolve(url);
                 },"image/webp");

@@ -163,4 +163,15 @@ app.directive('drag', {
     }
 });
 
+// OPTIONAL vWebView
+import { vWebView } from  './utils/webview';
+app.directive('webview', function(el: HTMLElement, binding) {
+    const view = new vWebView(el);
+    view.src = binding.value;
+
+    if(binding.arg)
+        for(const arg of binding.arg)
+            view.addArg(arg);
+})
+
 app.mount(document.body);

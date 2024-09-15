@@ -924,7 +924,7 @@ const folderIcon: FolderIcon[] = [
     },
     { name: 'folder-bicep', folderNames: ['bicep'] },
 ],fileIcon: Array<FileIcons> = [
-    { name: 'html', fileExtensions: ['htm', 'xhtml', 'html_vm', 'asp'] },
+    { name: 'html', fileExtensions: ['htm', 'xhtml', 'html_vm', 'asp', 'html'] },
     {
         name: 'pug',
         fileExtensions: ['jade', 'pug'],
