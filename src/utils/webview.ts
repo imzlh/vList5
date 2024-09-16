@@ -54,19 +54,20 @@ export class vWebView {
         const urlObj = new URL(url, window.location.href);
         if(urlObj.pathname.endsWith('.url'))
             fetch(url)
-               .then(response => response.text())
-               .then(text => parse(text))
-               .then(ini => {
-                    const target = ini.InternetShortcut.URL,
-                        type = ini.InternetShortcut.ShowCommand;
-                    if(type == '3'){
-                        window.open(target);
-                    }else{
-                        this.webview.src = target;
-                    }
-               });
+                .then(response => response.text())
+                .then(text => parse(text))
+                .then(ini => {
+                        const target = ini.InternetShortcut.URL,
+                            type = ini.InternetShortcut.ShowCommand;
+                        if(type == '3'){
+                            window.open(target);
+                        }else{
+                            this.webview.src = target;
+                        }
+                })
+                .catch(error => this.webview.srcdoc = `<center><h1>Error while parsing .url file.</h1><p>${error.message}</p></center>`);
         else
-            this.webview.src = url;
+            this.webview.removeAttribute('srcdoc'), this.webview.src = url;
     }
 
     get src(): string{

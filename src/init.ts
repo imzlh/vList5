@@ -174,6 +174,7 @@ app.directive('webview', function(el: HTMLElement, binding) {
         for(const arg of binding.arg)
             view.addArg(arg);
 
+    view.src = binding.value;
     (el.shadowRoot as any).__webview__ = view;
 })
 
