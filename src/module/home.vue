@@ -414,6 +414,10 @@ import { _eval } from '@/utils/eval';
 
                     div.obj-wrapper {
                         padding-left: .75rem;
+
+                        > *{
+                            display: inline-block;
+                        }
                     }
 
                     div.item {

@@ -27,8 +27,8 @@
 		current: FileOrDir = current_tree.child![current_index],
 		locked = false;
 	async function handleUpdate(multi = false){
-		multi || (old_fd && old_fd.parent?.active.delete(old_fd));
 		old_fd = current;
+		multi || (old_fd && old_fd.parent?.active.delete(old_fd));
 		locked = UI.loading = true;
 		if(!current_tree.child) document.documentElement.focus(), await FS.loadTree(current_tree);
 		current_tree.unfold = true;
@@ -188,6 +188,9 @@
 		"title": "切换全屏模式",
 		handler: () => UI.fullscreen.value ? document.exitFullscreen() : reqFullscreen()
 	}))
+	
+	// 自动聚焦
+	window.addEventListener('load', () => requestAnimationFrame(() => list_ele.value?.focus()))
 </script>
 
 <script lang="ts">

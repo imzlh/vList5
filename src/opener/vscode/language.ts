@@ -45,11 +45,13 @@ export namespace VSLang{
 
     export function getLang(file: vFile): string{
         let lang = 'plaintext';
+        const ext = splitPath(file)['ext'].toLowerCase();
         for (const langs in LangMap)
-            if(LangMap[langs].includes(splitPath(file)['ext'].toLowerCase())){
+            if(LangMap[langs].includes(ext)){
                 lang = langs;
                 break;
             }
+        console.log('Monaco lang:', lang);
         return lang;
     }
 
@@ -66,6 +68,7 @@ export namespace VSLang{
     }>;
 
     export async function getWorker(_: any, label: string){
+        console.log(label);
         const cl = WorkerMap[label] || editorWorker;
         return new cl();
     }

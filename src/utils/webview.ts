@@ -1,5 +1,6 @@
 import { UI } from '@/App.vue';
 import WebViewTemplate from './webview.html?raw';
+import { parse } from 'ini';
 
 export class vWebView {
     private root: ShadowRoot;
@@ -39,14 +40,33 @@ export class vWebView {
                     break;
 
                 case 'reload':
-                    this.webview.src = this.webview.src;
+                    this.src = this.webview.src;
+                    break;
+
+                case 'open-in-browser':
+                    window.open(this.webview.src);
                     break;
             }
         });
     }
 
     set src(url: string){
-        this.webview.src = url;
+        const urlObj = new URL(url, window.location.href);
+        if(urlObj.pathname.endsWith('.url'))
+            fetch(url)
+               .then(response => response.text())
+               .then(text => parse(text))
+               .then(ini => {
+                    const target = ini.InternetShortcut.URL,
+                        type = ini.InternetShortcut.ShowCommand;
+                    if(type == '3'){
+                        window.open(target);
+                    }else{
+                        this.webview.src = target;
+                    }
+               });
+        else
+            this.webview.src = url;
     }
 
     get src(): string{

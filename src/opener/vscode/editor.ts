@@ -10,7 +10,10 @@ export default class Editor{
     private file: vFile;
 
     constructor(file: vFile, container: HTMLElement){
-        this.editor = editor.create(container, genConfig());
+        this.editor = editor.create(container, {
+            ...genConfig(),
+            language: VSLang.getLang(file)
+        });
         this.file = file;
 
         // 绑定基础功能
@@ -18,7 +21,7 @@ export default class Editor{
             "id": "api.fs.save",
             "label": "vList: 保存文件(save file)",
             "contextMenuOrder": 2,
-            run: () => this.save() as any
+            run: () => void(this.save())
         });
         this.editor.addAction({
             "id": "api.fs.refresh",
@@ -27,11 +30,8 @@ export default class Editor{
             "keybindings": [
                 KeyCode.F5
             ],
-            run: () => this.load() as any
+            run: () => void(this.load())
         });
-
-        // 选择语言
-        this.lang = VSLang.getLang(file);
     }
 
     async load(){
@@ -76,7 +76,6 @@ export default class Editor{
 
     set lang(lang: string) {
         editor.setModelLanguage(this.editor.getModel()!, lang);
-        console.log("set lang", lang)
     }
 
     get lang() {
@@ -84,16 +83,15 @@ export default class Editor{
     }
 } 
 
-    // 设置tsconfig
-    languages.typescript.typescriptDefaults.setCompilerOptions({
-        target: languages.typescript.ScriptTarget.Latest,
-        allowNonTsExtensions: true,
-        moduleResolution: languages.typescript.ModuleResolutionKind.NodeJs,
-        module: languages.typescript.ModuleKind.ESNext,
-        noEmit: true,
-        allowJs: false,
-        typeRoots: ["node_modules/@types"]
-    });
+// 设置tsconfig
+languages.typescript.typescriptDefaults.setCompilerOptions({
+    target: languages.typescript.ScriptTarget.Latest,
+    allowNonTsExtensions: true,
+    moduleResolution: languages.typescript.ModuleResolutionKind.NodeJs,
+    module: languages.typescript.ModuleKind.ESNext,
+    noEmit: true,
+    allowJs: false
+});
 
 const lib_imported: Array<string> = [],
     fmodels = {} as Record<string, editor.IModel>;

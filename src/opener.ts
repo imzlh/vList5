@@ -34,8 +34,7 @@ export const OPENER:Array<OpenerOption> = [
             "perl", "pl",
             "sh", "bash", "cmd", "bat", "vbs",
             "dockerfile", "docker",
-            "py", "jspy",
-            "html", "htm", "xhtml",
+            "py", "jspy", "rb",
             "log", "ass", "vtt", "ssa", "srt"
         ],
         async open(file) {
@@ -129,7 +128,7 @@ export const OPENER:Array<OpenerOption> = [
         "type": "application/html",
         "typeDesc": "使用你的浏览器打开这个文件",
         "format": [
-            "pdf"
+            "pdf","html", "htm", "xhtml", "url"
         ],
         async open(file) {
             Global('ui.window.add').call({

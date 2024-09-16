@@ -21,26 +21,26 @@ export function parseSrt(content: string, video: HTMLVideoElement) {
             for(const tag of match.split('\\').filter(Boolean)){
                 // \an, \a 字幕位置
                 if(tag.startsWith('a')){
-                    const mode = parseInt(tag.substring(2));
+                    const mode = parseInt(tag.substring(2)) -1;
                     switch(Math.floor(mode / 3)){
-                        case 1:
+                        case 0:
                             cue.line = -1;
                             break;
-                        case 2:
+                        case 1:
                             cue.line = 0.5;
                             break;
-                        case 3:
+                        case 2:
                             cue.line = 0;
                             break;
                     }
                     switch(mode % 3){
-                        case 1:
+                        case 0:
                             cue.align = 'left';
                             break;
-                        case 2:
+                        case 1:
                             cue.align = 'center';
                             break;
-                        case 3:
+                        case 2:
                             cue.align = 'right';
                             break;
                     }

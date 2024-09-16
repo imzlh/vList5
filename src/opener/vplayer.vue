@@ -3,7 +3,7 @@
     import { regSelf } from '@/opener';
     import { FS, Global, UI, acceptDrag, clipFName, reqFullscreen, splitPath } from '@/utils';
     import ASS from 'assjs';
-    import { onMounted, onUnmounted, ref, shallowReactive, shallowRef, watch } from 'vue';
+    import { nextTick, onMounted, onUnmounted, ref, shallowReactive, shallowRef, watch } from 'vue';
     import MediaSession, { updateMediaSession } from './media/mediaSession';
     import { parseSrt } from './media/subsrt';
     import I_IMAGE from '/app/vplayer.webp';
@@ -264,10 +264,6 @@
 
     // 添加快捷命令
     onUnmounted(await Global('ui.command').call({
-        "title": "vPlayer: 暂停/播放",
-        "name": "vplayer.toggle",
-        handler: () => video.value && (video.value.paused ? video.value.play() : video.value.pause())
-    }, {
         "name": "vplayer.speed",
         "title": "vPlayer: 倍速播放",
         handler: () => CFG.vid_rate = CFG.vid_rate <= 2 ? CFG.vid_rate + 0.5 : 0.5
@@ -278,7 +274,11 @@
     }, {
         "title": "vPlayer: 聚焦",
         "name": "vplauer.focus",
-        handler: () => video.value && requestAnimationFrame(() => video.value!.focus())
+        handler: () => video.value && nextTick(() => requestAnimationFrame(() => video.value!.focus()))
+    }, {
+        "title": "vPlayer: 暂停/播放",
+        "name": "vplayer.toggle",
+        handler: () => video.value && (video.value.paused ? video.value.play() : video.value.pause())
     }))
 
     onMounted(function(){

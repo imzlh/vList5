@@ -166,12 +166,15 @@ app.directive('drag', {
 // OPTIONAL vWebView
 import { vWebView } from  './utils/webview';
 app.directive('webview', function(el: HTMLElement, binding) {
-    const view = new vWebView(el);
-    view.src = binding.value;
+    if((el.shadowRoot as any)?.__webview__)
+        return (el.shadowRoot as any).__webview__.src = binding.value;
 
+    const view = new vWebView(el);
     if(binding.arg)
         for(const arg of binding.arg)
             view.addArg(arg);
+
+    (el.shadowRoot as any).__webview__ = view;
 })
 
 app.mount(document.body);
