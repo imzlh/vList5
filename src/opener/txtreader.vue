@@ -84,6 +84,8 @@
         // 写入内容
         container.value.innerText = content;
         let step = 20, pos2 = backward ? 0 : content.length;
+        // 防止死循环
+        if(container.value.scrollHeight <= size.height) return backward ? index - charlen : index + charlen;
         while(true){
             // 逐渐靠近合理字数
             if(container.value.scrollHeight > size.height){
