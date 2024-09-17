@@ -191,9 +191,9 @@ import { _eval } from '@/utils/eval';
                 <h1>{{ name }} V{{ version }}</h1>
             </div>
             <div class="action">
-                <a href="https://github.com/imzlh/vList5">Github</a>
-                <a href="https://hi.imzlh.top/tag/vlist/">vList NEWs</a>
-                <a href="https://github.com/imzlh/vList5/issues">Issue!</a>
+                <a href="https://github.com/imzlh/vList5" target="_blank">Github</a>
+                <a href="https://hi.imzlh.top/tag/vlist/" target="_blank">vList NEWs</a>
+                <a href="https://github.com/imzlh/vList5/issues" target="_blank">Issue!</a>
             </div>
         </div>
 

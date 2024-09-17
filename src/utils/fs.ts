@@ -270,7 +270,7 @@ export namespace FS{
                     parent = to_fd;
             }
 
-            const matched = parent.child?.filter(item => item.name == path.fname)[0];
+            const matched = parent.child?.find(item => item.name == path.fname);
             if (matched && matched.type == 'file') {
                 repeated.push(matched), repeated_files.push(file);
             } else if (matched && matched.type == 'dir') {
@@ -411,7 +411,7 @@ export namespace FS{
             if(!name) continue;
             if(!current.child) throw new Error('Folder not found');
             const cur = (current.child as Array<FileOrDir>)
-               .filter(item => item.name == name && item.type == 'dir')[0];
+               .find(item => item.name == name && item.type == 'dir');
             if(!cur) throw new Error('Folder not found');
             current = cur as vDir;
         }
@@ -538,18 +538,39 @@ export namespace FS{
                 if(!current.child) await loadTree(current, true);
                 current = current.child!.filter(item => item.name == name && item.type == 'dir')[0] as vDir;
             }
-            node.type == 'file'
-                ? current.child!.push(node)
-                : current.child!.unshift(node);
-            // 更改节点路径
-            if(node.type == 'dir' && dst[dst.length -1] != '/') dst += '/';
-            node.icon = getIcon(node.name, node.type == 'file');
-            node.type == 'dir' && __update_child(node);
-            node.parent = current;
-            node.path = dst;
-            node.url = FILE_PROXY_SERVER + dst;
-            node.name = paths2[paths2.length - 1];
-            if(highlight) current.active.set(node, node.path);
+            // 是否重复
+            const newname = paths2[paths2.length - 1];
+            function merge(source: vDir, target: vDir){
+                for(const item of source.child!)
+                    if(item.type == 'file')
+                        target.child!.push(item);
+                    else if(target.child!.some(item2 => item2.name == item.name))
+                        merge(item, target.child!.find(item2 => item2.name == item.name) as vDir);
+                    else
+                        target.child!.push(item);
+            }
+            if(current.child && current.child.some(item => item.name == newname)){
+                const targetNode = current.child.find(item => item.name == newname)!;
+                if(node.type != targetNode.type)
+                    throw new Error('Target path already exists');
+                if(node.type == 'file')
+                    current.child[current.child.findIndex(item => item.name == newname)] = node;
+                else
+                    merge(node, current.child.find(item => item.name == newname) as vDir);
+            }else{
+                node.type == 'file'
+                    ? current.child!.push(node)
+                    : current.child!.unshift(node);
+                // 更改节点路径
+                if(node.type == 'dir' && dst[dst.length -1] != '/') dst += '/';
+                node.icon = getIcon(node.name, node.type == 'file');
+                node.type == 'dir' && __update_child(node);
+                node.parent = current;
+                node.path = dst;
+                node.url = FILE_PROXY_SERVER + dst;
+                node.name = paths2[paths2.length - 1];
+                if(highlight) current.active.set(node, node.path);
+            }
         }
     }
 
@@ -567,7 +588,7 @@ export namespace FS{
             const name = paths[i];
             if(!name) continue;
             if(!current.child) await loadTree(current, true);
-            const cur = (current.child as Array<FileOrDir>).filter(item => item.name == name)[0];
+            const cur = (current.child as Array<FileOrDir>).find(item => item.name == name);
             if(!cur){
                 use_create = true;
                 break; // 找不到就尝试直接stat()
@@ -610,7 +631,7 @@ export namespace FS{
                 const name = paths[i];
                 if(!current.child) await loadTree(current, true);
                 current = (current.child as Array<FileOrDir>)
-                    .filter(item => item.name == name && item.type == 'dir')[0] as vDir;
+                    .find(item => item.name == name && item.type == 'dir') as vDir;
             }
             const index = (current.child as Array<FileOrDir>).findIndex(item => item.path == file);
             index != -1 && (current.child as Array<FileOrDir>).splice(index, 1);
@@ -629,7 +650,7 @@ export namespace FS{
                 const name = paths[i];
                 if(current.type != 'dir') throw new Error('Path ' + paths.slice(0, i+1).join('/') + ' is not a dir');
                 if(!current.child) await loadTree(current, true);
-                current = (current.child as Array<FileOrDir>).filter(item => item.name == name && item.type == 'dir')[0] as vDir;
+                current = (current.child as Array<FileOrDir>).find(item => item.name == name && item.type == 'dir') as vDir;
             }
             current.child || (current.child = []);
             const nitem = item(paths[paths.length - 1], dir, current);
@@ -691,7 +712,7 @@ export namespace FS{
             if(!name) continue;
             if(!current.child) await loadTree(current, true);
             current = (current.child as Array<FileOrDir>)
-                .filter(item => item.name == name && item.type == 'dir')[0] as vDir;
+                .find(item => item.name == name && item.type == 'dir') as vDir;
         }
         const target = current;
         // 找到源节点
@@ -702,18 +723,37 @@ export namespace FS{
                 const name = paths[i];
                 if(!current.child) await loadTree(current, true);
                 current = (current.child as Array<FileOrDir>)
-                    .filter(item => item.name == name && item.type == 'dir')[0] as vDir;
+                    .find(item => item.name == name && item.type == 'dir') as vDir;
             }
             const index = (current.child as Array<FileOrDir>)
                 .findIndex(item => item.name == paths[paths.length - 1]);
             target.child || (target.child = []);
-            current.child![index].type == 'file' 
-                ? target.child.push(current.child![index])
-                : target.child.unshift(current.child![index]);
-            if(delete_origin)
-                current.child && (current.child as Array<FileOrDir>).splice(index, 1);
-            current.child![index].parent = target;
-            if(highlight) target.active.set(current.child![index], current.child![index].path);
+            // 检查是否重复
+            function merge(source: vDir, target: vDir){
+                for(const item of source.child!)
+                    if(item.type == 'file')
+                        target.child!.push(item);
+                    else if(target.child!.some(item2 => item2.name == item.name))
+                        merge(item, target.child!.find(item2 => item2.name == item.name) as vDir);
+                    else
+                        target.child!.push(item);
+            }
+            if(target.child.some(item => item.name == paths[paths.length - 1])){
+                if(delete_origin)
+                    current.child && (current.child as Array<FileOrDir>).splice(index, 1);
+                else if(current.child![index].type == 'file')
+                    target.child[target.child.findIndex(item => item.name == paths[paths.length - 1])] = current.child![index];
+                else
+                    merge(current.child![index], target.child.find(item => item.name == paths[paths.length - 1]) as vDir);
+            }else{
+                current.child![index].type == 'file' 
+                    ? target.child.push(current.child![index])
+                    : target.child.unshift(current.child![index]);
+                if(delete_origin)
+                    current.child && (current.child as Array<FileOrDir>).splice(index, 1);
+                current.child![index].parent = target;
+                if(highlight) target.active.set(current.child![index], current.child![index].path);
+            }
         }
         // 更新子项目路径
         __update_child(target);

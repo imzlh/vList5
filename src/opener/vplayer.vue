@@ -274,7 +274,7 @@
     }, {
         "title": "vPlayer: 聚焦",
         "name": "vplauer.focus",
-        handler: () => video.value && nextTick(() => requestAnimationFrame(() => video.value!.focus()))
+        handler: () => video.value && nextTick(() => requestAnimationFrame(() => video.value!.parentElement!.focus()))
     }, {
         "title": "vPlayer: 暂停/播放",
         "name": "vplayer.toggle",
@@ -309,6 +309,9 @@
         }
         vid.oncanplay = () => vid.playbackRate = CFG.vid_rate;
 
+        // 初始化文件
+        CTRL.play(file)
+
         root.value && acceptDrag(root.value, pl => {
             if(pl.type == 'dir') return;
             const info = splitPath(pl);
@@ -320,9 +323,6 @@
                 });
             }else CTRL.play(pl);
         });
-
-        // 初始化文件
-        CTRL.play(file)
     });
 
     function keyev(kbd:KeyboardEvent){
@@ -610,7 +610,7 @@
         @pointermove="mouse" @click="mouse" ref="root"
         @keydown="keyev" v-touch 
     >
-        <div class="video" :width="CFG.vid_state"
+        <div class="video" :width="CFG.vid_state" tabindex="-1"
             @touchstart.stop.prevent="touch.start" @touchmove.stop.prevent="touch.move" @touchend.stop.prevent="touch.end"
         >
             <video ref="video">
@@ -864,6 +864,7 @@
             max-width: 100%;max-height: 100%;
             width: auto !important;height: auto !important;
             position: relative;
+            outline: none;
 
             // 'auto' | 'width' | 'height' | 'full'
             &[width=width]{

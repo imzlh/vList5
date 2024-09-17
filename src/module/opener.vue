@@ -169,6 +169,8 @@
                 }
 
                 > div{
+                    user-select: none;
+
                     > h4{
                         margin: .1rem;
                         font-size: .9rem;
