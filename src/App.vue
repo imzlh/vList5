@@ -31,9 +31,11 @@
 		multi || (old_fd && old_fd.parent?.active.delete(old_fd));
 		locked = UI.loading = true;
 		if(!current_tree.child) document.documentElement.focus(), await FS.loadTree(current_tree);
+		else if(current_tree.child.length == 0) return;
 		current_tree.unfold = true;
 		locked = UI.loading = false;
 		current = current_tree.child![current_index];
+		if(!current) current_index = 0, current = current_tree.child![current_index];
 		current.parent?.active.set(current, current.path);
 	}
 	watch(list_ele, ele => ele && (ele.addEventListener('keydown', (ev:KeyboardEvent) => {

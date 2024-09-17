@@ -105,6 +105,8 @@
         .basic {
             padding: 1.25rem 1.5rem;
             font-size: .85rem;
+            max-height: 60vh;
+            overflow-y: auto;
 
             h3 {
                 margin: 0;

@@ -119,6 +119,10 @@
                     font-size: .8rem;
                     color: #a49e9e;
                     flex-grow: 1;
+                    display: -webkit-box;
+                    line-clamp: 2;
+                    -webkit-box-orient: vertical;
+                    overflow: hidden;
                 }
 
                 > div{

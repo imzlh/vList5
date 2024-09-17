@@ -260,10 +260,10 @@ export namespace FS{
                             : (file as xFile).fullpath as string
                 });
                 try{
-                    var parent = await stat(path.dir) as vDir;
+                    var parent = await stat(to_fd.path + path.dir) as vDir;
                 }catch{
-                    await mkdir(path.dir);
-                    parent = await stat(path.dir) as vDir;
+                    await mkdir(to_fd.path + path.dir);
+                    parent = await stat(to_fd.path + path.dir) as vDir;
                 }
             } else {
                 var path = splitPath(to_fd),
@@ -288,8 +288,8 @@ export namespace FS{
                 try {
                     const ref_ele = ref();
                     onCreate && watch(ref_ele, ele => onCreate(ele));
-                    await FS.write(
-                        parent.path + file.name,
+                    await write(
+                        parent.path + '/' + file.name,
                         file,
                         undefined,
                         ref_ele
@@ -326,14 +326,15 @@ export namespace FS{
             error = [] as Array<Error>;
         for (let i = 0 ; i < repeated.length ; i ++) try{
             const ref_ele = ref();
-            onCreate && watch(ref_ele, ele => onCreate(ele));
-            await FS.write(
+            onCreate && watch(ref_ele, ele => onCreate(ele), { once: true });
+            await write(
                 repeated[i].path,
                 repeated_files[i],
                 undefined,
                 ref_ele
             );
             (repeated[i] as vFile).upload = undefined;
+            repeated[i].parent?.active.set(repeated[i], repeated[i].path);
             uploaded.push(repeated[i]);
         }catch(e){
             error[i] = e as Error;
@@ -358,7 +359,7 @@ export namespace FS{
 
     /**
      * 列举一个文件夹
-     * @deprecated 请使用`FS.list()`
+     * @deprecated 请使用`list()`
      * @param dir 文件夹路径
      * @returns 列表
      */
@@ -425,6 +426,7 @@ export namespace FS{
     }
 
     export async function loadPath(dirpath: string, reload = false, create_on_miss = false): Promise<vDir>{
+        dirpath = clearPath(dirpath);
         try{
             await stat(dirpath);
         }catch{
@@ -469,6 +471,7 @@ export namespace FS{
      */
     export async function list(path:string, create = false):Promise<Array<FileOrDir>>{
         let current = TREE;
+        path = clearPath(path);
         for (const name of path.split('/')) {
             if(!name) continue;
             if(!current.child) await loadTree(current, true);
@@ -490,7 +493,7 @@ export namespace FS{
                     });
                 // 找不到就创建
                 }catch{
-                    if(create) await FS.mkdir(current.path + name + '/');
+                    if(create) await mkdir(current.path + name + '/');
                     else throw new Error('Folder not found');
                 }
             }else current = cur;
@@ -501,7 +504,7 @@ export namespace FS{
 
     /**
      * 重命名文件
-     * 与`FS.move()`不同的是, `rename()`是一对一的，而`move()`是多个复制到一个文件夹中的
+     * 与`move()`不同的是, `rename()`是一对一的，而`move()`是多个复制到一个文件夹中的
      * 对于批量复制到一个地方`move()`更简便且节省带宽
      * @param fileList 文件列表，键值对应 `源文件:目标文件`
      */
@@ -520,6 +523,7 @@ export namespace FS{
             // 找到原节点
             let current = TREE;
             const paths = src.split('/').filter(item => !!item);
+            dst = clearPath(dst);
             for(let i = 0; i < paths.length - 1; i++){
                 const name = paths[i];
                 current = (current.child as Array<FileOrDir>)
@@ -642,27 +646,34 @@ export namespace FS{
      * 在指定的父文件夹中创建返回的元素
      */
     async function __create(item: (name: string, fullpath: string, parent: vDir) => FileOrDir, files: Array<string>){
-        for(const dir of files){
+        for(const dir of files) await (async function(){
             // 找到dir
             let current = TREE;
             const paths = dir.split('/').filter(item => !!item);
+            let require_mkdir = false;
             for(let i = 0; i < paths.length -1; i++){
                 const name = paths[i];
                 if(current.type != 'dir') throw new Error('Path ' + paths.slice(0, i+1).join('/') + ' is not a dir');
                 if(!current.child) await loadTree(current, true);
                 current = (current.child as Array<FileOrDir>).find(item => item.name == name && item.type == 'dir') as vDir;
+                if(!current) { require_mkdir = true; break; }
+            }
+            // 创建文件夹
+            if(require_mkdir){
+                await mkdir(paths.slice(0, paths.length -1).join('/'));
+                current = await stat(paths.slice(0, paths.length -1).join('/')) as vDir;
             }
             current.child || (current.child = []);
             const nitem = item(paths[paths.length - 1], dir, current);
             // 排异
             for(let i = 0; i < current.child.length - 1; i++)
                 if(current.child[i].name == paths[paths.length - 1])
-                    return current.child[i] = nitem;
+                    current.child[i] = nitem;
             // 添加一个
             nitem.type == 'file'
                 ? current.child.push(nitem)
                 : current.child.unshift(nitem);
-        }
+        })();
     }
 
     export async function  mkdir(dirs: Array<string>|string){
@@ -674,8 +685,8 @@ export namespace FS{
             "ctime": Date.now(),
             "icon": DEFAULT_DIR_ICON,
             "name": name,
-            "path": dirpath,
-            "url": FILE_PROXY_SERVER + dirpath,
+            "path": clearPath(dirpath),
+            "url": FILE_PROXY_SERVER + (dirpath.endsWith('/') ? dirpath + name + '/' : dirpath + name),
             parent,
             active: new Map()
         }), typeof dirs == 'string' ? [dirs] : dirs);
@@ -695,7 +706,7 @@ export namespace FS{
             "ctime": Date.now(),
             "icon": getIcon(name, true),
             "name": name,
-            "path": fullpath,
+            "path": clearPath(fullpath),
             "url": FILE_PROXY_SERVER + fullpath,
             "size": 0,
             parent,
