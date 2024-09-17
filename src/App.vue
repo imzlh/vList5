@@ -437,7 +437,7 @@
 				bottom: 0;
 				left: -.25rem;
 				right: -.25rem;
-				z-index: 45;
+				z-index: 2;
 			}
 		}
 

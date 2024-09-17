@@ -101,11 +101,11 @@ class ReactiveData<T>{
 
 export * from '../config';
 export * from './utils/fs';
-export * from './utils/openfile';
 export * from './utils/config';
 export { acceptDrag } from './module/tree.vue';
 export { FACTION } from './action/action';
 export * from './App.vue';
 export * from './utils/icon';
+export { openFile } from './opener';
 
 import "./action/tree";

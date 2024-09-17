@@ -2,7 +2,7 @@ import I_VSCODE from '/app/vscode.webp';
 import I_CHROME from '/app/chrome.webp';
 import I_HEX from '/app/hex.webp';
 import type { MessageOpinion, OpenerOption, vFile } from './env';
-import { clipFName, Global } from './utils';
+import { clipFName, Global, splitPath } from './utils';
 import I_ART from '/app/artplayer.webp';
 import I_VLITE from "/app/vlite.svg";
 import I_MUYA from '/app/muya.webp';
@@ -392,6 +392,19 @@ export const OPENER:Array<OpenerOption> = [
     }
 ];
 
+/**
+ * 用户偏好格式的打开方式
+ */
+export const USER_PREFERRENCE = JSON.parse(localStorage.getItem('v_opener_pref') || '{}') as Record<string, string>;
+
+window.addEventListener('beforeunload', () => localStorage.setItem('v_opener_pref', JSON.stringify(USER_PREFERRENCE)))
+
+/**
+ * 注册打开方式实例方便复用
+ * @param name 名称
+ * @param open 打开回调函数
+ * @returns 恢复函数，一般与`onUnmounted`一起使用
+ */
 export function regSelf(name:string,open:(file:vFile) => any){
     for (let i = 0; i < OPENER.length; i++)
         if(OPENER[i].name == name){
@@ -401,4 +414,41 @@ export function regSelf(name:string,open:(file:vFile) => any){
         }
     
     throw new TypeError('ERROR: '+ name +' not found');
+}
+/**
+ * 获取文件对应的打开方式
+ * @param file 文件对象
+ * @returns 打开方式选项
+ */
+export function getOpenerId(file:vFile):Promise<OpenerOption>|OpenerOption{
+    const ext = splitPath(file)['ext'].toLowerCase();
+    if(ext in USER_PREFERRENCE)
+        return OPENER.find(opener => opener.name == USER_PREFERRENCE[ext])!;
+    for (let i = 0; i < OPENER.length; i++)
+        if(OPENER[i].format.includes(ext))
+            return OPENER[i];
+    // 默认方式
+    return Global('opener.choose').call(file);
+}
+
+/**
+ * 打开文件
+ * @param file 文件对象
+ */
+export async function openFile(file:vFile){
+    const opener = await getOpenerId(file);
+    try{
+        await opener.open(file);
+    }catch(e){
+        Global('ui.message').call({
+            "type": "error",
+            "title": "打开文件",
+            "content":{
+                "title": "无法打开" + clipFName(file,15),
+                "content": e instanceof Error ? e.message : e?.toString()
+            },
+            "timeout": 5
+        } satisfies MessageOpinion);
+        console.log(e);
+    }
 }

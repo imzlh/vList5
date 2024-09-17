@@ -2,11 +2,13 @@
     import type { vFile } from '@/env';
     import { Global, splitPath } from '@/utils';
     import { reactive } from 'vue';
-    import { OPENER } from '@/opener';
+    import { OPENER, USER_PREFERRENCE } from '@/opener';
 
     const cfg = reactive({
         ext: '',
         display: false,
+        default: '',
+        setDefault: false,
         opener: OPENER,
         selected: -1
     });
@@ -15,8 +17,19 @@
 
     Global('opener.choose').data = function(file:vFile) {
         cfg.display = true;
-        cfg.ext = splitPath(file)['ext'];
+        cfg.ext = splitPath(file)['ext'].toLowerCase();
+        cfg.default = cfg.ext in USER_PREFERRENCE ? USER_PREFERRENCE[cfg.ext] : '';
+        cfg.setDefault = !!cfg.default;
+        cfg.selected = cfg.default? OPENER.findIndex(opener => opener.name == cfg.default): -1;
         return new Promise(rs => callback = rs);
+    }
+
+    function submit(){
+        callback && callback(OPENER[cfg.selected]);
+        cfg.display = false;
+
+        if(cfg.setDefault)
+            USER_PREFERRENCE[cfg.ext] = OPENER[cfg.selected].name;
     }
 </script>
 
@@ -24,22 +37,42 @@
     <div :class="['opener-chooser',{display: cfg.display}]">
         <h3>你要如何打开 <b>{{ cfg.ext }}</b> ?</h3>
         <div class="list">
-            <div v-for="(opener,i) in cfg.opener"
-                @click.stop="cfg.selected = i" @dblclick="
-                    () => {callback && callback(OPENER[cfg.selected]);cfg.display = false;}
-                "
-                :selected="i == cfg.selected"
-            >
-                <img :src="opener.icon || '/icon/app.webp'">
-                <div>
-                    <h4>{{ opener.name }}</h4>
-                    <span >{{ opener.typeDesc }}</span>
+            <template v-if="cfg.default" v-for="(opener,i) in cfg.opener">
+                <div v-if="opener.name == cfg.default"
+                    @click.stop="cfg.selected = i" @dblclick="submit"
+                    :selected="i == cfg.selected"
+                >
+                    <img :src="opener.icon || '/icon/app.webp'">
+                    <div>
+                        <h4><span>默认</span>{{ opener.name }}</h4>
+                        <span >{{ opener.typeDesc }}</span>
+                    </div>
                 </div>
-            </div>
+            </template>
+
+            <template v-for="(opener,i) in cfg.opener">
+                <div v-if="opener.name != cfg.default"
+                    @click.stop="cfg.selected = i" @dblclick="submit"
+                    :selected="i == cfg.selected"
+                >
+                    <img :src="opener.icon || '/icon/app.webp'">
+                    <div>
+                        <h4>{{ opener.name }}</h4>
+                        <span >{{ opener.typeDesc }}</span>
+                    </div>
+                </div>
+            </template>
+            
         </div>
+
+        <div class="set-default">
+            <input type="checkbox" v-model="cfg.setDefault">
+            <span>设置为默认打开方式</span>
+        </div>
+
         <div class="btns" style="flex-direction: row-reverse;">
             <button @click="cfg.display = false;cfg.selected = -1;">取消</button>
-            <button :disabled="-1 === cfg.selected" @click="callback && callback(OPENER[cfg.selected]);cfg.display = false;">确定</button>
+            <button :disabled="-1 === cfg.selected" @click="submit">确定</button>
         </div>
     </div>
     <div class="opener-cover" @click="cfg.display = false" v-show="cfg.display"></div>
@@ -73,14 +106,41 @@
             font-weight: 500;
         }
 
-        .list{
-            overflow-y: auto;
+        > .set-default{
+            padding: 0 1rem;
+            font-size: .76rem;
+            color: #9e8b8b;
+            display: flex;
+            align-items: center;
+            gap: .5rem;
+            user-select: none;
+
+            > input{
+                width: 1rem;
+                height: 1rem;
+                margin: 0;
+                appearance: none;
+                border: solid .1rem #10154c;
+
+                &:hover{
+                    border-color: gray
+                }
+
+                &:checked{
+                    content: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" fill="%23181f70" viewBox="0 0 16 16"><path d="M12.736 3.97a.733.733 0 0 1 1.047 0c.286.289.29.756.01 1.05L7.88 12.01a.733.733 0 0 1-1.065.02L3.217 8.384a.757.757 0 0 1 0-1.06.733.733 0 0 1 1.047 0l3.052 3.093 5.4-6.425a.247.247 0 0 1 .02-.022Z"/></svg>');
+                }
+            }
+        }
+
+        > .list{
+            overflow-y: scroll;
             overflow-x: hidden;
             max-height: 12rem;
             height: calc(100vh - 10rem);
             margin: .75rem;
             background-color: white;
             border-radius: .3rem;
+            padding: .2rem 0 .2rem .2rem;
 
             > div{
                 padding: .45rem;
@@ -112,6 +172,16 @@
                     > h4{
                         margin: .1rem;
                         font-size: .9rem;
+
+                        > span{
+                            font-weight: 400;
+                            padding: .1em .35em;
+                            background-color: #21c932;
+                            color: white;
+                            border-radius: .2em;
+                            font-size: .8rem;
+                            margin-right: .25em;
+                        }
                     }
 
                     > span{
