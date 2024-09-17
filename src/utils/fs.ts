@@ -744,7 +744,7 @@ export namespace FS{
                 else if(current.child![index].type == 'file')
                     target.child[target.child.findIndex(item => item.name == paths[paths.length - 1])] = current.child![index];
                 else
-                    merge(current.child![index], target.child.find(item => item.name == paths[paths.length - 1]) as vDir);
+                    merge(current.child![index] as vDir, target.child.find(item => item.name == paths[paths.length - 1]) as vDir);
             }else{
                 current.child![index].type == 'file' 
                     ? target.child.push(current.child![index])
