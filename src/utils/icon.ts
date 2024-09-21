@@ -3290,3 +3290,13 @@ export function getIcon(name: string, is_file = true){
         return I_DIR;
     }
 }
+
+export function register(type: 'file', icon: FileIcons): void;
+export function register(type: 'folder', icon: FolderIcon): void;
+export function register(type: string, icon: any){
+    if(type == 'file'){
+        fileIcon.unshift(icon);
+    }else if(type == 'folder'){
+        folderIcon.unshift(icon);
+    }
+}

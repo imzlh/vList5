@@ -1,7 +1,7 @@
 <script setup lang="ts">
     import type { MessageOpinion, vFile } from '@/env';
     import { regSelf } from '@/opener';
-    import { FS, Global, UI, acceptDrag, clipFName, reqFullscreen, splitPath } from '@/utils';
+    import { FS, UI, acceptDrag, clipFName, createWindow, message, registerCommand, reqFullscreen, showFilePicker, splitPath } from '@/utils';
     import ASS from 'assjs';
     import { nextTick, onMounted, onUnmounted, ref, shallowReactive, shallowRef, watch } from 'vue';
     import MediaSession, { updateMediaSession } from './media/mediaSession';
@@ -263,7 +263,7 @@
     })
 
     // 添加快捷命令
-    onUnmounted(await Global('ui.command').call({
+    onUnmounted(registerCommand({
         "name": "vplayer.speed",
         "title": "vPlayer: 倍速播放",
         handler: () => CFG.vid_rate = CFG.vid_rate <= 2 ? CFG.vid_rate + 0.5 : 0.5
@@ -457,23 +457,23 @@
         pick_sub() {
             const subnow = CFG.subtitle.map(each => each.name),
                 subfor = CFG.current;
-            Global('ui.choose').call(this.dir)
-                .then((items: Array<vFile>) => items.forEach(each => {
+            showFilePicker(this.dir, 'file')
+                .then(items => items.forEach(each => {
                     // 已经包含
                     if (subnow.includes(each.name)) return;
                     // 字幕太大
-                    // if (each.size > 10 * 1024 * 1024) return Global('ui.message').call({
-                    //     "type": "error",
-                    //     "title": "vPlayer",
-                    //     "content": {
-                    //         "title": "无法打开" + clipFName(each, 15),
-                    //         "content": '文件太大，libass拒绝渲染'
-                    //     }
-                    // } satisfies MessageOpinion);
+                    if (each.size > 10 * 1024 * 1024) return message({
+                        "type": "error",
+                        "title": "vPlayer",
+                        "content": {
+                            "title": "无法打开" + clipFName(each, 15),
+                            "content": '文件太大, 极易造成卡顿或崩溃\n请选择较小的文件'
+                        }
+                    } satisfies MessageOpinion);
                     // 非推荐格式
                     const info = splitPath(each);
                     if (!CONFIG.subtitle.includes(info.ext.toLowerCase()))
-                        return Global('ui.message').call({
+                        return message({
                             "type": "warn",
                             "title": "vPlayer",
                             "content": {
@@ -557,7 +557,7 @@
 
             if (id !== undefined){
                 CFG.current = id;
-            }else Global('ui.message').call({
+            }else message({
                 "type": "error",
                 "title": "vPlayer",
                 "content": {
@@ -579,7 +579,7 @@
                     const url = URL.createObjectURL(blob);
                     if(open){
                         CFG.alert = '截图完成';
-                        Global('ui.window.add').call({
+                        createWindow({
                             "name": "屏幕截图-" + new Date().toLocaleString(),
                             "content": url,
                             "onDestroy": () => URL.revokeObjectURL(url),

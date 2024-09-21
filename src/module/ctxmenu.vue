@@ -3,7 +3,6 @@
     import { ref, watch, nextTick } from 'vue';
 
     const active = ref(-1);
-    let timer:number | undefined;
 
     export default {
         name: 'ctxTree',

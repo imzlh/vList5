@@ -15,7 +15,7 @@ import I_OPEN from "/icon/open.webp";
 import I_OPENER from '/icon/opener.webp';
 
 import Upload from '@/module/upload.vue';
-import { FACTION, FS, Global, TREE, getActiveFile, openFile, size2str, splitPath } from "@/utils";
+import { FACTION, FS, alert, createWindow, getActiveFile, message, openFile, selectOpener, size2str } from "@/utils";
 import type { AlertOpts, MessageOpinion, vDir, vFile } from "@/env";
 import { CtxMenuRegister } from './main';
 
@@ -31,7 +31,7 @@ EXP_REG.register(indir => ({
             "text": "文件夹",
             "icon": I_FOLDER,
             handle: () =>
-                Global('ui.alert').call({
+                alert({
                     "type": "prompt",
                     "title": "创建文件夹",
                     "message": "请输入文件夹名称",
@@ -44,7 +44,7 @@ EXP_REG.register(indir => ({
             "text": "文件",
             "icon": I_TXT,
             handle: () =>
-                Global('ui.alert').call({
+                alert({
                     "type": "prompt",
                     "title": "新建文件",
                     "message": "请输入文件名称",
@@ -64,7 +64,7 @@ EXP_REG.register(indir => ({
     "text": "上传",
     "icon": I_UPLOAD,
     handle: () => {
-        Global('ui.window.add').call({
+        createWindow({
             "content": Upload,
             "icon": I_UPLOAD,
             "name": "上传文件",
@@ -126,7 +126,7 @@ EXP_REG.register(() => ({
             const mark = FACTION.marked.map(item => item.name),
                 over = dir.child.filter(item => mark.includes(item.name));
             if (over.length > 0)
-                await new Promise(rs => Global('ui.alert').call({
+                await new Promise(rs => alert({
                     "type": "confirm",
                     "title": "覆盖或合并提示",
                     "message": "这些文件将会被合并/覆盖\n\n" +
@@ -149,7 +149,7 @@ EXP_REG.register(() => ({
         try {
             await FS.del(getActiveFile()[0].path)
         } catch (e) {
-            return Global('ui.message').call({
+            return message({
                 'type': 'error',
                 'content': {
                     'title': '删除失败',
@@ -193,7 +193,7 @@ EXP_REG.register(() => ({
     "text": "打开方式",
     "icon": I_OPENER,
     handle() {
-        Global('opener.choose').call(getActiveFile()[0] as vFile)
+        selectOpener(getActiveFile()[0] as vFile)
             .then(opener => opener.open(getActiveFile()[0] as vFile));
     },
 }), {

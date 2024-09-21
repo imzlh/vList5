@@ -1,7 +1,7 @@
 <script lang="ts" setup>
-    import type { AlertOpts, MessageOpinion, vDir, vFile } from '@/env';
+    import type { AlertOpts, MessageOpinion, vFile } from '@/env';
     import Upload from '@/module/upload.vue';
-    import { FILE_PROXY_SERVER, FS, Global, splitPath } from '@/utils';
+    import { alert, FILE_PROXY_SERVER, FS, message, splitPath } from '@/utils';
     import {
         CodeBlockLanguageSelector,
         EmojiSelector,
@@ -20,7 +20,7 @@
     } from '@muyajs/core';
     import '@muyajs/core/lib/style.css';
     import type { Search } from '@muyajs/core/lib/types/search/index.js';
-    import { nextTick, onMounted, onUnmounted, reactive, ref, watch } from 'vue';
+    import { onMounted, onUnmounted, reactive, ref } from 'vue';
 
     Muya.use(EmojiSelector);
     Muya.use(InlineFormatToolbar);
@@ -75,7 +75,7 @@
         if(!muya) return;
         FS.write(input.path, new Blob([
             muya.getMarkdown()
-        ])).then(() => Global('ui.message').call({
+        ])).then(() => message({
             'type': 'info',
             'timeout': 5,
             'title': 'Muya',
@@ -84,7 +84,7 @@
                 'content': '文件成功写入远程'
             }
         } satisfies MessageOpinion))
-        .catch((e:Error) => Global('ui.message').call({
+        .catch((e:Error) => message({
             'type': 'error',
             'timeout': 5,
             'title': 'Muya',
@@ -98,7 +98,7 @@
     function reload(){
         if(!muya) return;
 
-        Global('ui.alert').call({
+        alert({
             'type': 'confirm',
             'title': '确认覆盖',
             'message': '可能会覆盖更改，确认重载吗',
@@ -106,7 +106,7 @@
                 if(!res) return;
                 const text = await (await fetch(input.url)).text();
                 muya?.setContent(text);
-                Global('ui.message').call({
+                message({
                     'type': 'info',
                     'timeout': 5,
                     'title': 'Muya',

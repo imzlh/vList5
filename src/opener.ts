@@ -2,7 +2,7 @@ import I_VSCODE from '/app/vscode.webp';
 import I_CHROME from '/app/chrome.webp';
 import I_HEX from '/app/hex.webp';
 import type { MessageOpinion, OpenerOption, vFile } from './env';
-import { clipFName, Global, splitPath } from './utils';
+import { clipFName, createWindow, message, selectOpener, splitPath } from './utils';
 import I_ART from '/app/artplayer.webp';
 import I_VLITE from "/app/vlite.svg";
 import I_MUYA from '/app/muya.webp';
@@ -39,7 +39,7 @@ export const OPENER:Array<OpenerOption> = [
         ],
         async open(file) {
             if(file.size > 1 * 1024 * 1024)
-                Global('ui.message').call({
+                message({
                     "type": "error",
                     "title": "VSCode",
                     "content": {
@@ -47,9 +47,9 @@ export const OPENER:Array<OpenerOption> = [
                         "content": "文件大小超过了最大限制(1M)"
                     },
                     "timeout": 10
-                } satisfies MessageOpinion);
+                });
             else
-                Global('ui.window.add').call({
+                createWindow({
                     "content": (await import('@/opener/vscode.vue')).default,
                     "icon": I_VSCODE,
                     "name": file.name + " - VSCode",
@@ -68,7 +68,7 @@ export const OPENER:Array<OpenerOption> = [
             "md"
         ],
         async open(file) {
-            Global('ui.window.add').call({
+            createWindow({
                 "content": (await import ('@/opener/markdown.vue')).default,
                 "icon": I_MUYA,
                 "name": file.name + " - Muya",
@@ -87,7 +87,7 @@ export const OPENER:Array<OpenerOption> = [
             "cast"
         ],
         async open(file) {
-            Global('ui.window.add').call({
+            createWindow({
                 "content": (await import('@/opener/asciinema.vue')).default,
                 "icon": I_ASCIINEMA,
                 "name": file.name + " - Asciinema",
@@ -112,7 +112,7 @@ export const OPENER:Array<OpenerOption> = [
             "svg"
         ],
         async open(file) {
-            Global('ui.window.add').call({
+            createWindow({
                 "content": (await import('@/opener/imager.vue')).default,
                 "icon": I_IMAGER,
                 "name": "imgViewer",
@@ -131,7 +131,7 @@ export const OPENER:Array<OpenerOption> = [
             "pdf","html", "htm", "xhtml", "url"
         ],
         async open(file) {
-            Global('ui.window.add').call({
+            createWindow({
                 "content": (await import('@/opener/browser.vue')).default,
                 "icon": I_CHROME,
                 "name": file.name + " - WebView",
@@ -154,7 +154,7 @@ export const OPENER:Array<OpenerOption> = [
             "mpg"
         ],
         async open(file) {
-            Global('ui.window.add').call({
+            createWindow({
                 "content": (await import('@/opener/vplayer.vue')).default,
                 "icon": I_VPLAYER,
                 "name": "vPlayer",
@@ -180,7 +180,7 @@ export const OPENER:Array<OpenerOption> = [
             "cue"
         ],
         async open(file) {
-            Global('ui.window.add').call({
+            createWindow({
                 "content": (await import('@/opener/vlite.vue')).default,
                 "icon": I_VLITE,
                 "name": "vLite",
@@ -214,7 +214,7 @@ export const OPENER:Array<OpenerOption> = [
             "wav"
         ],
         async open(file) {
-            Global('ui.window.add').call({
+            createWindow({
                 "content": (await import('@/opener/avplayer.vue')).default,
                 "icon": I_MEDIA,
                 "name": file.name ,
@@ -237,7 +237,7 @@ export const OPENER:Array<OpenerOption> = [
             "svg"
         ],
         async open(file) {
-            Global('ui.window.add').call({
+            createWindow({
                 "content": (await import('@/opener/imgedit.vue')).default,
                 "icon": I_DESIGNER,
                 "name": file.name + " - imgEditor",
@@ -256,7 +256,7 @@ export const OPENER:Array<OpenerOption> = [
             "tldb"
         ],
         async open(file) {
-            Global('ui.window.add').call({
+            createWindow({
                 "content": (await import('@/opener/whiteboard.vue')).default,
                 "icon": I_DESIGNER,
                 "name": file.name + " - Drawer",
@@ -276,7 +276,7 @@ export const OPENER:Array<OpenerOption> = [
             "psb"
         ],
         async open(file) {
-            Global('ui.window.add').call({
+            createWindow({
                 "content": (await import('@/opener/psdviewer.vue')).default,
                 "icon": I_PS,
                 "name": file.name + " - PS预览器",
@@ -295,7 +295,7 @@ export const OPENER:Array<OpenerOption> = [
             "epub"
         ],
         async open(file) {
-            Global('ui.window.add').call({
+            createWindow({
                 "content": (await import('@/opener/epub.vue')).default,
                 "icon": I_NOTES,
                 "name": file.name + " - epub",
@@ -314,7 +314,7 @@ export const OPENER:Array<OpenerOption> = [
             "txt"
         ],
         async open(file) {
-            Global('ui.window.add').call({
+            createWindow({
                 "content": (await import('@/opener/txtreader.vue')).default,
                 "icon": I_NOTES,
                 "name": file.name + " - TXT阅读",
@@ -337,7 +337,7 @@ export const OPENER:Array<OpenerOption> = [
             "eof"
         ],
         async open(file) {
-            Global('ui.window.add').call({
+            createWindow({
                 "content": (await import('@/opener/font-view.vue')).default,
                 "icon": I_DESIGNER,
                 "name": "Font-" + clipFName(file,20),
@@ -356,7 +356,7 @@ export const OPENER:Array<OpenerOption> = [
             "bin"
         ],
         async open(file) {
-            Global('ui.window.add').call({
+            createWindow({
                 "content": (await import('@/opener/hex.vue')).default,
                 "icon": I_HEX,
                 "name": "Hex-" + clipFName(file,20),
@@ -382,7 +382,7 @@ export const OPENER:Array<OpenerOption> = [
             "mpg"
         ],
         async open(file) {
-            Global('ui.window.add').call({
+            createWindow({
                 "content": (await import('@/opener/artplayer.vue')).default,
                 "icon": I_ART,
                 "name": "artplayer",
@@ -428,7 +428,7 @@ export function getOpenerId(file:vFile):Promise<OpenerOption>|OpenerOption{
         if(OPENER[i].format.includes(ext))
             return OPENER[i];
     // 默认方式
-    return Global('opener.choose').call(file);
+    return selectOpener(file);
 }
 
 /**
@@ -440,7 +440,7 @@ export async function openFile(file:vFile){
     try{
         await opener.open(file);
     }catch(e){
-        Global('ui.message').call({
+        message({
             "type": "error",
             "title": "打开文件",
             "content":{

@@ -1,33 +1,34 @@
-<script setup lang="ts">
+<script lang="ts">
 	import type { CtxDispOpts, TabWindow } from '@/env';
-	import { Global } from '@/utils';
-	import { ref, reactive, toRaw, markRaw, watch, nextTick, computed } from 'vue';
+	import { contextMenu, registerCommand } from '@/utils';
+	import { ref, reactive, watch, nextTick, toRaw } from 'vue';
 	import I_OFF from "/icon/off.webp";
-	import Home from './home.vue';
 
 	const tabs = reactive<Record<string, TabWindow>>({}),
 		current = ref<string>('');
 
-	const func = {
-		set(to: string) {
-			const from = current.value;
-			current.value = to;
-			if (tabs[from] && tabs[from].onLeave) (tabs[from].onLeave as Function)();
-			if (tabs[to] && tabs[to].onLeave) (tabs[to].onLeave as Function)();
-		},
+	export function setCurrent(to: string) {
+		const from = current.value;
+		current.value = to;
+		if (tabs[from] && tabs[from].onLeave) (tabs[from].onLeave as Function)();
+		if (tabs[to] && tabs[to].onLeave) (tabs[to].onLeave as Function)();
+	}
 
-		add(item: TabWindow) {
-			const uuid = Math.floor(Math.random() * Number.MAX_SAFE_INTEGER).toString(36);
-			tabs[current.value = uuid] = item;
+	export function create(item: TabWindow) {
+		const uuid = Math.floor(Math.random() * Number.MAX_SAFE_INTEGER).toString(36);
+		tabs[current.value = uuid] = item;
 
-			watch(() => tabs[current.value], val => val || (item.onDestroy?.call(item), item.onDestroy = undefined));
+		watch(() => tabs[current.value], val => val || (item.onDestroy?.call(item), item.onDestroy = undefined));
 
-			return uuid;
-		}
-	};
+		return uuid;
+	}
+
+	export function destory(uuid: string) {
+		delete tabs[uuid];
+	}
 
 	function ctxMenu(ev: MouseEvent, i: string) {
-		Global('ui.ctxmenu').call({
+		contextMenu({
 			"pos_x": ev.clientX,
 			"pos_y": ev.clientY,
 			"content": [
@@ -48,9 +49,12 @@
 		now?.onDisplay && now.onDisplay();
 		old?.onLeave && old.onLeave();
 	})
+</script>
 
-	Global('ui.window').data = func;
-	nextTick(() => Global('ui.command').call({
+<script lang="ts" setup>
+	import Home from './home.vue';
+
+	nextTick(() => registerCommand({
 		"title": "关闭当前工作区",
 		"name": "app.close_current",
 		handler: () => delete tabs[current.value]
@@ -58,8 +62,7 @@
 		"title": "回到首页",
 		"name": "app.home",
 		handler: () => current.value = ''
-	}))
-	defineExpose(func);
+	}));
 </script>
 
 <template>
@@ -104,7 +107,7 @@
 
 
 <style lang="scss" scoped>
-	@import '@/icon.scss';
+	@import '@/style/icon.scss';
 
 	.tab {
 		padding: .45rem;

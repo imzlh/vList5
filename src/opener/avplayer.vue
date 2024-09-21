@@ -1,9 +1,9 @@
 <script lang="ts" setup>
     import { onMounted, onUnmounted, reactive, ref, watch, type Directive } from 'vue';
     import createAV, { AVState, type Export } from './avplayer/avplayer';
-    import type { CtxDispOpts, MessageOpinion, vFile } from '@/env';
-    import { reqFullscreen, UI } from '@/App.vue';
-    import { acceptDrag, FS, Global, splitPath } from '@/utils';
+    import type { MessageOpinion, vFile } from '@/env';
+    import { contextMenu, reqFullscreen, UI } from '@/App.vue';
+    import { acceptDrag, FS, message, splitPath } from '@/utils';
     import MediaSession, { updateMediaSession } from '@/opener/media/mediaSession';
 
     const CONFIG = {
@@ -146,7 +146,7 @@
 
             if (id !== undefined){
                 ui.videoID = id;
-            }else Global('ui.message').call({
+            }else message({
                 "type": "error",
                 "title": "vPlayer",
                 "content": {
@@ -169,7 +169,7 @@
     };
 
     function ctxmenu(e: MouseEvent){
-        Global('ui.ctxmenu').call({
+        contextMenu({
             'pos_x': e.clientX,
             'pos_y': e.clientY,
             'content': [
@@ -204,7 +204,7 @@
                     handle: () => ui.about = true
                 }
             ]
-        } satisfies CtxDispOpts);
+        });
     }
 
     function basicKbdHandle(e: KeyboardEvent){

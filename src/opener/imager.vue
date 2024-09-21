@@ -1,7 +1,7 @@
 <script setup lang="ts">
     import type { vFile } from '@/env';
     import { regSelf } from '@/opener';
-    import { Global, reqFullscreen } from '@/utils';
+    import { createWindow, reqFullscreen } from '@/utils';
     import { onMounted, onUnmounted, ref, shallowRef } from 'vue';
     import { ImageManager } from './image/imager';
     import I_DESIGNER from '/app/desginer.webp';
@@ -20,7 +20,7 @@
     });
 
     const fullscreen = () => document.fullscreenElement ? document.exitFullscreen() : reqFullscreen();
-    const openEditor = () => import('./imgedit.vue').then(m => Global('ui.window.add').call({
+    const openEditor = () => import('./imgedit.vue').then(m => createWindow({
         "name": "图片编辑",
         "icon": I_DESIGNER,
         "content": m.default,

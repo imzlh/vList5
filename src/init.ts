@@ -38,6 +38,9 @@ import './opener';
 // 主要的应用入口
 import App from './App.vue';
 
+// 异步加载的插件系统
+window.addEventListener('load', () => import('./utils/plugin'));
+
 interface Touch{
     x: number,
     y: number,

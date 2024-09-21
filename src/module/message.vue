@@ -1,11 +1,10 @@
-<script setup lang="ts">
+<script lang="ts">
     import type { MessageOpinion } from '@/env';
-    import { Global } from '@/utils';
     import { nextTick, reactive } from 'vue';
 
     const message = reactive<Array<MessageOpinion & { uuid: string }>>([]);
 
-    function postMessage(msg: MessageOpinion) {
+    export function create(msg: MessageOpinion) {
         const i = message.push({
             ...msg,
             uuid: Math.floor(Math.random() * Number.MAX_SAFE_INTEGER).toString(36)
@@ -13,12 +12,14 @@
         if (msg.timeout) setTimeout(() => message.splice(i, 1), msg.timeout * 1000);
         return i;
     }
-    function msg_destroy(i: number) {
+    export function remove(i: number) {
         message[i].hidden = true;
         nextTick(() => setTimeout(() => message.splice(i, 1), 200));
     }
+</script>
 
-    Global('ui.message').data = postMessage;
+<script lang="ts" setup>
+    const msg_destroy = remove;
 </script>
 
 <template>
@@ -47,7 +48,7 @@
 </template>
 
 <style lang="scss">
-    @import '@/icon.scss';
+    @import '@/style/icon.scss';
 
     .messages {
         // overflow: hidden;

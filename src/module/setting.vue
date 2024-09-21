@@ -1,7 +1,7 @@
 <script setup lang="ts">
     import type { SettingObject } from '@/utils/config';
     import type { SettingItem } from '@/env';
-    import { reactive, ref, shallowRef, type Ref } from 'vue';
+    import { shallowRef, type Ref } from 'vue';
 
     const props = defineProps(['option']),
         item = props['option'] as SettingObject,
@@ -58,9 +58,9 @@
                         <div class="add" @pointerdown="click($event, item.step, item.value)"></div>
                     </div>
 
-                    <div v-else-if="item.type == 'check'" class="right check"
-                        @click="item.value.value = !item.value.value" :active="item.value.value"
-                    ></div>
+                    <input v-else-if="item.type == 'check'" class="right check" type="checkbox"
+                        v-model="item.value.value"
+                    />
 
                     <input type="range" class="right range" v-else-if="item.type == 'range'"
                         v-model="item.value.value" :title="item.value.value.toString()"
@@ -85,7 +85,9 @@
 </template>
 
 <style lang="scss">
-    @import '@/icon.scss';
+    @import '@/style/icon.scss';
+    @import '@/style/input.scss';
+
     .setting-container {
         position: relative;
         height: 100%;
@@ -159,19 +161,9 @@
                     flex-grow: 1;
 
                     &.input, &.choose {
-                        border-radius: .3rem;
-                        padding: .35rem;
-                        background-color: white;
-                        border: solid .05rem rgb(218, 215, 215);
-                        border-bottom: solid .1rem rgb(209, 204, 204);
-                        transition: all .2s;
                         min-width: 10rem;
 
-                        outline: none;
-
-                        &:focus {
-                            border-bottom-color: #0067c0;
-                        }
+                        @include v-winui-input();
                     }
 
                     &.choose {
@@ -294,71 +286,13 @@
                     }
 
                     &.range {
-                        $track-color: linear-gradient(90deg, #0067c0 100%, #888888 100%);
-                        appearance: none;
-                        background: transparent;
                         flex-grow: 9;
-
-                        &::-webkit-slider-runnable-track {
-                            width: 100%;
-                            height: .2rem;
-                            background: $track-color;
-                            border-radius: .5rem;
-                            border: 0;
-                        }
-
-                        &::-webkit-slider-thumb {
-                            border: .2rem solid white;
-                            height: 1rem;
-                            width: 1rem;
-                            border-radius: .5rem;
-                            background: #0067c0;
-                            -webkit-appearance: none;
-                            margin-top: -8px;
-                            -webkit-transition: all .1s;
-                            transition: all .1s;
-                        }
-
-                        &::-webkit-slider-thumb:hover {
-                            border: .15rem solid white;
-                        }
-
-                        &::-webkit-slider-thumb:active {
-                            border: .25rem solid white;
-                        }
-
-                        &:focus::-webkit-slider-runnable-track {
-                            background: $track-color;
-                        }
+                        @include v-winui-range();
                     }
 
                     &.check{
+                        @include v-checkbox();
                         flex-grow: 0;
-                        width: 2.4rem;
-                        height: 1.2rem;
-                        padding: .2rem;
-                        background: white;
-                        border-radius: 2rem;
-                        transition: all .2s;
-
-                        &::after{
-                            content: '';
-                            display: block;
-                            background-color: rgb(164 170 180);
-                            width: 1.2rem;
-                            height: 1.2rem;
-                            border-radius: .6rem;
-                            transition: float .2s;
-                        }
-
-                        &[active=true]{
-                            background-color: #5ba7ea;
-
-                            &::after{
-                                float: right;
-                                background-color: white;
-                            }
-                        }
                     }
                 }
             }

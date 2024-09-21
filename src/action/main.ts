@@ -1,5 +1,5 @@
 import type { CtxDispOpts, CtxMenuData, vDir, FileOrDir } from "@/env";
-import { getActiveFile, Global } from "@/utils";
+import { contextMenu, getActiveFile } from "@/utils";
 
 export interface DisplayCondition{
     single: boolean,
@@ -27,7 +27,7 @@ export class CtxMenuRegister{
             if(actived) pre.push('---');
         }
         if(pre[pre.length - 1] == '---') pre.pop();
-        Global('ui.ctxmenu').call({
+        contextMenu({
             'pos_x': pos.x,
             'pos_y': pos.y,
             'content': pre

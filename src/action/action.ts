@@ -1,5 +1,5 @@
 import type { MessageOpinion, FileOrDir, vDir } from "@/env";
-import { APP_API, FS, getActiveFile, Global, splitPath } from "@/utils";
+import { FS, getActiveFile, message, splitPath } from "@/utils";
 
 // 文件操作
 export const FACTION = {
@@ -13,7 +13,7 @@ export const FACTION = {
             });
             await FS.loadPaths([...this.marked.map(item => splitPath(item).dir), dest.path]);
         }catch(e){
-            Global('ui.message').call({
+            message({
                 "type": "error",
                 "title": "文件资源管理器",
                 "content": {

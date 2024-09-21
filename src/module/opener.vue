@@ -1,6 +1,6 @@
-<script setup lang="ts">
-    import type { vFile } from '@/env';
-    import { Global, splitPath } from '@/utils';
+<script lang="ts">
+    import type { OpenerOption, vFile } from '@/env';
+    import { splitPath } from '@/utils';
     import { reactive } from 'vue';
     import { OPENER, USER_PREFERRENCE } from '@/opener';
 
@@ -9,21 +9,24 @@
         display: false,
         default: '',
         setDefault: false,
-        opener: OPENER,
         selected: -1
     });
 
     let callback:undefined|Function;
 
-    Global('opener.choose').data = function(file:vFile) {
+    export function selectOpener(file:vFile) {
         cfg.display = true;
         cfg.ext = splitPath(file)['ext'].toLowerCase();
         cfg.default = cfg.ext in USER_PREFERRENCE ? USER_PREFERRENCE[cfg.ext] : '';
         cfg.setDefault = !!cfg.default;
         cfg.selected = cfg.default? OPENER.findIndex(opener => opener.name == cfg.default): -1;
-        return new Promise(rs => callback = rs);
+        return new Promise<OpenerOption>(rs => callback = rs);
     }
 
+
+</script>
+
+<script lang="ts" setup>
     function submit(){
         callback && callback(OPENER[cfg.selected]);
         cfg.display = false;
@@ -34,10 +37,10 @@
 </script>
 
 <template>
-    <div :class="['opener-chooser',{display: cfg.display}]">
+    <div class="opener-chooser" v-if="cfg.display">
         <h3>你要如何打开 <b>{{ cfg.ext }}</b> ?</h3>
         <div class="list">
-            <template v-if="cfg.default" v-for="(opener,i) in cfg.opener">
+            <template v-if="cfg.default" v-for="(opener,i) in OPENER">
                 <div v-if="opener.name == cfg.default"
                     @click.stop="cfg.selected = i" @dblclick="submit"
                     :selected="i == cfg.selected"
@@ -50,7 +53,7 @@
                 </div>
             </template>
 
-            <template v-for="(opener,i) in cfg.opener">
+            <template v-for="(opener,i) in OPENER">
                 <div v-if="opener.name != cfg.default"
                     @click.stop="cfg.selected = i" @dblclick="submit"
                     :selected="i == cfg.selected"
@@ -79,9 +82,11 @@
 </template>
 
 <style lang="scss">
+    @import '@/style/input.scss';
+
     .opener-chooser{
         position: fixed;
-        top: -100vh;
+        top: 50%;
         left: 50%;
         width: 100vw;
         max-width: 20rem;
@@ -92,13 +97,15 @@
         transform: translate(-50%,-50%);
         transition-timing-function: ease-out;
         opacity: 0;
-        transition: opacity .2s,translate .35s;
+        animation: show 0.3s ease-out forwards;
 
-        &.display{
-            display: block;
-            opacity: 1;
-            top: 50vh;
-            transition-timing-function: ease-in;
+        @keyframes show{
+            from{
+                opacity: 0;
+            }
+            to{
+                opacity: 1;
+            }
         }
 
         > h3{
@@ -116,19 +123,7 @@
             user-select: none;
 
             > input{
-                width: 1rem;
-                height: 1rem;
-                margin: 0;
-                appearance: none;
-                border: solid .1rem #10154c;
-
-                &:hover{
-                    border-color: gray
-                }
-
-                &:checked{
-                    content: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" fill="%23181f70" viewBox="0 0 16 16"><path d="M12.736 3.97a.733.733 0 0 1 1.047 0c.286.289.29.756.01 1.05L7.88 12.01a.733.733 0 0 1-1.065.02L3.217 8.384a.757.757 0 0 1 0-1.06.733.733 0 0 1 1.047 0l3.052 3.093 5.4-6.425a.247.247 0 0 1 .02-.022Z"/></svg>');
-                }
+                @include v-winui-checkbox;
             }
         }
 

@@ -3,21 +3,15 @@
 	import type { CtxDispOpts, CtxMenuData, FileOrDir, vDir } from './env';
 	import tabManager from './module/tabs.vue';
 	import CtxMenu from './module/ctxmenu.vue';
-	import { FACTION, FS, Global, TREE, getActiveFile, getConfig, openFile, regConfig } from './utils';
+	import { FACTION, FS, TREE, getActiveFile, getConfig, message, openFile, regConfig, registerCommand } from './utils';
 	import Opener from './module/opener.vue';
 	import Message from './module/message.vue';
-	import Chooser from './module/fileframe.vue';
+	import Chooser from './module/fdpicker.vue';
 	import Alert from './module/alert.vue';
 	import Tree from './module/tree.vue';
-	import Command from './module/command.vue';
+	import Command from './module/panel.vue';
 
-	const ctxconfig = reactive({
-			item: [] as Array<CtxMenuData>,
-			display: false,
-			x: 0,
-			y: 0
-		}),
-		list_ele = ref<HTMLElement>();
+	const list_ele = ref<HTMLElement>();
 	window.addEventListener('resize', () => layout_displayLeft.value = false);
 
 	// 键盘监听
@@ -115,7 +109,7 @@
 
 			case 'Delete':
 				if(current.path != '/')
-					FS.del(getActiveFile()[0].path).catch(e => Global('ui.message').call({
+					FS.del(getActiveFile()[0].path).catch(e => message({
 						'type': 'error',
 						'content': {
 							'title': '删除失败',
@@ -151,13 +145,6 @@
 	watch(UIMAIN['layout.fontSize'], val => document.documentElement.style.fontSize = val + 'px');
 	document.documentElement.style.fontSize = UIMAIN['layout.fontSize'].value + 'px';
 
-	Global('ui.ctxmenu').data = function(data:CtxDispOpts){
-		ctxconfig.x = data.pos_x;
-		ctxconfig.y = data.pos_y;
-		ctxconfig.item = data.content;
-		ctxconfig.display = true;
-	}
-
 	function resize(e:PointerEvent){
 		const rawW = UI.filelist_width.value;
 		function rszHandler(ev:PointerEvent){
@@ -181,7 +168,7 @@
 			taskmode.value = false;
 	}
 
-	nextTick(() => Global('ui.command').call({
+	nextTick(() => registerCommand({
 		"name": "list.focus",
 		"title": "聚焦到文件列表",
 		"handler": () => list_ele.value!.focus()
@@ -192,7 +179,7 @@
 	}))
 	
 	// 自动聚焦
-	window.addEventListener('load', () => requestAnimationFrame(() => list_ele.value?.focus()))
+	window.addEventListener('load', () => requestAnimationFrame(() => list_ele.value?.focus()));
 </script>
 
 <script lang="ts">
@@ -267,6 +254,22 @@
 		fullscreen,
 		loading: false
 	};
+
+	
+	// ctxmenu
+	const ctxconfig = reactive({
+		item: [] as Array<CtxMenuData>,
+		display: false,
+		x: 0,
+		y: 0
+	});
+
+	export function contextMenu(data:CtxDispOpts){
+		ctxconfig.x = data.pos_x;
+		ctxconfig.y = data.pos_y;
+		ctxconfig.item = data.content;
+		ctxconfig.display = true;
+	}
 </script>
 
 <template>
@@ -333,7 +336,7 @@
 </template>
 
 <style lang="scss">
-	@import './font.scss';
+	@import './style/font.scss';
 
 	body {
 		margin: 0;

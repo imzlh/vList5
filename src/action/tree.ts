@@ -21,7 +21,7 @@ import I_BANGUMI from '/icon/bangumi.webp';
 
 import Upload from '@/module/upload.vue';
 import EXPLORER from '@/module/explorer.vue';
-import { FACTION, FS, Global, TREE, clearActiveFile, getActiveFile, openFile, size2str, splitPath } from "@/utils";
+import { FACTION, FS, alert, clearActiveFile, createWindow, getActiveFile, message, openFile, selectOpener, size2str, splitPath } from "@/utils";
 import type { AlertOpts, MessageOpinion, vDir, vFile } from "@/env";
 import { CtxMenuRegister } from './main';
 
@@ -37,7 +37,7 @@ TREE_REG.register(indir => ({
             "text": "文件夹",
             "icon": I_FOLDER,
             handle: () =>
-                Global('ui.alert').call({
+                alert({
                     "type": "prompt",
                     "title": "创建文件夹",
                     "message": "请输入文件夹名称",
@@ -50,7 +50,7 @@ TREE_REG.register(indir => ({
             "text": "文件",
             "icon": I_TXT,
             handle: () =>
-                Global('ui.alert').call({
+                alert({
                     "type": "prompt",
                     "title": "新建文件",
                     "message": "请输入文件名称",
@@ -70,7 +70,7 @@ TREE_REG.register(indir => ({
     "text": "上传",
     "icon": I_UPLOAD,
     handle: () => {
-        Global('ui.window.add').call({
+        createWindow({
             "content": Upload,
             "icon": I_UPLOAD,
             "name": "上传文件",
@@ -131,7 +131,7 @@ TREE_REG.register(() => ({
             const mark = FACTION.marked.map(item => item.name),
                 over = dir.child.filter(item => mark.includes(item.name));
             if (over.length > 0)
-                await new Promise(rs => Global('ui.alert').call({
+                await new Promise(rs => alert({
                     "type": "confirm",
                     "title": "覆盖或合并提示",
                     "message": "这些文件将会被合并/覆盖\n\n" +
@@ -155,7 +155,7 @@ TREE_REG.register(() => ({
         try {
             await FS.del(getActiveFile().map(item => item.path))
         } catch (e) {
-            return Global('ui.message').call({
+            return message({
                 'type': 'error',
                 'content': {
                     'title': '删除失败',
@@ -198,7 +198,7 @@ TREE_REG.register(() => ({
     "text": "打开方式",
     "icon": I_OPENER,
     handle() {
-        Global('opener.choose').call(getActiveFile()[0] as vFile)
+        selectOpener(getActiveFile()[0] as vFile)
             .then(opener => opener.open(getActiveFile()[0] as vFile));
     },
 }), {
@@ -214,7 +214,7 @@ TREE_REG.register(() => ({
     'icon': I_LINK,
     'text': '转到目录',
     handle() {
-        Global('ui.alert').call({
+        alert({
             'type': 'prompt',
             'title': '转到目录',
             'message': '输入目录名称，支持隐藏目录',
@@ -236,7 +236,7 @@ TREE_REG.register(() => ({
             "text": "正则匹配",
             'icon': I_MATCH,
             handle() {
-                Global('ui.alert').call({
+                alert({
                     'title': '正则匹配',
                     'message': '请输入正则表达式(忽略大小写)，匹配到的文件将被标记',
                     'type': 'prompt',
@@ -245,7 +245,7 @@ TREE_REG.register(() => ({
                             var preg = new RegExp(data as string, 'i'),
                                 item = getActiveFile()[0] as vDir;
                         } catch (e) {
-                            return Global('ui.message').call({
+                            return message({
                                 'title': '正则错误',
                                 'content': {
                                     'title': '无法加载正则表达式',
@@ -299,7 +299,7 @@ TREE_REG.register(() => ({
             'text': 'explorer窗格',
             'icon': I_EXPLORER,
             async handle() {
-                Global('ui.window.add').call({
+                createWindow({
                     "content": EXPLORER,
                     "icon": I_EXPLORER,
                     "name": 'Explorer',
@@ -390,7 +390,7 @@ TREE_REG.register(() => ({
                 const ordered = getActiveFile().sort((a, b) => a.name.localeCompare(b.name)),
                     obj = {} as Record<string, string>,
                     reload = [] as Array<string>
-                const start = parseInt(await new Promise(rs => Global('ui.alert').call({
+                const start = parseInt(await new Promise(rs => alert({
                     "type": "prompt",
                     "title": "排序",
                     "message": "请输入起始值，默认为1",
@@ -404,7 +404,7 @@ TREE_REG.register(() => ({
                 }
                 FS.rename(obj)
                     .then(() => ordered.forEach(item => item.lock = false))
-                    .catch((e: Error) => Global('ui.message').call({
+                    .catch((e: Error) => message({
                         "type": "error",
                         "title": "文件资源管理器",
                         "content": {

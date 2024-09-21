@@ -1,38 +1,47 @@
-<script setup lang="ts">
-    import type { FileOrDir, vDir } from '@/env';
-    import { FS, Global, openFile} from '@/utils';
+<script lang="ts">
+    import type { FileOrDir, vDir, vFile } from '@/env';
+    import { contextMenu, FS, openFile} from '@/utils';
     import { reactive, ref, shallowRef, watch } from 'vue';
     import List from './list.vue';
     import type { CtxDispOpts } from '@/env';
     import I_LIST from '/icon/viewinfo.webp';
     import I_ICON from '/icon/viewlarge.webp';
 
-    const display = ref(false),
-        history = ref([] as Array<string>),
-        data = shallowRef<vDir>(),
-        current = ref(-1),
-        showPath = ref(false),
-        path = ref(''),
-        displaymode = ref('list'),
-        layout = reactive({
+    const data = reactive({
+        display: false,
+        history: [] as Array<string>,
+        data: shallowRef<vDir>(),
+        current: -1,
+        showPath: false,
+        path: '',
+        displaymode: 'list',
+        type: 'file',
+        layout: {
             table: [60, 20, 20],
             orderBy: 'name' as 'name' | 'name_rev' | 'date' | 'date_rev' | 'size' | 'size_rev'
-        });
+        }
+    });
 
     let resolver:undefined|Function;
 
-    Global('ui.choose').data = (f:string) => new Promise(function(rs){
-        history.value = [f],current.value = 0,display.value = true;
-        resolver = rs;
-    });
+    export function show(f: string, filter: 'dir'): Promise<vDir[]>;
+    export function show(f: string, filter: 'file'): Promise<vFile[]>;
+    export function show(f: string, filter: undefined): Promise<FileOrDir[]>;
+    export function show(f: string, filter: 'dir' | 'file' | undefined) {
+        return new Promise(rs => {
+            data.history = [f],data.current = 0,data.display = true;
+            data.type = filter || 'all';
+            resolver = rs;
+        });
+    }
 
     async function switchTo(dir:string){
-        data.value = await FS.loadPath(dir);
-        current.value = history.value.push(dir) -1;
+        data.data = await FS.loadPath(dir);
+        data.current = data.history.push(dir) -1;
     }
 
     function dirBack(){
-        let dir = history.value[current.value];
+        let dir = data.history[data.current];
         if(!dir) return;
         if(dir[dir.length-1] == '/') dir = dir.substring(0,dir.length-1);
 
@@ -45,19 +54,19 @@
 
     function getPath(){
         let prefix = '/';
-        return ([{path: '/', name: '根目录'}] as Array<any>).concat(path.value.split('/').map(item => item ? {
+        return ([{path: '/', name: '根目录'}] as Array<any>).concat(data.path.split('/').map(item => item ? {
             path: prefix += item + '/',
             name: item
         } : null));
     }
 
     function submit(){
-        resolver && resolver([...data.value!.active.keys()]);
-        resolver = undefined;display.value = false;
+        resolver && resolver([...data.data!.active.keys()]);
+        resolver = undefined;data.display = false;
     }
 
     function ctxmenu(item: FileOrDir, e: MouseEvent){
-        Global('ui.ctxmenu').call({
+        contextMenu({
             pos_x: e.clientX,
             pos_y: e.clientY,
             content: [
@@ -70,11 +79,11 @@
                         {
                             "text": "图标",
                             "icon": I_ICON,
-                            "handle": () => displaymode.value = 'view'
+                            "handle": () => data.displaymode = 'view'
                         },{
                             "text": "列表",
                             "icon": I_LIST,
-                            "handle": () => displaymode.value = 'list'
+                            "handle": () => data.displaymode = 'list'
                         }
                     ]
                 },{
@@ -82,22 +91,22 @@
                     "child": [
                         {
                             text: "名称",
-                            handle: () => layout.orderBy = 'name'
+                            handle: () => data.layout.orderBy = 'name'
                         },{
                             text: "名称(逆序)",
-                            handle: () => layout.orderBy = 'name_rev'
+                            handle: () => data.layout.orderBy = 'name_rev'
                         },{
                             text: "日期",
-                            handle: () => layout.orderBy = 'date'
+                            handle: () => data.layout.orderBy = 'date'
                         },{
                             text: "日期(逆序)",
-                            handle: () => layout.orderBy = 'date_rev'
+                            handle: () => data.layout.orderBy = 'date_rev'
                         },{
                             text: "大小",
-                            handle: () => layout.orderBy = 'size'
+                            handle: () => data.layout.orderBy = 'size'
                         },{
                             text: "大小(逆序)",
-                            handle: () => layout.orderBy = 'size_rev'
+                            handle: () => data.layout.orderBy = 'size_rev'
                         }
                     ]
                 }
@@ -105,18 +114,22 @@
         } satisfies CtxDispOpts);
     }
 
-    watch(() => history.value[current.value],v =>{ v &&
-        FS.loadPath(v).then(_ => data.value = _);
-        path.value = v || '/';
+    watch(() => data.history[data.current],v =>{ v &&
+        FS.loadPath(v).then(_ => data.data = _);
+        data.path = v || '/';
     });
 </script>
 
+<script lang="ts" setup>
+    const _ = data;
+</script>
+
 <template>
-    <div class="widget-chooser" v-show="display">
+    <div class="widget-chooser" v-show="_.display">
         <div class="head">
             <div class="flex">
                 <!-- 上一页 -->
-                <div class="icon" data-action="history-back" :disabled="current == 0" @click="current --">
+                <div class="icon" data-action="history-back" :disabled="_.current == 0" @click="_.current --">
                     <svg viewBox="0 0 448 512">
                         <path fill="currentColor"
                             d="M9.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.2 288 416 288c17.7 0 32-14.3 32-32s-14.3-32-32-32l-306.7 0L214.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z">
@@ -124,7 +137,7 @@
                     </svg>
                 </div>
                 <!-- 下一页 -->
-                <div class="icon" data-action="history-resume" :disabled="current == history.length -1" @click="current ++">
+                <div class="icon" data-action="history-resume" :disabled="_.current == _.history.length -1" @click="_.current ++">
                     <svg viewBox="0 0 448 512">
                         <path fill="currentColor"
                             d="M438.6 278.6c12.5-12.5 12.5-32.8 0-45.3l-160-160c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3L338.8 224 32 224c-17.7 0-32 14.3-32 32s14.3 32 32 32l306.7 0L233.4 393.4c-12.5 12.5-12.5 32.8 0 45.3s32.8 12.5 45.3 0l160-160z">
@@ -143,16 +156,18 @@
                     选择文件
                 </div>
                 <!-- 按钮 -->
-                <button class="non-fill" @click="display = false">取消</button>
-                <button class="fill" @click="submit">确定</button>
+                <button class="non-fill" @click="_.display = false">取消</button>
+                <button class="fill" @click="submit"
+                    :disabled="!_.data?.active.size || ( _.type != 'all' && Array.from(_.data.active).some(item => item[0].type != data.type) )"
+                >确定</button>
             </div>
             <!-- 路径 -->
             <div class="path">
                 <!-- 路径输入 -->
-                <input type="text" v-if="showPath" :value="path" >
+                <input type="text" v-if="_.showPath" :value="_.path" >
                 <!-- 路径分层 -->
                 <div class="bread" v-else
-                    @click="showPath = true" @blur="showPath = false"
+                    @click="_.showPath = true" @blur="_.showPath = false"
                     tabindex="-11"
                 >
                     <template v-for="item of getPath()">
@@ -164,8 +179,8 @@
             </div>
         </div>
         <!-- 列表 -->
-        <div v-if="data" style="padding-top: 4rem;box-sizing: border-box;height: 100%">
-            <List :dir="data" :layout="layout"
+        <div v-if="_.data" style="padding-top: 4rem;box-sizing: border-box;height: 100%">
+            <List :dir="_.data" :layout="_.layout"
                 @ctxmenu="ctxmenu"
                 @open="(file:FileOrDir) => file.type == 'dir' ? switchTo(file.path) : submit()"
             ></List>
@@ -174,7 +189,7 @@
 </template>
 
 <style lang="scss">
-    @import '@/icon.scss';
+    @import '@/style/icon.scss';
 
     .widget-chooser{
         position: fixed;

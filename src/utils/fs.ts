@@ -2,7 +2,7 @@ import type { vDir } from "@/env";
 import I_DESKTOP from '/icon/desktop.webp';
 import { reactive, ref, watch } from "vue";
 import type { AlertOpts, FileOrDir, ListPredirect, vFile, vSimpleFileOrDir } from "@/env";
-import { APP_API, DEFAULT_DIR_ICON, FILE_PROXY_SERVER, Global, getConfig } from "@/utils";
+import { APP_API, DEFAULT_DIR_ICON, FILE_PROXY_SERVER, alert, getConfig, message } from "@/utils";
 import { type Ref } from "vue";
 import SHA from "jssha";
 import { getIcon } from "./icon";
@@ -234,7 +234,7 @@ export namespace FS{
         if(!to_fd.child) try{
             await loadTree(to_fd);
         } catch {
-            Global('ui.message').call({
+            message({
                 "title": "资源管理器",
                 "content": {
                     "title": "上传错误",
@@ -274,7 +274,7 @@ export namespace FS{
             if (matched && matched.type == 'file') {
                 repeated.push(matched), repeated_files.push(file);
             } else if (matched && matched.type == 'dir') {
-                Global('ui.message').call({
+                message({
                     "title": "资源管理器",
                     "content": {
                         "title": "上传错误",
@@ -297,7 +297,7 @@ export namespace FS{
                     ref_ele.value
                 } catch (e) {
                     // 抛出错误
-                    Global('ui.message').call({
+                    message({
                         "title": "资源管理器",
                         "content": {
                             "title": "上传错误",
@@ -312,7 +312,7 @@ export namespace FS{
 
         // 完毕
         if(repeated.length > 0)
-            await new Promise(rs => Global('ui.alert').call({
+            await new Promise(rs => alert({
                 "type": "prompt",
                 "title": "上传提示",
                 "message": `您选中的这些文件已经存在\n\n${
@@ -344,7 +344,7 @@ export namespace FS{
         let list = '';
         for (const id of error_id)
             list += `${repeated[id].path}: ${error[id]}\n`;
-        if(list) Global('ui.message').call({
+        if(list) message({
             'type': 'error',
             'title': '上传错误',
             'content': {
@@ -392,7 +392,7 @@ export namespace FS{
             item.forEach(each => each.icon = getIcon(each.name, each.type == 'file'));
             input.child = reactive(item);
         }catch(e){
-            quiet && Global('ui.message').call({
+            quiet && message({
                 "type": "error",
                 "title": "文件资源管理器",
                 "content":{
@@ -803,7 +803,7 @@ export namespace FS{
     /**
      * @private
      */
-    const __auth = () => new Promise<string>((rs, rj) => Global('ui.alert').call({
+    const __auth = () => new Promise<string>((rs, rj) => alert({
         'type': 'prompt',
         'title': '身份验证',
         'message': '由于身份验证失败，操作失败。\n请输入身份ID，如果忘记请查看nginx配置',

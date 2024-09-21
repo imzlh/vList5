@@ -1,6 +1,6 @@
 <script lang="ts" setup>
     import type { vFile } from "@/env";
-    import { FS, Global } from "@/utils";
+    import { FS, message } from "@/utils";
     import { createRoot } from 'react-dom/client';
     import { onMounted, onUnmounted, ref, watch } from "vue";
     import { createElement } from "react";
@@ -16,7 +16,7 @@
         debug = ref(import.meta.env.DEV);
 
     fetch(file.url).then(res => res.json()).catch(e =>
-        Global('ui.message').call({
+        message({
             "type": "error",
             "title": "Whiteboard",
             "content": {
@@ -33,7 +33,7 @@
     function save() {
         const data = JSON.stringify(editor.value!.getSnapshot());
         FS.write(file.path, new Blob([data], { type: 'application/json' }));
-        Global('ui.message').call({
+        message({
             "type": "success",
             "title": "Whiteboard",
             "content": {

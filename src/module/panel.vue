@@ -1,6 +1,9 @@
 <script lang="ts" setup>
+    const _ = ui;
+</script>
+
+<script lang="ts">
     import type { Command } from '@/env';
-    import { Global } from '@/utils';
     import { reactive, ref, watch } from 'vue';
 
     const commands = ref<Array<Command & { hide?: boolean }>>([{
@@ -63,8 +66,13 @@
         ev.preventDefault();
     }
 
-    // 注册
-    Global('ui.command').data = function(){
+    /**
+     * 注册命令
+     * @param args 命令对象
+     * @returns 销毁命令的函数
+     */
+    export function register(...args: Command[]): () => void;
+    export function register (){
         const cache = {} as Record<string, number>;
         commands.value.forEach((c, i) => cache[c.name] = i)
         for(const arg of arguments)
@@ -84,13 +92,13 @@
 </script>
 
 <template>
-    <div class="command-panel-wrapper" v-show="ui.display">
-        <input type="text" v-model="ui.input" placeholder="输入命令" ref="inputEl"
-            @blur="ui.display = false; ui.select = 0; ui.input = '';" @keydown="keyEV"
+    <div class="command-panel-wrapper" v-show="_.display">
+        <input type="text" v-model="_.input" placeholder="输入命令" ref="inputEl"
+            @blur="_.display = false; _.select = 0; _.input = '';" @keydown="keyEV"
         >
         <ul class="commands">
-            <li v-for="(command, i) in commands" v-show="!command.hide" @click="ui.display = false; command.handler();ui.select = 0; "
-                :select="ui.select == i"
+            <li v-for="(command, i) in commands" v-show="!command.hide" @click="_.display = false; command.handler();_.select = 0; "
+                :select="_.select == i"
             >
                 {{ command.title }}
             </li>

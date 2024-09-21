@@ -1,7 +1,7 @@
-import type { FileOrDir, MessageOpinion, OpenerOption, vFile } from "@/env";
+import type { MessageOpinion, OpenerOption, vFile } from "@/env";
 import { clipFName, splitPath } from "./fs";
 import { OPENER } from "@/opener";
-import { Global } from "@/utils";
+import { message, selectOpener } from "@/utils";
 
 export function getOpenerId(file:vFile):Promise<OpenerOption>|OpenerOption{
     const ext = splitPath(file)['ext'];
@@ -9,7 +9,7 @@ export function getOpenerId(file:vFile):Promise<OpenerOption>|OpenerOption{
         if(OPENER[i].format.includes(ext.toLowerCase()))
             return OPENER[i];
     // 默认方式
-    return Global('opener.choose').call(file);
+    return selectOpener(file);
 }
 
 export async function openFile(file:vFile){
@@ -17,7 +17,7 @@ export async function openFile(file:vFile){
     try{
         await opener.open(file);
     }catch(e){
-        Global('ui.message').call({
+        message({
             "type": "error",
             "title": "打开文件",
             "content":{

@@ -1,6 +1,6 @@
 <script lang="ts" setup>
     import type { vFile } from '@/env';
-    import { Global } from '@/utils';
+    import { message } from '@/utils';
     import PSD from './psd/psd';
     import { onMounted, ref } from 'vue';
     import I_PS from '/app/ps.webp';
@@ -13,7 +13,7 @@
     try{
         var psd = await PSD.create(file);
     }catch{
-        Global('ui.message').call({
+        message({
             "type": "error",
             "title": "PhotoShop Viewer",
             "icon": I_PS,

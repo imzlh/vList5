@@ -1,6 +1,6 @@
 <script setup lang="ts">
     import type { MessageOpinion, vFile } from '@/env';
-    import { Global, getConfig, regConfig } from '@/utils';
+    import { getConfig, message, regConfig } from '@/utils';
     import { Float16Array } from '@petamoriken/float16';
     import { ref, watch } from 'vue';
 
@@ -50,7 +50,7 @@
             };
         },{immediate: true});
     }catch(e){
-        Global('ui.message').call({
+        message({
             "type": "error",
             "title": "文件资源管理器",
             "content":{

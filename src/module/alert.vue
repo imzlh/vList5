@@ -1,11 +1,5 @@
-<script setup lang="ts">
-    import { Global } from '@/utils';
-    import type { AlertOpts } from '@/env';
-    import { ref, shallowRef, type Directive } from 'vue';
-
-    const item = shallowRef<AlertOpts>(),
-        dataref = ref(),
-        core = ref<HTMLElement>(),
+<script lang="ts" setup>
+    const _ = item,
         vFocus = {
             mounted(el: HTMLElement, dat){
                 if(dat.value)
@@ -17,46 +11,57 @@
                 el.addEventListener('keydown', key => 
                     key.code == 'Enter' && (key.preventDefault(), el.click())
                 )
-        } satisfies Directive;
+        } satisfies Directive
+</script>
+
+<script lang="ts">
+    import type { AlertOpts } from '@/env';
+    import { ref, shallowRef, type Directive } from 'vue';
+
+    const item = shallowRef<AlertOpts>(),
+        dataref = ref(),
+        core = ref<HTMLElement>();
 
     function call(role: string) {
         if (role == 'close') item.value = undefined;
         else if (role == 'submit') item.value?.callback(dataref.value), item.value = undefined;
     }
 
-    Global('ui.alert').data = (d: AlertOpts) => {
-        item.value = d; dataref.value = '';core.value && requestAnimationFrame(() => core.value!.focus());
+    export const alert = (d: AlertOpts) => {
+        item.value = d;
+        dataref.value = '';
+        core.value && requestAnimationFrame(() => core.value!.focus());
     };
 </script>
 
 <template>
-    <div :type="item.type" class="sys-alert" v-if="item" ref="core">
+    <div :type="_.type" class="sys-alert" v-if="_" ref="core">
         <div class="basic">
-            <h3 v-if="item.title">{{ item.title }}</h3>
-            <span>{{ item.message }}</span>
+            <h3 v-if="_.title">{{ _.title }}</h3>
+            <span>{{ _.message }}</span>
 
-            <input type="text" v-model="dataref" v-if="item.type == 'prompt'" v-focus
-                @keydown="$event.key == 'Enter' && (item.callback(dataref.value), item = undefined)"
+            <input type="text" v-model="dataref" v-if="_.type == 'prompt'" v-focus
+                @keydown="$event.key == 'Enter' && (_.callback(dataref.value), item = undefined)"
             >
         </div>
         <div class="btns">
             <div style="flex-grow: 1;"></div>
-            <template v-if="item.button">
-                <button v-for="btn in item.button" :style="{ backgroundColor: btn.color }"
+            <template v-if="_.button">
+                <button v-for="btn in _.button" :style="{ backgroundColor: btn.color }"
                     @click="call(btn.role);btn.click && btn.click(dataref)"
                 >
                     {{ btn.content }}
                 </button>
             </template>
             <template v-else>
-                <button style="background-color: #e5e5e5" v-focus="item.type != 'prompt'"
-                    @click="item.type == 'confirm' && item.callback(dataref = false); item = undefined"
+                <button style="background-color: #e5e5e5" v-focus="_.type != 'prompt'"
+                    @click="_.type == 'confirm' && _.callback(dataref = false); item = undefined"
                     v-btn    
                 >
                     取消
                 </button>
                 <button style="color: white;"
-                    @click="item.type == 'confirm' && (dataref = true);item.callback(dataref); item = undefined;"
+                    @click="_.type == 'confirm' && (dataref = true);_.callback(dataref); item = undefined;"
                     v-btn
                 >
                     确定

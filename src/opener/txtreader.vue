@@ -1,8 +1,8 @@
 <script lang="ts" setup>
     import type { vFile } from "@/env";
-    import { FS, getConfig, Global, openSetting, regConfig, reqFullscreen, UI } from "@/utils";
+    import { alert, FS, getConfig, message, openSetting, regConfig, reqFullscreen, UI } from "@/utils";
     import { generateTxtDB, loadTxtDB, TxtDB } from './txt/txtdb';
-    import { onMounted, reactive, ref, render, watch } from "vue";
+    import { onMounted, reactive, ref, watch } from "vue";
 
     const _prop = defineProps(['option']),
         file = _prop.option as vFile,
@@ -34,7 +34,7 @@
         }catch(e){
             console.error(e);
             cached = false;
-            Global('ui.alert').call({
+            alert({
                 "type": "prompt",
                 "title": "更新缓存",
                 "message": "我们需要知道章节标题格式，请输入格式\n如：'第%章 ...' 匹配 '第1章 前情介绍'！",
@@ -48,7 +48,7 @@
                     // 写入文件
                     await FS.write(file.path + '.vtc', data);
                     // 提示
-                    Global('ui.message').call({
+                    message({
                         "type": "info",
                         "title": "TXT缓存成功",
                         "content": {
@@ -286,7 +286,7 @@
 </template>
 
 <style lang="scss" >
-    @import "@/icon.scss";
+    @import "@/style/icon.scss";
 
     @font-face {
         font-family: 'GenJyuuGothic';

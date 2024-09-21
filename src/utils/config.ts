@@ -1,6 +1,6 @@
 import type { SettingItem } from "@/env";
 import Setting from "@/module/setting.vue";
-import { Global } from "@/utils";
+import { createWindow } from "@/utils";
 import { markRaw, ref, type Ref } from "vue";
 
 import I_SETTING from '/app/settings.webp';
@@ -115,7 +115,7 @@ export function openSetting(appns?: string){
         }
     }
 
-    Global('ui.window.add').call({
+    createWindow({
         "content": Setting,
         "icon": I_SETTING,
         "name": "设置",

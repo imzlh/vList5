@@ -1,6 +1,6 @@
 <script lang="ts">
     import type { MessageOpinion, vDir, vFile, FileOrDir } from '@/env';
-    import { DEFAULT_FILE_ICON, FS, Global, UI, openFile, size2str, splitPath, clearActiveFile, getActiveFile } from '@/utils';
+    import { DEFAULT_FILE_ICON, FS, UI, openFile, size2str, splitPath, clearActiveFile, getActiveFile, message } from '@/utils';
     import { nextTick, type PropType } from 'vue';
     import { TREE_REG } from '@/action/tree';
 
@@ -135,7 +135,7 @@
                             enabled.push(from_fd.path);
                     }
                     FS.move(enabled, to_fd.path, true)
-                        .catch(e => Global('ui.message').call({
+                        .catch(e => message({
                             "title": "资源管理器",
                             "content": {
                                 "title": "移动错误",
@@ -204,7 +204,7 @@
             rename(file: FileOrDir, val: string){
                 FS.rename({
                     [file.path]: splitPath(file).dir + val
-                }).catch((e: Error) => (Global('ui.message').call({
+                }).catch((e: Error) => (message({
                     'type': 'error',
                     'content': {
                         'title': '删除失败',

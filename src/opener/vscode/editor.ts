@@ -1,7 +1,7 @@
 import type { vFile } from "@/env";
 import { KeyCode, editor, languages, Uri } from 'monaco-editor';
 import genConfig from './configure';
-import { FS, Global } from "@/utils";
+import { FS, message } from "@/utils";
 import { VSLang } from "./language";
 
 export default class Editor{
@@ -40,7 +40,7 @@ export default class Editor{
             await analysis_import(this.file, this.editor);
         }catch(e){
             console.error(e);
-            Global('ui.message').call({
+            message({
                 "type": "error",
                 "title": "文件资源管理器",
                 "content":{
@@ -58,7 +58,7 @@ export default class Editor{
             preserveBOM: false,
             lineEnding: "\r\n"
         })]);
-        FS.write(this.file.path,res).then(() => Global('ui.message').call({
+        FS.write(this.file.path,res).then(() => message({
             "type": "success",
             "title": "VSCode",
             "content":{

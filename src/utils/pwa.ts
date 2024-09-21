@@ -1,5 +1,5 @@
 import type { MessageOpinion, vFile } from "@/env";
-import { FS, Global, openFile } from "@/utils";
+import { FS, openFile, showFilePicker } from "@/utils";
 
 // @function 加载外部文件
 
@@ -22,8 +22,8 @@ if ("launchQueue" in globalThis) {
                 if(url.searchParams.has('open')){
                     openFile(await FS.create(file));
                 }else{
-                    Global('ui.choose').call('/')
-                        .then((arr: Array<vFile>) => file.getFile().then(f => 
+                    showFilePicker('/', 'file')
+                        .then(arr => file.getFile().then(f => 
                             FS.write(arr[0].path, f)
                         ));
                 }

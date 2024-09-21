@@ -1,7 +1,7 @@
 <script lang="ts">
-    import { computed, reactive, ref, shallowRef, type Directive } from 'vue';
+    import { computed, reactive, shallowRef, type Directive } from 'vue';
     import ObjTree from './objTree.vue';
-import { _eval } from '@/utils/eval';
+    import { _eval } from '@/utils/eval';
 
     interface Log{
         type: 'info' | 'warn' | 'error' | 'eval',

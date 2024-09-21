@@ -2,7 +2,7 @@
     import type { MessageOpinion, vFile } from '@/env';
     import ArtPlayer from 'artplayer';
     import { onMounted, onUnmounted, ref } from 'vue';
-    import { FS, Global, clipFName, getConfig, regConfig, splitPath } from '@/utils';
+    import { FS, getConfig, message, regConfig, splitPath } from '@/utils';
     import { regSelf } from '@/opener';
     import type { Selector } from 'artplayer/types/component';
 
@@ -143,7 +143,7 @@
             }
 
             if(id !== undefined) return this.set(id);
-            else Global('ui.message').call({
+            else message({
                 "type": "error",
                 "title": "ArtPlayer",
                 "content":{

@@ -1,5 +1,5 @@
 import type { CtxDispOpts, vFile, MessageOpinion } from "@/env";
-import { FS, Global, splitPath } from "@/utils";
+import { contextMenu, FS, message, splitPath } from "@/utils";
 import { computed, readonly, ref, type Ref } from "vue";
 
 export class ImageManager{
@@ -430,7 +430,7 @@ export class ImageManager{
         };
 
         // 设置Image
-        if(!ctx) return Global('ui.message').call(E_IMAGE);
+        if(!ctx) return message(E_IMAGE);
 
         // 转Blob
         const img = this.images[1];
@@ -442,15 +442,15 @@ export class ImageManager{
             ctx.drawImage(img,0,0);
             // 转Blob
             canvas.toBlob(function(blob){
-                if(!blob) return Global('ui.message').call(E_CLIPBOARD);
+                if(!blob) return message(E_CLIPBOARD);
                 // 复制
                 navigator.clipboard.write([
                     new ClipboardItem({
                         [blob.type]: blob
                     })
-                ]).catch(() => Global('ui.message').call(E_CLIPBOARD));
+                ]).catch(() => message(E_CLIPBOARD));
             });
-        },img.onerror = () => Global('ui.message').call(E_IMAGE);
+        },img.onerror = () => message(E_IMAGE);
     }
 
     /**
@@ -458,7 +458,7 @@ export class ImageManager{
      */
     public copy_link(){
         function gerror(e:Error){
-            Global('ui.message').call({
+            message({
                 "type": "error",
                 "title": "Imager",
                 "content":{
@@ -481,7 +481,7 @@ export class ImageManager{
     }
 
     private __contextmenu(e: MouseEvent){
-        Global('ui.ctxmenu').call({
+        contextMenu({
             "pos_x": e.clientX,
             "pos_y": e.clientY,
             "content": [
@@ -534,7 +534,7 @@ export class ImageManager{
             for (let i = 0; i < this.files.value.length; i++)
                 if(this.files.value[i].path == f.path)
                     return this.id.value = i, this.__update();
-            Global('ui.message').call({
+            message({
                 "type": "error",
                 "title": "Imager",
                 "content":{
@@ -555,7 +555,7 @@ export class ImageManager{
             this.files.value = temp;
             this.current_dir = info.dir;
             // 激活viewer
-            if(id == -1) Global('ui.message').call({
+            if(id == -1) message({
                 "type": "error",
                 "title": "Imager",
                 "content":{

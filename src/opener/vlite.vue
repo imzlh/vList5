@@ -2,7 +2,7 @@
     import type { vFile } from '@/env';
     import { regSelf } from '@/opener';
     import parseCue from './media/cue';
-    import { acceptDrag, FILE_PROXY_SERVER, FS, Global, splitPath } from '@/utils';
+    import { acceptDrag, FILE_PROXY_SERVER, FS, message, splitPath } from '@/utils';
     import { Lrc, Runner, type Lyric } from 'lrc-kit';
     import MediaSession, { updateMediaSession } from './media/mediaSession';
     import { computed, nextTick, onMounted, onUnmounted, ref, shallowReactive, watch } from 'vue';
@@ -95,7 +95,7 @@
         // 加载歌词
         if(info.ext.toLowerCase() == 'lrc'){
             const fe = await fetch(file.url);
-            if(!fe.ok) return Global('ui.message').call({
+            if(!fe.ok) return message({
                 "type": "error",
                 "title": "vLite",
                 "content":{
@@ -225,7 +225,7 @@
                 if(!fe.ok) throw 'e';
                 var res = Lrc.parse(await fe.text());
             }catch{
-                return Global('ui.message').call({
+                return message({
                     "type": "error",
                     "title": "vLite",
                     "content":{
@@ -293,7 +293,7 @@
         CFG.playing = true;
     }
     audio.onvolumechange = () => CFG.volume = audio.volume;
-    audio.onerror = () => Global('ui.message').call({
+    audio.onerror = () => message({
         "type": "error",
         "title": "vLite",
         "content":{
@@ -447,7 +447,7 @@
         }
 
         if (id !== undefined) CFG.currentID = id;
-        else Global('ui.message').call({
+        else message({
             "type": "error",
             "title": "vLite",
             "content": {
