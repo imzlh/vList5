@@ -198,6 +198,17 @@ export default async function create(el){
     player.on('time', time => el.currentTime = time);
     player.on('progress', prop => el.dispatchEvent(new CustomEvent('progress', {detail: prop})))
 
+    // WebLock
+    if('wakeLock' in navigator){
+        let lock;
+        player.on('played', () => 
+            navigator.wakeLock.request('screen')
+                .then(lo => lock = lo)
+                .catch(() => console.warn('Failed to request wake lock'))
+        );
+        player.on('paused', () => lock && lock.release());
+    }
+
     return refs;
 }
 
