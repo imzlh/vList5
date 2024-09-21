@@ -5,30 +5,30 @@
 
     &::-webkit-slider-runnable-track {
         width: 100%;
-        height: .2rem;
+        height: .2em;
         background: $track-color;
-        border-radius: .5rem;
+        border-radius: .5em;
         border: 0;
     }
 
     &::-webkit-slider-thumb {
-        border: .2rem solid white;
-        height: 1rem;
-        width: 1rem;
-        border-radius: .5rem;
+        border: .2em solid white;
+        height: 1em;
+        width: 1em;
+        border-radius: .5em;
         background: #0067c0;
         -webkit-appearance: none;
-        margin-top: -8px;
+        margin-top: -.4em;
         -webkit-transition: all .1s;
         transition: all .1s;
     }
 
     &::-webkit-slider-thumb:hover {
-        border: .15rem solid white;
+        border: .15em solid white;
     }
 
     &::-webkit-slider-thumb:active {
-        border: .25rem solid white;
+        border: .25em solid white;
     }
 
     &:focus::-webkit-slider-runnable-track {
@@ -39,19 +39,19 @@
 // 复选框
 @mixin v-checkbox() {
     appearance: none;
-    width: 3rem;
-    padding: .2rem;
+    width: 3em;
+    padding: .2em;
     background-color: #eaeaea;
-    border-radius: 2rem;
+    border-radius: 2em;
     transition: all .2s;
 
     &::after {
         content: '';
         display: block;
         background-color: rgb(164 170 180);
-        width: 1.2rem;
-        height: 1.2rem;
-        border-radius: .6rem;
+        width: 1.2em;
+        height: 1.2em;
+        border-radius: .6em;
         transition: float .2s;
     }
 
@@ -67,11 +67,11 @@
 
 // 仿照win10的复选框
 @mixin v-winui-checkbox() {
-    width: 1rem;
-    height: 1rem;
+    width: 1em;
+    height: 1em;
     margin: 0;
     appearance: none;
-    border: solid .1rem #10154c;
+    border: solid .1em #10154c;
 
     &:hover {
         border-color: gray;
@@ -83,11 +83,11 @@
 }
 
 @mixin v-winui-input() {
-    border-radius: .3rem;
-    padding: .35rem;
+    border-radius: .3em;
+    padding: .35em;
     background-color: white;
-    border: solid .05rem rgb(218, 215, 215);
-    border-bottom: solid .1rem rgb(209, 204, 204);
+    border: solid .05em rgb(218, 215, 215);
+    border-bottom: solid .1em rgb(209, 204, 204);
     transition: all .2s;
     outline: none;
 

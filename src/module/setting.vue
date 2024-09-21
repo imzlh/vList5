@@ -291,8 +291,8 @@
                     }
 
                     &.check{
-                        @include v-checkbox();
                         flex-grow: 0;
+                        @include v-checkbox();
                     }
                 }
             }

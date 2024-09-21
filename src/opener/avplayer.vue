@@ -5,6 +5,7 @@
     import { contextMenu, reqFullscreen, UI } from '@/App.vue';
     import { acceptDrag, FS, message, splitPath } from '@/utils';
     import MediaSession, { updateMediaSession } from '@/opener/media/mediaSession';
+import { regSelf } from '@/opener';
 
     const CONFIG = {
         seek_time: 10,
@@ -168,6 +169,8 @@
         }
     };
 
+    onUnmounted(regSelf('avPlayer', CTRL.play));
+
     function ctxmenu(e: MouseEvent){
         contextMenu({
             'pos_x': e.clientX,
@@ -268,6 +271,15 @@
         }
     }
 
+    let alertTimer: number | NodeJS.Timeout | undefined;
+    function autoCloseAlert(){
+        ui.alert = '加载完毕'; 
+        if(alertTimer) clearTimeout(alertTimer);
+        alertTimer = setTimeout(() => {
+            ui.alert = '', alertTimer = undefined;
+        }, 2000);
+    }
+
     watch(() => ui.videos[ui.videoID], function(vid){
         if(!vid || !player.value) return;
         player.value.url = vid.url;
@@ -306,7 +318,7 @@
                 });
         })()
     ));
-    watch(UI.app_width, w => player.value && (player.value.func.resize = [w, UI.height_total.value]));
+    watch(() => UI.app_width.value * UI.height_total.value, () => player.value && player.value.func.resize());
 </script>
 
 <template>
@@ -316,10 +328,10 @@
         @pointermove="active" @click="active"
     >
         <div class="video" ref="videoel"
-            @ended="CTRL.next()" @progress="prog($event as any)" @load="ui.alert = ''"
+            @ended="CTRL.next()" @progress="prog($event as any)" @load="autoCloseAlert()"
         ></div>
 
-        <div class="alert" :show="ui.alert">{{ ui.alert }}</div>
+        <div class="alert" :show="!!ui.alert">{{ ui.alert }}</div>
 
         <div class="bar" v-if="player" :style="{
             pointerEvents: player.time.total == 0n ? 'none' : 'all'
@@ -426,60 +438,62 @@
         <div class="about frame" :display="ui.about">
             <h1>统计信息</h1>
             <table v-if="player?.status">
-                <tr>
-                    <td>音频编码</td>
-                    <td>{{ player.status.audiocodec }}</td>
-                </tr>
-                <tr>
-                    <td>视频编码</td>
-                    <td>{{ player.status.videocodec }}</td>
-                </tr>
-                <tr>
-                    <td>视频大小</td>
-                    <td>{{ player.status.width }} x {{ player.status.height }}</td>
-                </tr>
-                <tr>
-                    <td>音频比特率</td>
-                    <td>{{ player.status.audioBitrate }}</td>
-                </tr>
-                <tr>
-                    <td>音频声道</td>
-                    <td>{{ player.status.channels }}</td>
-                </tr>
-                <tr>
-                    <td>音频采样率</td>
-                    <td>{{ player.status.sampleRate }}</td>
-                </tr>
-                <tr>
-                    <td>音频帧率</td>
-                    <td>{{ player.status.audioDecodeFramerate }}</td>
-                </tr>
-                <tr>
-                    <td>视频丢包率</td>
-                    <td v-if="player.status.videoPacketCount > 0n">
-                        {{ player.status.videoDropPacketCount / player.status.videoPacketCount * 100n }}%
-                    </td>
-                    <td v-else> 0 </td>
-                </tr>
-                <tr>
-                    <td>视频错误率</td>
-                    <td v-if="player.status.videoPacketCount > 0">
-                        {{ player.status.videoDecodeErrorPacketCount / Number(player.status.videoPacketCount) }}
-                    </td>
-                    <td v-else> 0 </td>
-                </tr>
-                <tr>
-                    <td>视频比特率</td>
-                    <td>{{ player.status.videoBitrate }}</td>
-                </tr>
-                <tr>
-                    <td>视频帧率</td>
-                    <td>{{ player.status.videoRenderFramerate }}</td>
-                </tr>
-                <tr>
-                    <td>传输速率</td>
-                    <td>{{ player.status.bandwidth /1000 }} Kbps</td>
-                </tr>
+                <tbody>
+                    <tr>
+                        <td>音频编码</td>
+                        <td>{{ player.status.audiocodec }}</td>
+                    </tr>
+                    <tr>
+                        <td>视频编码</td>
+                        <td>{{ player.status.videocodec }}</td>
+                    </tr>
+                    <tr>
+                        <td>视频大小</td>
+                        <td>{{ player.status.width }} x {{ player.status.height }}</td>
+                    </tr>
+                    <tr>
+                        <td>音频比特率</td>
+                        <td>{{ player.status.audioBitrate }}</td>
+                    </tr>
+                    <tr>
+                        <td>音频声道</td>
+                        <td>{{ player.status.channels }}</td>
+                    </tr>
+                    <tr>
+                        <td>音频采样率</td>
+                        <td>{{ player.status.sampleRate }}</td>
+                    </tr>
+                    <tr>
+                        <td>音频帧率</td>
+                        <td>{{ player.status.audioDecodeFramerate }}</td>
+                    </tr>
+                    <tr>
+                        <td>视频丢包率</td>
+                        <td v-if="player.status.videoPacketCount > 0n">
+                            {{ player.status.videoDropPacketCount / player.status.videoPacketCount * 100n }}%
+                        </td>
+                        <td v-else> 0 </td>
+                    </tr>
+                    <tr>
+                        <td>视频错误率</td>
+                        <td v-if="player.status.videoPacketCount > 0">
+                            {{ player.status.videoDecodeErrorPacketCount / Number(player.status.videoPacketCount) }}
+                        </td>
+                        <td v-else> 0 </td>
+                    </tr>
+                    <tr>
+                        <td>视频比特率</td>
+                        <td>{{ player.status.videoBitrate }}</td>
+                    </tr>
+                    <tr>
+                        <td>视频帧率</td>
+                        <td>{{ player.status.videoRenderFramerate }}</td>
+                    </tr>
+                    <tr>
+                        <td>传输速率</td>
+                        <td>{{ player.status.bandwidth /1000 }} Kbps</td>
+                    </tr>
+                </tbody>
             </table>
         </div>
 
@@ -500,6 +514,13 @@
             </ul>
             <ul v-if="player?.tracks.subtitle">
                 <h1>字幕轨道({{ player.tracks.subtitle.length }})</h1>
+                <div class="subtitle" v-if="player.tracks.subtitle.length" :delay="player.display.subDelay">
+                    <input type="checkbox" v-model="player.display.subtitle" title="显示字幕">
+                    <div class="range" v-if="player.display.subtitle" >
+                        <input title="字幕延迟" min="-5000" max="5000" step="100" type="range" v-model="player.display.subDelay">
+                    </div>
+                    <span v-else>字幕已关闭</span>
+                </div>
                 <li v-for="item in player.tracks.subtitle"
                     :active="item.id == player.tracks.subTrack"
                     @click="player.tracks.subTrack = item.id"
@@ -529,11 +550,40 @@
 </template>
 
 <style lang="scss">
+    @import '@/style/input.scss';
+
     .av-container{
         height: 100%;
         background-color: black;
         position: relative;
         user-select: none;
+        
+        >.alert {
+            position: absolute;
+            background-color: rgb(224 247 255 / 40%);
+            padding: 0.5rem 1rem;
+            letter-spacing: .05rem;
+            font-size: 0.8rem;
+            border-radius: 0.3rem;
+            color: white;
+            max-width: 60%;
+            min-width: 10rem;
+            transition: all 0.2s;
+            transform: translateX(100%);
+            bottom: 3rem;
+            right: 0;
+            opacity: 0;
+
+            &[show=true] {
+                right: 1rem;
+                transform: none;
+                opacity: 1;
+            }
+
+            &:active{
+                transform: scale(0.9);
+            }
+        }
 
         > .video{
             height: 100%;
@@ -584,29 +634,6 @@
                 backdrop-filter: blur(.2rem);
                 border: solid .1rem rgba(209, 209, 209, 0.5);
                 color: white;
-            }
-
-            > .alert{
-                position: absolute;
-                background-color: rgba(254, 254, 254, 0.8);
-                padding: .25rem .5rem;
-                font-size: .8rem;
-                border-radius: .2rem;
-                color: white;
-                max-width: 60%;
-
-                transition: all .2s;
-                transform: translate(-100%, -100%);
-                bottom: 0;
-                right: 0;
-                opacity: 0;
-
-                &[show=true]{
-                    bottom: 3rem;
-                    right: 1rem;
-                    transform: none;
-                    opacity: 1;
-                }
             }
 
             > .time{
@@ -830,6 +857,75 @@
                 padding: 0;
                 flex-grow: 1;
                 min-width: 10rem;
+
+                > div.subtitle{
+                    display: flex;
+                    align-items: center;
+                    gap: .5rem;
+                    font-size: .9rem;
+                    margin-bottom: .5rem;
+
+                    >input[type=checkbox]{
+                        @include v-checkbox;
+                    }
+
+                    > .range{
+                        position: relative;
+                        flex-grow: 1;
+                        height: 1.5rem;
+
+                        // 悬浮在左侧的提示框
+                        &::after{
+                            content: '偏移 ' attr(delay) 'ms';
+                            position: absolute;
+                            top: 0;
+                            right: 105%;
+                            background-color: rgba(128, 128, 128, 0.5);
+                            color: white;
+                            padding: .2rem .5rem;
+                            border-radius: .2rem;
+                            opacity: 0;
+                            transition: all .2s;
+                            transform: translateX(100%);
+                            white-space: nowrap;
+                            z-index: 1;
+                        }
+
+                        &:hover::after{
+                            transition-delay: 1s;
+                            transform: translateX(0);
+                            opacity: 1;
+                        }
+
+                        // 在中侧的提示
+                        &::before{
+                            content: '';
+                            width: .1rem;
+                            height: 100%;
+                            background-color: rgb(188, 188, 188);
+                            position: absolute;
+                            top: 0;
+                            left: 50%;
+                            transform: translateX(-50%);
+                            z-index: -1;
+                        }
+                    
+                        > input[type=range]{
+                            font-size: 1rem;
+                            position: absolute;
+                            top: 50%;
+                            transform: translateY(-50%);
+                            left: 0;
+                            width: 100%;
+                            box-sizing: border-box;
+                            @include v-winui-range;
+                        }
+                    }
+
+                    > span{
+                        flex-grow: 1;
+                    }
+                }
 
                 > li{
                     list-style: none;

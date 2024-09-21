@@ -114,12 +114,13 @@ export interface Export {
             vertical: boolean,
             horizontal: boolean
         },
-        subDelay: number
+        subDelay: number,
+        subtitle: true
     },
     func: {
         snapshot: (type?: string) => void,
         seek: (time: bigint) => void,
-        resize: [number, number],
+        resize(): void,
         extSub: (source: Subtitle) => Promise<Stream>,
         nextFrame: () => void
     }

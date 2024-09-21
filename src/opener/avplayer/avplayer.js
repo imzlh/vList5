@@ -140,7 +140,7 @@ fn fragment(fragData: VertexOut) -> @location(0) vec4f
                 }]
             },
             primitive: {
-                topology: 'triangle'
+                topology: 'triangle-list'
             },
             layout: 'auto'
         };
@@ -162,8 +162,11 @@ fn fragment(fragData: VertexOut) -> @location(0) vec4f
     passEncoder.draw(3);
     passEncoder.end();
     device.queue.submit([commandEncoder.finish()]);
+
+    webgpu = true;
 }catch(e){
     console.warn('Your device doesnot support WebGPU.');
+    console.debug(e);
 }
 
 export default async function create(el){
@@ -215,13 +218,13 @@ export default async function create(el){
             fill: false,
             rotate: 0,
             subDelay: 0,
-            subtitle: false,
+            subtitle: true,
             flip: {
                 vertical: false,
                 horizontal: false
             }
         },
-        func: {
+        func: markRaw({
             snapshot: (type = 'webp') => player.canvas.toBlob(data => {
                 let url = URL.createObjectURL(data);
                 window.open(url).onbeforeunload = () => URL.revokeObjectURL(url);
@@ -237,8 +240,12 @@ export default async function create(el){
             nextFrame(){
                 refs.play = false;
                 player.playNextFrame();
+            },
+            resize(){
+                const size = el.getBoundingClientRect();
+                player.resize(size.width, size.height);
             }
-        }
+        })
     });
 
     watch(() => refs.url, async (url, old) => {
@@ -276,8 +283,7 @@ export default async function create(el){
     watch(() => refs.display.rotate, rotate => player.setRotate(rotate));
     watch(() => refs.display.flip.horizontal, flip => player.enableHorizontalFlip(flip));
     watch(() => refs.display.flip.vertical, flip => player.enableVerticalFlip(flip));
-    watch(() => refs.func.resize, size => player.resize(size[0], size[1]));
-    watch(() => refs.display.subDelay, delay => player.setSubTitleDelay(delay));
+    watch(() => refs.display.subDelay, delay => player.setSubTitleDelay(Number(delay)));
     watch(() => refs.display.subtitle, sub => player.setSubtitleEnable(sub));
 
     player.on('ended', () => refs.ended = true);
