@@ -404,6 +404,9 @@
 				font-size: 1.6rem;
 				line-height: 3rem;
 
+				// PWA: 允许拖拽
+				-webkit-app-region: drag;
+
 				>svg, >img {
 					display: inline-block;
 					width: 1em;
