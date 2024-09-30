@@ -18,4 +18,4 @@ export const FILE_PROXY_SERVER = import.meta.env.DEV
         || url.get('proxy')
         || import.meta.env.VLIST_FILE_SERVER
         || location.protocol + '//' + location.host + '/';
-export const APP_ROOT = location.protocol + '//' + location.host + location.pathname;
+export const APP_ROOT = (path: string) => new URL(path,location.href).href;

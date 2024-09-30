@@ -1,7 +1,20 @@
 {
-  "name": "vlist",
-  "version": "5.7",
-  "private": true,
+  "name": "@imzlh/vlist",
+  "version": "5.7.3",
+  "displayName": "vList5",
+  "description": "一个全能的现代化的文件管理UI，使用vue3",
+  "license": "MIT",
+  "keywords": [
+    "vList5",
+    "vList",
+    "file-manager",
+    "file-sharing",
+    "media-player"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
   "type": "module",
   "dev": {
     "file_server": "http://192.168.1.1:81/",
@@ -14,7 +27,12 @@
     "build-only": "vite build",
     "type-check": "vue-tsc --build --force"
   },
-  "dependencies": {
+  "dependencies": {},
+  "devDependencies": {
+    "@types/node": "^20.14.11",
+    "cheap": "https://github.com/zhaohappy/cheap.git",
+    "libmedia-common": "https://github.com/zhaohappy/common.git",
+    "npm-run-all2": "^6.1.2",
     "@muyajs/core": "^0.0.32",
     "@petamoriken/float16": "^3.8.7",
     "@tldraw/assets": "^2.4.6",
@@ -40,10 +58,5 @@
     "vue-tsc": "^2.0.11",
     "@types/ini": "^4.1.1"
   },
-  "devDependencies": {
-    "@types/node": "^20.14.11",
-    "cheap": "https://github.com/zhaohappy/cheap.git",
-    "libmedia-common": "https://github.com/zhaohappy/common.git",
-    "npm-run-all2": "^6.1.2"
-  }
+  "files": ["dist/**"]
 }
