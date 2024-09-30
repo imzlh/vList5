@@ -3,6 +3,10 @@
   "version": "5.7",
   "private": true,
   "type": "module",
+  "dev": {
+    "file_server": "http://192.168.1.1:81/",
+    "api_server": "http://192.168.1.1:81/@api/"
+  },
   "scripts": {
     "dev": "vite",
     "build": "run-p type-check \"build-only {@}\" -- && cp node_modules/libmedia/dist/avplayer/*.avplayer.js dist/assets/ || copy node_modules\\libmedia\\dist\\avplayer\\*.avplayer.js dist/assets/",

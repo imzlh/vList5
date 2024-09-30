@@ -324,11 +324,10 @@ import { regSelf } from '@/opener';
 <template>
     <div class="av-container" ref="root" v-touch tabindex="-1"
         @contextmenu.prevent="ctxmenu" @keydown.stop="basicKbdHandle"
-        @dblclick.prevent="player && (player.play = !player.play)"
         @pointermove="active" @click="active"
     >
-        <div class="video" ref="videoel"
-            @ended="CTRL.next()" @progress="prog($event as any)" @load="autoCloseAlert()"
+        <div class="video" ref="videoel" @dblclick.prevent="player && (player.play = !player.play)"
+            @ended="CTRL.next()" @progress="prog($event as any)" @load="autoCloseAlert" @error="autoCloseAlert"
         ></div>
 
         <div class="alert" :show="!!ui.alert">{{ ui.alert }}</div>
