@@ -7,10 +7,9 @@ export const FACTION = {
     action: 'copy' as 'copy' | 'move',
     async exec(dest: vDir): Promise<boolean | number> {
         try{
-            await FS.__request(this.action, {
-                from: this.marked.map(item => item.path),
-                to: dest.path
-            });
+            const origin = this.marked.map(item => item.path);
+            if(this.action == 'copy') FS.copy(origin, dest.path);
+            else FS.move(origin, dest.path);
             await FS.loadPaths([...this.marked.map(item => splitPath(item).dir), dest.path]);
         }catch(e){
             message({

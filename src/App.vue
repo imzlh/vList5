@@ -326,17 +326,15 @@
 		<Command />
 		<!-- 显示选择栏 -->
 		<div class="mobile-tool">
-			<div @click="layout_displayLeft = !layout_displayLeft">
-				<svg viewBox="0 0 16 16">
-					<path fill-rule="evenodd" d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708z"/>
-				</svg>
-			</div>
+			<div @click="layout_displayLeft = !layout_displayLeft" vs-icon="right"></div>
 		</div>
 	</div>
 </template>
 
 <style lang="scss">
-	@import './style/font.scss';
+	// 全局导入
+	@import './style/font.css';
+	@import './style/icon.css';
 
 	body {
 		margin: 0;

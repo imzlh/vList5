@@ -43,8 +43,7 @@
         paths = ref<Array<HTMLElement>>([]);
 
     watch(paths, els => els[els.length -1]?.scrollIntoView({
-        'behavior': 'smooth',
-        'block': 'end'
+        'behavior': 'smooth'
     }))
 
     // 延时激活

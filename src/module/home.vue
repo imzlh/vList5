@@ -40,7 +40,9 @@
 
     const vScroll = {
         updated(el: HTMLElement, data){
-            data.value && el.scrollIntoView();
+            data.value && el.scrollIntoView({
+                behavior: 'smooth'
+            });
         }
     } as Directive;
 
@@ -146,7 +148,7 @@
 </script>
 
 <script lang="ts" setup>
-    import { version, name } from '/package.json';
+    import { version, displayName as name } from '/package.json';
 
     function autoComplete(event: KeyboardEvent){
         if(event.key == 'ArrowUp'){

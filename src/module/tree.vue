@@ -54,8 +54,7 @@
                         const pos = el.getBoundingClientRect().y;
                         if(pos <= UI.fontSize.value * 4.6 || pos >= document.documentElement.clientHeight)
                             el.scrollIntoView({
-                                'behavior': 'smooth',
-                                'block': 'center'
+                                'behavior': 'smooth'
                             });
                         el.classList.add('selected');
                         requestAnimationFrame(() => el.focus());

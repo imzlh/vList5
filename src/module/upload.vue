@@ -28,14 +28,16 @@
             if(!e.dataTransfer?.files.length) return;
             mouse.show = false;
 
-            FS.upload(e, dir, obj => eque.push(obj));
+            FS.upload(e, dir, {
+                created: obj => eque.push(obj)
+            });
         }
     }
 </script>
 
 <template>
     <div class="upload-wrapper" @dragover.prevent="drag.start" @drop.prevent="drag.end" @dragleave="mouse.show = false">
-        <div class="container" @click="FS.upload(true, dir, obj => eque.push(obj))">
+        <div class="container" @click="FS.upload(null, dir, { created: obj => eque.push(obj) })">
             <div v-for="item in eque" @click.stop="event('select', item.path)">
                 <img :src="getIcon(item.name)" :alt="item.icon">
                 <span class="name">{{ item.name }}</span>
@@ -63,7 +65,7 @@
             </div>
 
             <!-- 添加上传文件 -->
-            <div @click="FS.upload(true, dir, obj => eque.push(obj))">
+            <div @click="FS.upload(null, dir, { created: obj => eque.push(obj) })">
                 <svg viewBox="0 0 16 16">
                     <path fill-rule="evenodd" d="M8 2a.5.5 0 0 1 .5.5v5h5a.5.5 0 0 1 0 1h-5v5a.5.5 0 0 1-1 0v-5h-5a.5.5 0 0 1 0-1h5v-5A.5.5 0 0 1 8 2Z"/>
                 </svg>

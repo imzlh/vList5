@@ -220,8 +220,8 @@
             @click="handleClick" @keypress="handleKbd" @wheel="handleWheel"
             @touchstart="handleTouch" @touchmove="handleTouch" @touchend="handleTouch"
         ></div>
-        <div class="prev" @click="prev"></div>
-        <div class="next" @click="next"></div>
+        <div class="prev" vs-icon="left" @click="prev"></div>
+        <div class="next" vs-icon="right" @click="next"></div>
         <div class="mask" v-show="ui.helper || ui.chapter" @click="ui.helper = ui.chapter = false"></div>
         <div class="helper" v-show="ui.helper">
             <button @click="bookmark.push(endpos! / db!.length)" v-if="cached">
@@ -286,8 +286,6 @@
 </template>
 
 <style lang="scss" >
-    @import "@/style/icon.scss";
-
     @font-face {
         font-family: 'GenJyuuGothic';
         src: url('/font/GenJyuuGothic-Regular.woff2') format('woff2');
@@ -323,12 +321,10 @@
         }
 
         > .prev{
-            content: $icon_left;
             left: 0;
         }
 
         > .next{
-            content: $icon_right;
             right: 0;
         }
 

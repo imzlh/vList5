@@ -73,7 +73,7 @@
 			>
 				<img :src="data.icon" onerror="this.style.display = 'none';" class="icon">
 				<span>{{ data.name }}</span>
-				<i class="close" @click.stop="delete tabs[i];"></i>
+				<i class="close" vs-icon="x" @click.stop="delete tabs[i];"></i>
 			</div>
 		</template>
 	</TransitionGroup>
@@ -89,7 +89,7 @@
 			<div class="app-meta-header" @click="current = i">
 				<img :src="data.icon" onerror="this.style.display = 'none';" class="icon">
 				<span>{{ data.name }}</span>
-				<i class="close" @click="delete tabs[i];"></i>
+				<i vs-icon="x" class="close" @click="delete tabs[i];"></i>
 			</div>
 			<suspense>
 				<div class="webview" v-if="typeof data.content === 'string'" v-webview="data.content"></div>
@@ -107,8 +107,6 @@
 
 
 <style lang="scss" scoped>
-	@import '@/style/icon.scss';
-
 	.tab {
 		padding: .45rem;
 		display: flex;
@@ -190,7 +188,6 @@
 
 			>i.close{
 				display: none;
-				content: $icon_close;
 				width: 1rem;
 				height: 1rem;
 
@@ -234,7 +231,6 @@
 
 			>i {
 				pointer-events: all;
-				content: $icon_close;
 				position: absolute;
 				top: 1rem;
 				right: 1rem;

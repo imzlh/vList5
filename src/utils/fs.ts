@@ -1,17 +1,39 @@
-import type { vDir } from "@/env";
-import I_DESKTOP from '/icon/desktop.webp';
-import { reactive, ref, watch } from "vue";
-import type { AlertOpts, FileOrDir, ListPredirect, vFile, vSimpleFileOrDir } from "@/env";
-import { APP_API, DEFAULT_DIR_ICON, FILE_PROXY_SERVER, alert, getConfig, message } from "@/utils";
-import { type Ref } from "vue";
+/**
+ * vList FileSystem API 2.0
+ * @copyright 2024 izLab
+ * @version 3
+ */
+
+import type { FileOrDir, vDir, vFile } from "@/env";
+import { isReactive, reactive, ref, type Ref } from "vue";
+import { APP_API, FILE_PROXY_SERVER } from "/config";
 import SHA from "jssha";
-import { getIcon } from "./icon";
 
-export class PermissionDeniedError extends Error{}
-export class LoginError extends Error{}
+import I_DESKTOP from '/icon/desktop.webp';
+import { getConfig } from "./config";
+import { alert, getIcon, message } from "@/utils";
 
-interface xFile extends File{
-    fullpath?: string
+/**
+ * 请求后端出现错误时抛出的错误
+ */
+class APIError extends Error{
+    constructor(
+        message: string,
+        readonly code: number
+    ){
+        super(message);
+
+        this.name = ({
+            400: "SyntaxError",
+            401: "LoginError",
+            403: "PermissionDeniedError",
+            404: "NotFoundError",
+            409: "ConflictError",
+            412: "PreconditionFailedError",
+            500: "InternalServerError",
+            [-1]: "NetworkError"
+        } as Record<number, string>)[code] || "APIError";
+    }
 }
 
 /**
@@ -39,32 +61,6 @@ export const TREE = reactive<vDir>({
     "active": new Map()
 });
 (TREE.parent as vDir).child = [TREE];
-
-const b64ch = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=';
-const b64chs = Array.prototype.slice.call(b64ch);
-
-/**
- * base64编码
- * @param buf 输入
- * @returns 输出
- */
-function base64_encode(buf: ArrayBuffer){
-    const bin = new Uint8Array(buf);
-    let u32, c0, c1, c2, asc = '';
-    const pad = bin.length % 3;
-    for (let i = 0; i < bin.length;) {
-        c0 = bin[i++],
-        c1 = bin[i++],
-        c2 = bin[i++];
-
-        u32 = (c0 << 16) | (c1 << 8) | c2;
-        asc += b64chs[u32 >> 18 & 63]
-            + b64chs[u32 >> 12 & 63]
-            + b64chs[u32 >> 6 & 63]
-            + b64chs[u32 & 63];
-    }
-    return pad ? asc.slice(0, pad - 3) + "===".substring(pad) : asc;
-}
 
 /**
  * 为双方安全传输编码的函数
@@ -106,839 +102,32 @@ async function encrypto(ctxlen: number, pass: string, content: string):Promise<s
     return base64_encode(value);
 }
 
-/**
- * 响应式带缓存的文件IO
- */
-export namespace FS{
-    /**
-     * @private
-     */
-    let auth_key: null | Ref<string> = null;
-
-    /**
-     * 请求后端
-     * @private
-     * @param method 类型
-     * @param body 参数
-     * @param json 是否以json返回
-     * @returns JSON
-     */
-    export async function __request(method: string,body: Object, json = false){
-        if(!auth_key)
-            auth_key = getConfig('基础').authkey;
-        const content = JSON.stringify(body),
-            xhr = await fetch(APP_API + '?action=' + method,{
-            method: 'POST',
-            body: content,
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': auth_key?.value
-                    ? await encrypto(content.length, auth_key.value, content)
-                    : ''
-            },
-        });
-        if(xhr.status == 403) throw new PermissionDeniedError(await xhr.text());
-        else if(xhr.status == 400) throw new SyntaxError(await xhr.text());
-        else if(xhr.status == 401) try{
-            await __auth();
-            await __request(method, body, json);
-        }catch{
-            throw new LoginError();
-        }else if(Math.floor(xhr.status / 100) != 2) throw new Error(await xhr.text());
-           
-        try{
-            if(json) return await xhr.json();
-            else return await xhr.text();
-        }catch{
-            throw new TypeError('Server Error');
-        }
-    }
-
-    /**
-     * 实用工具：通过input上传文件
-     * @param e 上传的文件，由`input`带来
-     * @param to_fd 目标文件夹，自动刷新
-     * @returns 上传成功的文件
-     */
-    export async function upload(e: FileList | Array<File> | DragEvent | boolean, to_fd: vDir,
-        onCreate?: (file: vFile) => any
-    ):Promise<Array<vFile>>{
-
-        // 通过DragEvent导入
-        if(e instanceof DragEvent){
-            if(!e.dataTransfer) return [];
-                    
-            // 加载事件
-            e.preventDefault();
-            e.dataTransfer.dropEffect = 'copy';
-
-            // 遍历
-            const TREE = [] as Array<File>;
-            async function add_to_tree(entry: FileSystemDirectoryEntry | FileSystemEntry, parent?: FileSystemDirectoryEntry) {
-                if (entry.isFile){ 
-                    if(!parent) parent = await new Promise((rs, rj) => entry.getParent(rs as any, rj));
-                    const file = await new Promise<xFile>((rs, rj) => (entry as FileSystemFileEntry).file(rs, rj));
-                    if(!file) return;
-                    file.fullpath = entry.fullPath;
-                    TREE.push(file);
-                }else {
-                    const reader = (entry as FileSystemDirectoryEntry).createReader();
-
-                    while (true) {
-                        const result: FileSystemEntry[] = await new Promise((rs, rj) => reader.readEntries(rs, rj));
-                        if (result.length == 0) break;
-                        else for (const item of result) {
-                            let fileordir: FileSystemDirectoryEntry | FileSystemEntry;
-                            if (item.isDirectory)
-                                fileordir = await new Promise((rs, rj) => (entry as FileSystemDirectoryEntry).getDirectory(item.fullPath, undefined, rs, rj));
-                            else
-                                fileordir = await new Promise((rs, rj) => (entry as FileSystemDirectoryEntry).getFile(item.fullPath, undefined, rs, rj));
-                            add_to_tree(fileordir, entry as FileSystemDirectoryEntry)
-                        }
-                    }
-                }
-            }
-
-            if(e.dataTransfer.items.length == 1){
-                await add_to_tree(e.dataTransfer.items[0].webkitGetAsEntry()!);
-            }else{
-                const entry = e.dataTransfer.items[0].webkitGetAsEntry()!;
-                const root = entry.filesystem.root;
-                if(root) await add_to_tree(root, root);
-                else for (const item of e.dataTransfer.items) {
-                    const entry = item.webkitGetAsEntry();
-                    if(!entry) continue;
-                    await add_to_tree(entry);
-                }
-            }
-
-            e = TREE;
-        }
-
-        // 通过选择框
-        if(typeof e == 'boolean')
-            e = await new Promise((rs, rj) => {
-                const input = document.createElement('input');
-                input.type = 'file';
-                input.multiple = !!e;
-                input.onchange = function(){
-                    if(input.files && input.files.length > 0)
-                        rs(input.files);
-                    else
-                        rj(new Error('User aborted'));
-                }
-                input.click();
-            }) as FileList;
-
-        // 检验根目录
-        if(!to_fd.child) try{
-            await loadTree(to_fd);
-        } catch {
-            message({
-                "title": "资源管理器",
-                "content": {
-                    "title": "上传错误",
-                    "content": "前提条件错误：根文件夹无法读取"
-                },
-                "type": "error",
-                "timeout": 10
-            });
-            return [];
-        }
-
-        const repeated = [] as Array<vFile>,
-            repeated_files = [] as Array<File>,
-            uploaded = [] as Array<vFile>;
-        for (const file of e) {
-            // 相对的文件
-            if (file.webkitRelativePath || (file as xFile).fullpath) {
-                // 获取路径分层
-                var path = splitPath({
-                    path:
-                        file.webkitRelativePath
-                            ? file.webkitRelativePath
-                            : (file as xFile).fullpath as string
-                });
-                try{
-                    var parent = await stat(to_fd.path + path.dir) as vDir;
-                }catch{
-                    await mkdir(to_fd.path + path.dir);
-                    parent = await stat(to_fd.path + path.dir) as vDir;
-                }
-            } else {
-                var path = splitPath(to_fd),
-                    parent = to_fd;
-            }
-
-            const matched = parent.child?.find(item => item.name == path.fname);
-            if (matched && matched.type == 'file') {
-                repeated.push(matched), repeated_files.push(file);
-            } else if (matched && matched.type == 'dir') {
-                message({
-                    "title": "资源管理器",
-                    "content": {
-                        "title": "上传错误",
-                        "content": "前提条件错误：目标是一个文件夹"
-                    },
-                    "type": "error",
-                    "timeout": 10
-                });
-            } else {
-                // 直接开始上传
-                try {
-                    const ref_ele = ref();
-                    onCreate && watch(ref_ele, ele => onCreate(ele));
-                    await write(
-                        parent.path + '/' + file.name,
-                        file,
-                        undefined,
-                        ref_ele
-                    );
-                    ref_ele.value
-                } catch (e) {
-                    // 抛出错误
-                    message({
-                        "title": "资源管理器",
-                        "content": {
-                            "title": "上传错误",
-                            "content": (e as Error).message
-                        },
-                        "type": "error",
-                        "timeout": 10
-                    });
-                }
-            }
-        }
-
-        // 完毕
-        if(repeated.length > 0)
-            await new Promise(rs => alert({
-                "type": "prompt",
-                "title": "上传提示",
-                "message": `您选中的这些文件已经存在\n\n${
-                    repeated.map(item => ' ' + item.path).join('\n')
-                }\n\n确定覆盖吗`,
-                "callback": rs
-            } satisfies AlertOpts));
-
-        // 开始上传
-        const error_id = [] as Array<number>,
-            error = [] as Array<Error>;
-        for (let i = 0 ; i < repeated.length ; i ++) try{
-            const ref_ele = ref();
-            onCreate && watch(ref_ele, ele => onCreate(ele), { once: true });
-            await write(
-                repeated[i].path,
-                repeated_files[i],
-                undefined,
-                ref_ele
-            );
-            (repeated[i] as vFile).upload = undefined;
-            repeated[i].parent?.active.set(repeated[i], repeated[i].path);
-            uploaded.push(repeated[i]);
-        }catch(e){
-            error[i] = e as Error;
-            error_id.push(i);
-        }
-
-        let list = '';
-        for (const id of error_id)
-            list += `${repeated[id].path}: ${error[id]}\n`;
-        if(list) message({
-            'type': 'error',
-            'title': '上传错误',
-            'content': {
-                'title': '这些文件上传出错',
-                'content': list
-            },
-            'timeout': 10
-        });
-
-        return uploaded;
-    }
-
-    /**
-     * 列举一个文件夹
-     * @deprecated 请使用`list()`
-     * @param dir 文件夹路径
-     * @returns 列表
-     */
-    export async function __list(path:string, predirect: ListPredirect | {} = {}){
-        if(/^vfs:\/\/([a-z0-9-]+)\/(.+)$/.test(path))
-            throw new TypeError('vfs is not accessable');
-        (predirect as any).path = path[path.length -1] == '/' ? path : path + '/';
-        const item = (await __request('list',predirect,true) as Array<string>)
-            .map((item) => ({
-                name: item,
-                path: path + item,
-                url: FILE_PROXY_SERVER + path + item
-            } satisfies vSimpleFileOrDir)) as Array<vSimpleFileOrDir>;
-        return item.sort((a, b) => a.name.localeCompare(b.name));
-    }
-
-    export async function loadTree(input: vDir, quiet = false){
-        try{
-            // 加载父文件夹
-            input.lock = true;
-            const _item = (await __request('slist',{ path: input.path },true)).map((item:FileOrDir) => {
-                    item.url = FILE_PROXY_SERVER + input.path + item.name + (item.type == 'dir' ? '/' : '');
-                    item.path = input.path + item.name + (item.type == 'dir' ? '/' : '');
-                    item.parent = input;
-                    item.type == 'dir' && (item.active = new Map());
-                    return item;
-                }) as Array<FileOrDir>,
-                item = _item.filter(item => item.type == 'dir').sort((a, b) => a.name.localeCompare(b.name))
-                    .concat(_item.filter(item => item.type == 'file').sort((a, b) => a.name.localeCompare(b.name)) as any) as Array<FileOrDir>;
-            item.forEach(each => each.icon = getIcon(each.name, each.type == 'file'));
-            input.child = reactive(item);
-        }catch(e){
-            quiet && message({
-                "type": "error",
-                "title": "文件资源管理器",
-                "content":{
-                    "title": '无法读取文件夹',
-                    "content": (e instanceof Error ? e.message : new String(e).toString()) || '未知错误'
-                },
-                "timeout": 5
-            });
-        }
-        input.lock = false;
-    }
-
-    export function __findTree(dir: string):vDir{
-        const paths = clearPath(dir).split('/');
-        let current = TREE;
-        for (const name of paths) {
-            if(!name) continue;
-            if(!current.child) throw new Error('Folder not found');
-            const cur = (current.child as Array<FileOrDir>)
-               .find(item => item.name == name && item.type == 'dir');
-            if(!cur) throw new Error('Folder not found');
-            current = cur as vDir;
-        }
-        return current;
-    }
-
-    export async function  loadPaths(dir:Array<string>) {
-        dir = dir.filter(item => dir.every(item2 => item == item2 || !item.startsWith(item2)));
-        for (const each of dir)
-            await loadPath(each);
-    }
-
-    export async function loadPath(dirpath: string, reload = false, create_on_miss = false): Promise<vDir>{
-        dirpath = clearPath(dirpath);
-        try{
-            await stat(dirpath);
-        }catch{
-            if(create_on_miss) await mkdir(dirpath);
-            else throw new Error('Folder not found');
-            
-            const dir = __findTree(dirpath);
-            await loadTree(dir);
-            return dir;
-        }
-
-        const dir = await stat(dirpath) as vDir;
-        if(!reload) return dir;
-        // 获取所有打开的子文件夹
-        function getOpenedFolder(tree: vDir): Array<string> {
-            const cache = [];
-            if (tree.child)
-                for (const fd of tree.child)
-                    if (fd.type == 'dir' && fd.child)
-                        cache.push(fd.path, ...getOpenedFolder(fd));
-
-            return cache;
-        }
-        // 排除重复项
-        let opened = getOpenedFolder(dir);
-        opened.filter(item => opened.every(item2 => item == item2 || !item.startsWith(item2)));
-        // 重新加载目录
-        await loadTree(dir);
-        // 依次加载子文件夹
-        for (const fd of opened) try {
-            await loadPath(fd);
-        } catch { }
-        return dir;
-    }
-
-    /**
-     * （带缓存功能，响应式）
-     * 列举一个文件夹，并且返回子项目详细信息
-     * @param path 路径
-     * @param create 是否创建不存在的目录
-     * @returns 子项目数组
-     */
-    export async function list(path:string, create = false):Promise<Array<FileOrDir>>{
-        let current = TREE;
-        path = clearPath(path);
-        for (const name of path.split('/')) {
-            if(!name) continue;
-            if(!current.child) await loadTree(current, true);
-            const cur = (current.child as Array<FileOrDir>).filter(item => item.name == name && item.type == 'dir')[0] as vDir | undefined;
-            if(!cur){
-                // 存在，只是被隐藏了
-                try{
-                    if((await stat(current.path + name + '/')).type != 'dir')
-                        throw 1;
-                    current.child?.unshift(current = {
-                        'type': 'dir',
-                        'ctime': Date.now(),
-                        'icon': DEFAULT_DIR_ICON,
-                        'name': name,
-                        'path': current.path + name + '/',
-                        'url': current.url + name + '/',
-                        parent: current,
-                        active: new Map()
-                    });
-                // 找不到就创建
-                }catch{
-                    if(create) await mkdir(current.path + name + '/');
-                    else throw new Error('Folder not found');
-                }
-            }else current = cur;
-        }
-        if(!current.child) await loadTree(current);
-        return current.child as Array<FileOrDir>;
-    }
-
-    /**
-     * 重命名文件
-     * 与`move()`不同的是, `rename()`是一对一的，而`move()`是多个复制到一个文件夹中的
-     * 对于批量复制到一个地方`move()`更简便且节省带宽
-     * @param fileList 文件列表，键值对应 `源文件:目标文件`
-     */
-    export async function rename(fileList: Record<string,string>, highlight = true):Promise<void>{
-        // 查重
-        const items = Object.keys(fileList).concat(Object.values(fileList)),
-            set = new Set(items);
-        if(set.size != items.length)
-            throw new Error('Duplicate file path');
-        if(items.length == 0) return;
-
-        // 重命名
-        await __request('rename', fileList, false);
-        // 将这些文件从原TREE位置删除
-        for(let [src, dst] of Object.entries(fileList)){
-            // 找到原节点
-            let current = TREE;
-            const paths = src.split('/').filter(item => !!item);
-            dst = clearPath(dst);
-            for(let i = 0; i < paths.length - 1; i++){
-                const name = paths[i];
-                current = (current.child as Array<FileOrDir>)
-                    .filter(item => item.name == name && item.type == 'dir')[0] as vDir;
-            }
-            // 去除节点
-            const index = (current.child as Array<FileOrDir>).findIndex(item => item.path == src);
-            const node = current.child![index];
-            index != -1 && (current.child as Array<FileOrDir>).splice(index, 1);
-            current.parent?.active.delete(node);
-            // 找到目标节点并插入
-            current = TREE;
-            const paths2 = dst.split('/').filter(item => !!item);
-            for(let i = 0; i < paths2.length - 1; i++){
-                const name = paths2[i];
-                if(!current.child) await loadTree(current, true);
-                current = current.child!.filter(item => item.name == name && item.type == 'dir')[0] as vDir;
-            }
-            // 是否重复
-            const newname = paths2[paths2.length - 1];
-            function merge(source: vDir, target: vDir){
-                for(const item of source.child!)
-                    if(item.type == 'file')
-                        target.child!.push(item);
-                    else if(target.child!.some(item2 => item2.name == item.name))
-                        merge(item, target.child!.find(item2 => item2.name == item.name) as vDir);
-                    else
-                        target.child!.push(item);
-            }
-            if(current.child && current.child.some(item => item.name == newname)){
-                const targetNode = current.child.find(item => item.name == newname)!;
-                if(node.type != targetNode.type)
-                    throw new Error('Target path already exists');
-                if(node.type == 'file')
-                    current.child[current.child.findIndex(item => item.name == newname)] = node;
-                else
-                    merge(node, current.child.find(item => item.name == newname) as vDir);
-            }else{
-                node.type == 'file'
-                    ? current.child!.push(node)
-                    : current.child!.unshift(node);
-                // 更改节点路径
-                if(node.type == 'dir' && dst[dst.length -1] != '/') dst += '/';
-                node.icon = getIcon(node.name, node.type == 'file');
-                node.type == 'dir' && __update_child(node);
-                node.parent = current;
-                node.path = dst;
-                node.url = FILE_PROXY_SERVER + dst;
-                node.name = paths2[paths2.length - 1];
-                if(highlight) current.active.set(node, node.path);
-            }
-        }
-    }
-
-    export async function  stat(path:string):Promise<FileOrDir>{
-        let match: RegExpMatchArray | null;
-        let use_create = false;
-        if(match = path.match(/^vfs:\/\/([a-z0-9-]+)\/(.+)$/))
-            return new Promise(rs => match && rs(vfiles[match[1]]));
-
-        // 尝试找到这个文件
-        let current = TREE;
-        const paths = path.split('/').filter(item => !!item);
-        if(paths.length == 0) return current;
-        for(let i = 0; i < paths.length; i++){
-            const name = paths[i];
-            if(!name) continue;
-            if(!current.child) await loadTree(current, true);
-            const cur = (current.child as Array<FileOrDir>).find(item => item.name == name);
-            if(!cur){
-                use_create = true;
-                break; // 找不到就尝试直接stat()
-            }
-
-            // 找到了
-            if(i == paths.length - 1)
-                return cur;
-
-            // 不是文件，抛出错误
-            else if(cur.type == 'file')
-                throw new Error('Path ' + paths.slice(0, i+1).join('/') + ' is not a dir');
-
-            // 继续查找
-            else
-                current = cur;
-        }
-
-        
-        const res = await __request('stat',{ path }, true) as FileOrDir;
-        res.type == 'dir' && path[path.length -1] != '/' && (path += '/');
-        res.type == 'file' && path[path.length -1] == '/' && (path = path.slice(0, -1));
-        res.icon = getIcon(res.name, res.type == 'file');
-        res.path = path;
-        res.url = FILE_PROXY_SERVER + path;
-        res.parent = current;
-        res.type == 'dir' && (res.active = new Map());
-        use_create && __create(() => res, [ path ]);
-        return res;
-    }
-
-    export async function del(files:Array<string>|string){
-        if(files?.length == 0) return;
-        await __request('delete', { files: typeof files == 'string' ? [files] : files });
-        // 删除源节点
-        for(const file of typeof files == 'string' ? [files] : files){
-            let current = TREE;
-            const paths = file.split('/').filter(item => !!item);
-            for(let i = 0; i < paths.length - 1; i++){
-                const name = paths[i];
-                if(!current.child) await loadTree(current, true);
-                current = (current.child as Array<FileOrDir>)
-                    .find(item => item.name == name && item.type == 'dir') as vDir;
-            }
-            const index = (current.child as Array<FileOrDir>).findIndex(item => item.path == file);
-            index != -1 && (current.child as Array<FileOrDir>).splice(index, 1);
-        }
-    }
-
-    /**
-     * 在指定的父文件夹中创建返回的元素
-     */
-    async function __create(item: (name: string, fullpath: string, parent: vDir) => FileOrDir, files: Array<string>){
-        for(const dir of files) await (async function(){
-            // 找到dir
-            let current = TREE;
-            const paths = dir.split('/').filter(item => !!item);
-            let require_mkdir = false;
-            for(let i = 0; i < paths.length -1; i++){
-                const name = paths[i];
-                if(current.type != 'dir') throw new Error('Path ' + paths.slice(0, i+1).join('/') + ' is not a dir');
-                if(!current.child) await loadTree(current, true);
-                current = (current.child as Array<FileOrDir>).find(item => item.name == name && item.type == 'dir') as vDir;
-                if(!current) { require_mkdir = true; break; }
-            }
-            // 创建文件夹
-            if(require_mkdir){
-                await mkdir(paths.slice(0, paths.length -1).join('/'));
-                current = await stat(paths.slice(0, paths.length -1).join('/')) as vDir;
-            }
-            current.child || (current.child = []);
-            const nitem = item(paths[paths.length - 1], dir, current);
-            // 排异
-            for(let i = 0; i < current.child.length - 1; i++)
-                if(current.child[i].name == paths[paths.length - 1])
-                    current.child[i] = nitem;
-            // 添加一个
-            nitem.type == 'file'
-                ? current.child.push(nitem)
-                : current.child.unshift(nitem);
-        })();
-    }
-
-    export async function  mkdir(dirs: Array<string>|string){
-        if(dirs?.length == 0) return;
-        await __request('mkdir', { files: typeof dirs == 'string' ? [dirs] : dirs });
-        // 在文件夹下创建文件夹
-        await __create((name, dirpath, parent) => ({
-            "type": "dir",
-            "ctime": Date.now(),
-            "icon": DEFAULT_DIR_ICON,
-            "name": name,
-            "path": clearPath(dirpath),
-            "url": FILE_PROXY_SERVER + (dirpath.endsWith('/') ? dirpath + name + '/' : dirpath + name),
-            parent,
-            active: new Map()
-        }), typeof dirs == 'string' ? [dirs] : dirs);
-    }
-
-    export async function  touch(files:Array<string>|string, mode?: number){
-        if(mode && mode > 0o7777)
-            throw new Error('Mode Error');
-        files = typeof files == 'string' ? [files] : files;
-        if(files.length == 0) return;
-        await __request('touch', { 
-            files,
-            mode
-        });
-        await __create((name, fullpath, parent) => ({
-            "type": "file",
-            "ctime": Date.now(),
-            "icon": getIcon(name, true),
-            "name": name,
-            "path": clearPath(fullpath),
-            "url": FILE_PROXY_SERVER + fullpath,
-            "size": 0,
-            parent,
-            active: new Map()
-        }), files);
-    }
-
-    async function __analysis_from_to(delete_origin = false, from: Array<string>, to: string, highlight = true){
-        // 找到目标节点
-        let current = TREE;
-        const paths = to.split('/');
-        for(let i = 0; i < paths.length; i++){
-            const name = paths[i];
-            if(!name) continue;
-            if(!current.child) await loadTree(current, true);
-            current = (current.child as Array<FileOrDir>)
-                .find(item => item.name == name && item.type == 'dir') as vDir;
-        }
-        const target = current;
-        // 找到源节点
-        for(const item of from){
-            let current = TREE;
-            const paths = item.split('/').filter(item => !!item);
-            for(let i = 0; i < paths.length - 1; i++){
-                const name = paths[i];
-                if(!current.child) await loadTree(current, true);
-                current = (current.child as Array<FileOrDir>)
-                    .find(item => item.name == name && item.type == 'dir') as vDir;
-            }
-            const index = (current.child as Array<FileOrDir>)
-                .findIndex(item => item.name == paths[paths.length - 1]);
-            target.child || (target.child = []);
-            // 检查是否重复
-            function merge(source: vDir, target: vDir){
-                for(const item of source.child!)
-                    if(item.type == 'file')
-                        target.child!.push(item);
-                    else if(target.child!.some(item2 => item2.name == item.name))
-                        merge(item, target.child!.find(item2 => item2.name == item.name) as vDir);
-                    else
-                        target.child!.push(item);
-            }
-            if(target.child.some(item => item.name == paths[paths.length - 1])){
-                if(delete_origin)
-                    current.child && (current.child as Array<FileOrDir>).splice(index, 1);
-                else if(current.child![index].type == 'file')
-                    target.child[target.child.findIndex(item => item.name == paths[paths.length - 1])] = current.child![index];
-                else
-                    merge(current.child![index] as vDir, target.child.find(item => item.name == paths[paths.length - 1]) as vDir);
-            }else{
-                current.child![index].type == 'file' 
-                    ? target.child.push(current.child![index])
-                    : target.child.unshift(current.child![index]);
-                if(delete_origin)
-                    current.child && (current.child as Array<FileOrDir>).splice(index, 1);
-                current.child![index].parent = target;
-                if(highlight) target.active.set(current.child![index], current.child![index].path);
-            }
-        }
-        // 更新子项目路径
-        __update_child(target);
-    }
-    
-    function __update_child(parent: vDir){
-        if(!parent.child) return;
-        for(const item of parent.child)
-            if(item.type == 'dir')
-                __update_child(item);
-            else
-                item.path = parent.path + item.name + (item.type == 'file' ? '' : '/'),
-                item.url = FILE_PROXY_SERVER + parent.path + item.name + (item.type == 'file' ? '' : '/');
-    }
-
-    export async function  copy(from:Array<string>|string,to:string){
-        from = typeof from == 'string' ? [from] : from;
-        if(from.length == 0) return;
-        await __request('copy', {
-            from,
-            to
-        });
-        await __analysis_from_to(false, from, to);
-    }
-
-    export async function  move(from:Array<string>|string, to:string, deep_move = false){
-        from = typeof from == 'string' ? [from] : from;
-        if(from.length == 0) return;
-        await __request(deep_move ? 'fmove' : 'move', {
-            from,
-            to
-        });
-        await __analysis_from_to(true, from, to);
-    }
-
-    /**
-     * @private
-     */
-    const __auth = () => new Promise<string>((rs, rj) => alert({
-        'type': 'prompt',
-        'title': '身份验证',
-        'message': '由于身份验证失败，操作失败。\n请输入身份ID，如果忘记请查看nginx配置',
-        'callback': (data) => {
-            if(!auth_key)
-                auth_key = getConfig('基础').authkey;
-            auth_key.value = data as string;
-            rs(data as string);
-        },
-        'button': [
-            {
-                'content': '放弃',
-                'color': '#e9e9e9',
-                'role': 'close',
-                'click': () => rj(new Error('User aborted due to password error'))
-            },{
-                'content': '提交',
-                'color': '#6ce587',
-                'role': 'submit'
-            }
-        ]
-    } satisfies AlertOpts))
-
-    export function write(
-        file:string,
-        content: Blob,
-        progress?:(this: XMLHttpRequest, ev: number) => any,
-        file_ref?: Ref<vFile | undefined>
-    ):Promise<string>{
-        if(!auth_key)
-            auth_key = getConfig('基础').authkey;
-
-        // 虚拟文件系统
-        let match: RegExpMatchArray | null;
-        if(match = file.match(/^vfs:\/\/([a-z0-9-]+)\/(.+)$/))
-            return (async () => {
-                if(!match) throw 1;  // TypeScript Check
-
-                const obj = vfiles[match[1]],
-                    write = await obj.vHandle.createWritable({
-                        "keepExistingData": false
-                    });
-                await write.write(content);
-                return 'OK';
-            })();
-
-        const promise = new Promise(async (rs,rj) => {
-            // 预检
-            let _pre;
-            try{
-                _pre = await fetch(APP_API + '?action=upload&path=' + encodeURIComponent(file) + '&length=' + content.size,{
-                    headers: {
-                        'Authorization': auth_key?.value
-                            ? await encrypto(content.size, auth_key.value, file)
-                            : ''
-                    }
-                });
-                if(_pre.status == 401){
-                    await __auth();
-                    return await write(file, content, progress).then(rs).catch(rj);
-                }
-                if(Math.floor(_pre.status / 100) != 2) throw 0;
-            }catch{
-                return rj(new Error('PreUpload Failed: ' + (_pre ? await _pre.text() : 'Unknown Error')));
-            }
-
-            file_ref = file_ref || ref<vFile>();
-            await __create((name, fullpath, parent) => (file_ref as Ref<vFile>).value = reactive({
-                "type": "file",
-                "ctime": Date.now(),
-                "icon": getIcon(name, true),
-                "name": name,
-                "path": fullpath,
-                "url": FILE_PROXY_SERVER + fullpath,
-                "size": content.size,
-                parent,
-                active: new Map()
-            }), [file]);
-
-            const xhr = new XMLHttpRequest();
-            xhr.timeout = 60000;
-            
-            if(progress) xhr.addEventListener('progress', ev => 
-                progress.call(xhr, (file_ref?.value as vFile).upload = ev.loaded / ev.total * 100)
-            );
-            xhr.addEventListener('load', () => 
-                Math.floor(xhr.status / 100) == 2
-                    ? rs(xhr.responseText)
-                    : rj(new Error('Status ' + xhr.status + ': ' + xhr.responseText))
-            );
-            xhr.addEventListener('error', () => {
-                rj(new Error('Network Error'));
-            });
-            xhr.addEventListener('timeout', rj);
-
-            xhr.open('POST',APP_API + '?action=upload&path=' + encodeURIComponent(file));
-            xhr.setRequestHeader('Content-Type', content.type);
-            if(auth_key?.value) 
-                xhr.setRequestHeader('Authorization', await encrypto(content.size, auth_key.value, file));
-            xhr.send(content);
-        });
-
-        return promise as Promise<string>;
-    }
-
-    const vfiles: Record<string, vFile & { vHandle: FileSystemFileHandle }> = {};
-
-    export async function  create( handle: FileSystemFileHandle ){
-        const uuid = Math.floor(Math.random() * Number.MAX_SAFE_INTEGER).toString(36),
-            file = await handle.getFile();
-        return vfiles[uuid] = {
-            "ctime": file.lastModified,
-            "name": handle.name,
-            "size": file.size,
-            "icon": getIcon(file.name, true),
-            "path": "vfs://" + uuid + '/' + file.name,
-            "type": "file",
-            "url": URL.createObjectURL(file),
-            vHandle: handle,
-            parent: null,
-        };
-    }
-}
+const b64ch = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=';
+const b64chs = Array.prototype.slice.call(b64ch);
 
 /**
- * 文件大小转换为字符串
- * @param size 文件大小
- * @returns 文件大小字符串
+ * base64编码
+ * @param buf 输入
+ * @returns 输出
  */
-export function size2str(size: number){
-    const sizes = ['B', 'KB', 'MB', 'GB', 'TB', 'PB'];
-    for (let i = 0; i < sizes.length; i++)
-        if (size / 1024 ** i < 800)
-            return (size / 1024 ** i).toFixed(1) + sizes[i];
+function base64_encode(buf: ArrayBuffer){
+    const bin = new Uint8Array(buf);
+    let u32, c0, c1, c2, asc = '';
+    const pad = bin.length % 3;
+    for (let i = 0; i < bin.length;) {
+        c0 = bin[i++],
+        c1 = bin[i++],
+        c2 = bin[i++];
+
+        u32 = (c0 << 16) | (c1 << 8) | c2;
+        asc += b64chs[u32 >> 18 & 63]
+            + b64chs[u32 >> 12 & 63]
+            + b64chs[u32 >> 6 & 63]
+            + b64chs[u32 & 63];
+    }
+    return pad ? asc.slice(0, pad - 3) + "===".substring(pad) : asc;
 }
+
 
 /**
  * 清理路径，清除淤积的内容
@@ -984,33 +173,792 @@ export function clipFName(file:{name: string},maxlen = 20){
 }
 
 /**
- * 获取被选中的文件（夹）
- * @returns 被选中的文件（夹）
+ * 文件大小转换为字符串
+ * @param size 文件大小
+ * @returns 文件大小字符串
  */
-export function getActiveFile(parent = TREE.parent): Array<FileOrDir>{
-    const active = [] as Array<FileOrDir>;
-    function traverse(tree: vDir){
-        if(tree.child)
-            for (const item of tree.child)
-                if(tree.active.has(item))
-                    active.push(item);
-                else if(item.type == 'dir')
-                    traverse(item);
-    }
-    parent && traverse(parent);
-    return active;
+export function size2str(size: number){
+    const sizes = ['B', 'KB', 'MB', 'GB', 'TB', 'PB'];
+    for (let i = 0; i < sizes.length; i++)
+        if (size / 1024 ** i < 800)
+            return (size / 1024 ** i).toFixed(1) + sizes[i];
 }
 
 /**
- * 取消所有选中的文件（夹）
+ * 认证的Token
  */
-export function clearActiveFile(){
-    function traverse(tree: vDir){
-        tree.active.clear();
-        if(tree.child)
-            for (const item of tree.child)
-                if(item.type == 'dir')
-                    traverse(item);
+let auth_key: Ref<string> | undefined;
+
+/**
+ * 请求用户输入Token完成身份验证
+ * @returns 密匙
+ */
+const login = () => new Promise<string>((rs, rj) => alert({
+    'type': 'prompt',
+    'title': '身份验证',
+    'message': '由于身份验证失败，操作失败。\n请输入身份ID，如果忘记请查看nginx配置',
+    'callback': (data) => {
+        if(!auth_key)
+            auth_key = getConfig('基础').authkey;
+        auth_key.value = data as string;
+        rs(data as string);
+    },
+    'button': [
+        {
+            'content': '放弃',
+            'color': '#e9e9e9',
+            'role': 'close',
+            'click': () => rj(new Error('User aborted due to password error'))
+        },{
+            'content': '提交',
+            'color': '#6ce587',
+            'role': 'submit'
+        }
+    ]
+}));
+
+/**
+ * 请求后端
+ * @private
+ * @param method 类型
+ * @param body 参数
+ * @param json 是否以json返回
+ * @returns JSON
+ */
+async function request(method: string,body: Object, json = false){
+
+    // 获取Token
+    if(!auth_key)
+        auth_key = getConfig('基础').authkey;
+
+    // 发送请求
+    const content = JSON.stringify(body);
+
+    try{
+        var xhr = await fetch(APP_API + '?action=' + method,{
+            method: 'POST',
+            body: content,
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': auth_key?.value
+                    ? await encrypto(content.length, auth_key.value, content)
+                    : ''
+            },
+        });
+    }catch(e){
+        throw new APIError(String(e), -1);
     }
-    traverse(TREE.parent as vDir);
+
+    // 认证错误: 重试
+    if(xhr.status == 401){
+        try{
+            await login();
+        }catch{
+            throw new APIError('Authentication failed', 401);
+        }
+        await request(method, body, json);
+    }else if(Math.floor(xhr.status / 100) != 2){
+        throw new Error(await xhr.text());
+    }
+       
+    // 处理返回值
+    try{
+        if(json) return await xhr.json();
+        else return await xhr.text();
+    }catch{
+        throw new TypeError('Server Error');
+    }
 }
+
+/**
+ * 向远程服务器上传文件
+ * @param file 文件内容，一般为File对象或Blob对象
+ * @param refl 引用文件对象
+ * @param option 参数
+ * @returns 当上传成功resolve，否则reject
+ */
+async function upload(file: Blob, refl: vFile, option?: {
+    overwrite?: boolean,
+    timeout?: number
+}){
+    if(!auth_key)
+        auth_key = getConfig('基础').authkey;
+
+    // 预检
+    const token = auth_key.value ? await encrypto(file.size, auth_key.value, refl.path) : '',
+        path = `${APP_API}?path=${encodeURIComponent(refl.path)}&length=${file.size}&overwrite=${option?.overwrite ? 'true' : 'false'}&action=upload`;
+    try{
+        var p_res = await fetch(path, {
+            headers: { 'Authorization': token },
+        });
+    }catch(e){
+        throw new APIError(String(e), -1);
+    }
+    if(p_res.status == 401){
+        // 认证错误: 重试
+        await login();
+        return await upload(file, refl, option);
+    }
+    if(Math.floor(p_res.status / 100) != 2)
+        throw new APIError(await p_res.text(), p_res.status);
+
+    // 上传
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', path, true);
+    xhr.setRequestHeader('Authorization', token);
+    xhr.timeout = option?.timeout ?? 60000;
+
+    // 绑定事件
+    xhr.addEventListener('progress', prog => 
+        refl.upload = (prog.loaded / prog.total) * 100
+    );
+    xhr.addEventListener('load', () => refl.upload = undefined);
+
+    // 返回值
+    return new Promise<void>((rs, rj) => {
+        xhr.addEventListener('load', () => Math.floor(xhr.status / 100) == 2 ? rs() : rj(new APIError(xhr.statusText, xhr.status)));
+        xhr.addEventListener('error', () => rj(new APIError('Network Error', -1)));
+        xhr.addEventListener('timeout', () => rj(new APIError('Timeout', -1)));
+        xhr.send(file);
+    });
+}
+const upload_ = upload;
+
+namespace Tree{
+    /**
+     * 加载文件夹
+     * @param input 输入文件夹
+     * @param quiet 静默模式，不弹出错误提示
+     */
+    export async function load(input: vDir, quiet = false){
+        if(!isReactive(input)) throw new Error('Input is not reactive');
+        try{
+            // 加载父文件夹
+            input.lock = true;
+            const _item: Array<FileOrDir> = (await request('slist',{ path: input.path },true)).map((item: FileOrDir) => compileObject(item, input)),
+                // 排序
+                item = _item.filter(item => item.type == 'dir').sort((a, b) => a.name.localeCompare(b.name))
+                    .concat(_item.filter(item => item.type == 'file').sort((a, b) => a.name.localeCompare(b.name)) as any) as Array<FileOrDir>;
+            // 变成响应式数据        
+            input.child = reactive(item);
+        }catch(e){
+            quiet && message({
+                "type": "error",
+                "title": "文件资源管理器",
+                "content":{
+                    "title": '无法读取文件夹',
+                    "content": (e instanceof Error ? e.message : new String(e).toString()) || '未知错误'
+                },
+                "timeout": 5
+            });
+        }
+        input.lock = false;
+    }
+
+    /**
+     * 将由服务端生成的数据转换为FileOrDir对象
+     * @param input 输入对象
+     * @param parent 父节点
+     * @returns 转换后的对象
+     */
+    function compileObject(obj: FileOrDir, parent: vDir){
+        obj.parent = parent;
+        obj.path = parent.path + obj.name + (obj.type == 'dir' ? '/' : '');
+        obj.url = FILE_PROXY_SERVER + obj.path;
+        obj.parent = parent;
+        obj.type == 'dir' && (obj.active = new Map());
+        obj.icon = getIcon(obj.name, obj.type == 'file');
+        return isReactive(obj) ? obj : reactive(obj);
+    }
+
+    /**
+     * 获取被选中的文件（夹）
+     * @returns 被选中的文件（夹）
+     */
+    export function getActive(parent = TREE.parent): Array<FileOrDir>{
+        const active = [] as Array<FileOrDir>;
+        function traverse(tree: vDir){
+            if(tree.child)
+                for (const item of tree.child)
+                    if(tree.active.has(item))
+                        active.push(item);
+                    else if(item.type == 'dir')
+                        traverse(item);
+        }
+        parent && traverse(parent);
+        return active;
+    }
+
+    /**
+     * 取消所有选中的文件（夹）
+     */
+    export function clearActive(){
+        function traverse(tree: vDir){
+            tree.active.clear();
+            if(tree.child)
+                for (const item of tree.child)
+                    if(item.type == 'dir')
+                        traverse(item);
+        }
+        traverse(TREE.parent as vDir);
+    }
+
+    /**
+     * 获取文件或文件夹信息
+     * @param path 路径
+     * @param parent 父节点
+     * @returns 文件或文件夹信息
+     */
+    function stat(path: string, parent: vDir): Promise<vFile | vDir> {
+        return request('stat', { path }).then(res => compileObject(res, parent));
+    }
+
+    /**
+     * 补全预设，创建空文件或文件夹
+     * @param preset 预设值
+     * @returns 新对象
+     */
+    export function createObject(preset: Partial<FileOrDir> & { type: 'file' }): vFile;
+    export function createObject(preset: Partial<FileOrDir> & { type: 'dir' }): vDir;
+    export function createObject(preset: Partial<FileOrDir>): FileOrDir;
+    export function createObject(preset: Partial<vFile | vDir>){
+        // 生成路径
+        const path = preset.path ?? (preset.parent
+                ? preset.parent.path + preset.name + (preset.type == 'dir' ? '/' : '')
+                : ''),
+            url = path ? FILE_PROXY_SERVER + path : '';
+        if(preset.type == 'dir'){
+            var node: FileOrDir = reactive<vDir>({
+                ctime: 0,
+                type: 'dir',
+                name: '',
+                parent: null,
+                active: new Map(),
+                icon: preset.name ? getIcon(preset.name, false) : '',
+                ...preset,
+                url,path
+            });
+        }else if(preset.type == 'file'){
+            var node: FileOrDir = reactive<vFile>({
+                type: 'file',
+                ctime: 0,
+                name: '',
+                parent: null,
+                icon: preset.name ? getIcon(preset.name, true) : '',
+                size: 0,
+                ...preset,
+                url, path
+            });
+        }else{
+            throw new Error('Invalid object type (should be file or dir)');
+        }
+
+        if(preset.parent){
+            // 加入父节点
+            if(!preset.parent.child) load(preset.parent).then(() => preset.parent!.child!.push(node));
+            else preset.parent.child!.push(node);
+        }else if(import.meta.env.DEV)
+            console.warn('Parent node is required');
+        return node;
+    }
+
+    /**
+     * 在远程服务器中创建文件夹
+     * @param name 名称
+     * @param parent 父节点
+     * @returns 新文件夹
+     */
+    export async function createDir(name: string[], parent: vDir){
+        // 创建文件夹
+        await request('mkdir', { files: name.map(n => parent.path + n) });
+        // 添加文件夹
+        const exports: Array<vDir> = [];
+        name.forEach(n => {
+            const obj = createObject({
+                type: 'dir',
+                name: n,
+                parent: parent
+            });
+            exports.push(obj);
+            parent.child!.push(obj);
+        });
+        return exports;
+    }
+
+    /**
+     * 查找文件或文件夹
+     * 注意：有的时候目标同时是文件和文件夹，需要指定类型
+     *  但是当指定类型不存在时，会返回第一个匹配的节点
+     * @param path 路径
+     * @param force 确保这个路径存在，只是被隐藏了
+     * @param type 类型，默认为目录
+     * @returns 节点信息
+     */
+    export async function find(
+        path: string,
+        force = false,                   // 确保这个路径存在，只是被隐藏了
+        type: 'dir' | 'file' = 'dir',    // 有的时候目标同时是文件和文件夹
+        create_on_miss = false           // 当找不到文件夹时，是否创建
+    ) {
+        const paths = clearPath(path).split('/').filter(Boolean),
+            name = paths.pop()!;
+
+        let node = TREE;
+        if(paths.length == 0 && !name) return { parent: node.parent!, index: 0, file: node };
+
+        for(const part of paths){
+            // 刷新子节点
+            if(!node.child) try{
+                await load(node);
+            }catch(e){
+                if(e instanceof APIError && e.code == 404)
+                    throw new Error(`Directory "${path}" not found. Please refresh the cache`);
+                else throw e;
+            }
+
+            // 找到目标节点
+            const index = node.child!.findIndex(c => c.name == part && c.type == 'dir');
+            if(index == -1){    // 找不到目录
+                if(force) try{
+                    const nd = await stat(node.path + part, node) as vDir;
+                    node.child!.push(nd);
+                    node = nd;
+                }catch(e){
+                    if(e instanceof APIError && e.code == 404){
+                        // --CODE1
+                        if(create_on_miss)
+                            node = (await createDir([part], node))[0];
+                        else throw new Error(`Directory "${part}" not found`);
+                    }
+                    else throw e;
+                }else{
+                    // --CODE1
+                    if(create_on_miss)
+                        node = (await createDir([part], node))[0];
+                    else throw new Error(`Directory "${part}" not found`);
+                }
+            }else{   // 找到目录
+                node = node.child![index] as vDir;
+            }
+        }
+        return {
+            parent: node,
+            get index(){
+                let index = node.child!.findIndex(c => c.name == name && (type == 'dir' ? c.type == 'dir' : c.type == 'file'));
+                if(index == -1) index = node.child!.findIndex(c => c.name == name);
+                if(index == -1) throw new Error(`"${name}" not found in "${path}"`);
+                return index;
+            },
+            get file(): FileOrDir{ return node.child![this.index] },
+            set file(file: FileOrDir){ node.child![this.index] = file }
+        };
+    }
+}
+
+type IUploadArray = Array<{
+    file: Blob,
+    name: string,
+    path: string
+}>
+
+interface IUploadOption{
+    overwrite?: boolean,
+    timeout?: number,
+    created?: (file: vFile) => any,
+    uploaded?: (file: vFile) => any,
+    thread_pool?: number
+}
+
+async function uploadArray(files: IUploadArray, option?: IUploadOption){
+    type IUploadObj = IUploadArray[0] & { parent: vDir };
+
+    const exists: Array<IUploadObj> = [],
+        failed: Array<IUploadArray[0]> = [],
+        promises: Array<Promise<void>> = [];
+
+    async function up(file: Blob, name: string, parent: vDir){
+        const newobj = Tree.createObject({
+            type: 'file',
+            name,
+            parent,
+            size: file.size,
+            ctime: Date.now()
+        });
+        parent.child!.push(newobj);
+        option?.created && option.created(newobj);
+        await upload(file, newobj, option);
+        option?.uploaded && option.uploaded(newobj);
+    }
+
+    for(const { file, path, name } of files){
+        try{
+            var node = await Tree.find(path, true, 'file', true);
+        }catch{
+            failed.push({ file, path, name });
+            continue;
+        }
+
+        // 判断是否存在
+        try{
+            if(node.file.type == 'dir') throw 0;
+            exists.push({ file, parent: node.parent, path, name });
+            continue;
+        }catch{}
+
+        // 开始上传
+        try{
+            if(promises.length == option?.thread_pool || 1)
+                await Promise.race(promises);
+            promises.push(up(file, name, node.parent));
+        }catch{
+            failed.push({ file, path, name });
+        }
+    }
+
+    // 提示结果
+    if(exists.length > 0){
+        await new Promise(rs => alert({
+            "type": "prompt",
+            "title": "上传提示",
+            "message": `您选中的这些文件已经存在\n\n${
+                exists.map(item => ' ' + item.path).join('\n')
+            }\n\n确定覆盖吗`,
+            "callback": rs
+        }));
+        for(const item of exists)
+            await up(item.file, item.name, item.parent);
+    }
+
+    // 显示错误
+    if(failed.length > 0)
+        message({
+            "type": "error",
+            "title": "文件资源管理器",
+            "content":{
+                "title": '上传失败',
+                "content": `以下文件上传失败\n\n${
+                    failed.map(item => ' ' + item.path).join('\n')
+                }`
+            },
+            "timeout": 30
+        });
+}
+
+export namespace FS{
+    /**
+     * 上传文件或文件夹
+     *  - 参数为`DragEvent`时，会尝试读取拖放的文件列表
+     *  - 参数为`FileList`时，会尝试读取文件列表
+     *  - 参数为`null`时，会弹出文件选择框
+     * 
+     * @param e 事件或文件列表
+     * @param to 目标文件夹
+     * @param option 选项
+     * @returns 上传结果
+     */
+    export async function upload(e: DragEvent | FileList | null, to: vDir, option?: IUploadOption){
+        const files: IUploadArray = [];
+        if(e instanceof DragEvent){
+            if(!e.dataTransfer) throw new Error('Invalid drag event');
+
+            // 初始化事件
+            e.preventDefault();
+            e.dataTransfer!.dropEffect = 'copy';
+
+            // 函数：递归添加
+            async function add_to_tree(entry: FileSystemDirectoryEntry | FileSystemEntry, parent?: FileSystemDirectoryEntry) {
+                // 文件：加入数组
+                if (entry.isFile){ 
+                    if(!parent) parent = await new Promise((rs, rj) => entry.getParent(rs as any, rj));
+                    const file = await new Promise<File>((rs, rj) => (entry as FileSystemFileEntry).file(rs, rj));
+                    if(!file) return;
+                    files.push({ file, name: file.name, path: entry.fullPath });
+                // 目录：递归
+                }else {
+                    const reader = (entry as FileSystemDirectoryEntry).createReader();
+
+                    while (true) {
+                        // 不断读取目录
+                        const result: FileSystemEntry[] = await new Promise((rs, rj) => reader.readEntries(rs, rj));
+                        if (result.length == 0) break;
+                        else for (const item of result) {
+                            // 读取文件(夹)
+                            let fileordir: FileSystemDirectoryEntry | FileSystemEntry;
+                            if (item.isDirectory)
+                                fileordir = await new Promise((rs, rj) => (entry as FileSystemDirectoryEntry).getDirectory(item.fullPath, undefined, rs, rj));
+                            else
+                                fileordir = await new Promise((rs, rj) => (entry as FileSystemDirectoryEntry).getFile(item.fullPath, undefined, rs, rj));
+                            // 添加到列表
+                            add_to_tree(fileordir, entry as FileSystemDirectoryEntry);
+                        }
+                    }
+                }
+            }
+
+            if(e.dataTransfer.items.length == 1){
+                await add_to_tree(e.dataTransfer.items[0].webkitGetAsEntry()!);
+            }else{
+                // BUG: 经测试部分浏览器读取一个entry后变成空数组，因此需要遍历root
+                const entry = e.dataTransfer.items[0].webkitGetAsEntry()!;
+                const root = entry.filesystem.root;
+                if(root) await add_to_tree(root, root);
+                // 回退到遍历数组
+                else for (const item of e.dataTransfer.items) {
+                    const entry = item?.webkitGetAsEntry();
+                    if(!entry) continue;
+                    await add_to_tree(entry);
+                }
+            }
+        }else if(e instanceof FileList){
+            for(let i = 0; i < e.length; i++){
+                const file = e.item(i) as File;
+                files.push({ file, name: file.name, path: to.path + file.name });
+            }
+        }else{
+            const input = await new Promise<FileList>((rs, rj) => {
+                const input = document.createElement('input');
+                input.type = 'file';
+                input.multiple = !!e;
+                input.onchange = function(){
+                    if(input.files && input.files.length > 0)
+                        rs(input.files);
+                    else
+                        rj(new Error('User aborted'));
+                }
+                input.click();
+            });
+            for(const file of input){
+                files.push({ file, name: file.name, path: to.path + file.name });
+            }
+        }
+
+        return await uploadArray(files, option);
+    }
+    
+    /**
+     * 加载一个路径并返回目录节点
+     * @param path 路径
+     * @param reload 是否重新加载
+     * @returns 目录节点
+     */
+    export async function loadPath(path: string, reload = false){
+        const { file } = await Tree.find(path, true, 'dir', true);
+        if(file.type != 'dir') throw new Error(`"${path}" is not a directory`);
+        
+        // 读取所有展开的文件夹，在重载后自动展开
+        const opened_folders: Array<string> = [];
+        function get_folders(node: vDir): number{
+            let added = 0;  // 记录当前目录下添加的目录数量
+            if(node.type == 'dir' && node.child)
+                for(const child of node.child){
+                    // 遍历所有文件夹
+                    if(child.type != 'dir') continue;
+                    // 没有展开或没有内容：作为末端节点
+                    if(!child.child?.length){
+                        opened_folders.push(child.path);
+                        added++;
+                    // 已经展开：递归处理
+                    }else{
+                        const added2 = get_folders(child);
+                        // 子目录全部空白: 作为末端节点
+                        if(added2 == 0){
+                            opened_folders.push(child.path);
+                            added++;
+                        // 有内容：展开
+                        }else added += added2;
+                    }
+                }
+            return added;
+        }
+        get_folders(file);
+
+        // 加载目录
+        (file.child && !reload) || await Tree.load(file);
+        // 展开所有文件夹
+        for(const folder of opened_folders)
+            loadPath(folder, true);
+        return file;
+    }
+
+    /**
+     * 加载多个路径，自动排重复项
+     * @param dir 路径列表
+     */
+    export async function loadPaths(dir: string[]){
+        dir = dir.filter(item => dir.every(item2 => item == item2 || !item.startsWith(item2)));
+        for (const each of dir)
+            await loadPath(each);
+    }
+
+    export async function list(path: string, create = false) {
+        const { file } = await Tree.find(path, true, 'dir', create);
+        if(file.type != 'dir') throw new Error(`"${path}" is not a directory`);
+        return file.child || [];
+    }
+
+    async function __move(generator: () => Iterable<[string, string]>){
+        // 移动元素
+        for(const [source, target] of generator()){
+            // 删除源
+            const { parent, index } = await Tree.find(source, true, 'file');
+            const node = parent.child!.splice(index, 1)[0];
+
+            // 获取目标
+            const tarobj = await Tree.find(target, true, 'file', true);
+            try{
+                // 如果不存在文件会报错，用此删除重复节点
+                tarobj.index;
+                tarobj.parent.child!.splice(tarobj.index, 1);
+            }catch{}
+            node.type == 'file'
+                ? tarobj.parent.child!.push(node)
+                : tarobj.parent.child!.unshift(node);
+
+            // 修改目标
+            node.path = target;
+            node.url = FILE_PROXY_SERVER + clearPath(target);
+            node.parent = tarobj.parent;
+            node.type == 'file' && (node.icon = getIcon(node.name, true));
+            node.type == 'dir' && (node.active = new Map(), node.child = []);
+            const inf = splitPath({ path: target });
+            node.name = inf.fname;
+        }
+    }
+
+    export async function rename(map: Record<string, string>){
+        // 分析是否会交叉重命名造成覆盖
+        // 如： 001 -> 002, 002 -> 003, 003 -> 001
+        const files = Object.keys(map);
+        for(let i = 0 ; i < files.length; i++){
+            const source = files[i],
+                target = map[source];
+            if(files.includes(target))
+                throw new Error(`conflict: ${source} -> ${target} while target already exists`);
+            else
+                files[i] = target;
+        }
+
+        // 重命名
+        await request('rename', map, false);
+        await __move(() => Object.entries(map))
+    }
+
+    export async function stat(path: string){
+        const { file } = await Tree.find(path, true, 'file', false);
+        return file;
+    }
+
+    export async function move(source: Array<string> | string, target: string, deep = false){
+        if(source?.length == 0) return;
+        const files = typeof source == 'string' ? [source] : source;
+        await request(deep ? 'fmove' : 'move', { from: source, to: target });
+        await __move(() => files.map(item => [item, target + splitPath({ path: item }).name]));
+    }
+
+    export async function del(file: Array<string> | string){
+        if(file?.length == 0) return;
+        const files = typeof file == 'string' ? [file] : file;
+        await request('delete', { files });
+        // 删除节点
+        for(const each of files){
+            const { parent, index } = await Tree.find(each, true, 'file');
+            parent.child!.splice(index, 1);
+        }
+    }
+
+    export async function mkdir(dirs: string[] | string){
+        if(typeof dirs == 'string') dirs = [dirs];
+        await request('mkdir', { files: dirs });
+        // 创建节点
+        for(const dir of dirs){
+            const { parent } = await Tree.find(dir, true, 'dir', true);
+            const inf = splitPath({ path: dir });
+            const node = Tree.createObject({
+                type: 'dir',
+                name: inf.fname,
+                parent,
+                path: dir
+            });
+            parent.child || (Tree.load(parent))
+            parent.child!.push(node);
+        }
+    }
+
+    export async function touch(files: string[] | string, mode = 0o755){
+        if(typeof files == 'string') files = [files];
+        if(mode > 0o777 || mode < 0)
+            throw new Error('Mode Error');
+        if(files.length == 0) return;
+        await request('touch', { files, mode });
+        // 创建节点
+        for(const file of files){
+            const { parent } = await Tree.find(file, true, 'file', true);
+            const inf = splitPath({ path: file });
+            const node = Tree.createObject({
+                type: 'file',
+                name: inf.fname,
+                parent,
+                path: file,
+                size: 0,
+                ctime: Date.now()
+            });
+            parent.child || (Tree.load(parent))
+            parent.child!.push(node);
+        }
+    }
+
+    export async function copy(source: Array<string> | string, target: string){
+        if(source?.length == 0) return;
+        const files = typeof source == 'string' ? [source] : source;
+        await request('copy', { from: source, to: target });
+        // 复制节点
+        for(const each of files){
+            const { parent, file } = await Tree.find(each, true, 'file');
+            const node = Tree.createObject({
+                type: file.type,
+                name: splitPath({ path: each }).name,
+                parent,
+                path: target + splitPath({ path: each }).name,
+                size: file.type == 'file' ? file.size : undefined,
+                ctime: file.ctime
+            });
+            parent.child || (Tree.load(parent))
+            parent.child!.push(node);
+        }
+    }
+
+    export async function write(
+        file:string,
+        content: Blob,
+        overwrite = false,
+        timeout?: number
+    ){
+        const info = await Tree.find(file, true, 'file', true);
+        let f: vFile;
+        // 错误处理
+        if(info.file.type == 'dir')
+            throw new Error('Attempt to write to a directory');
+        // 找到对象
+        try{
+            f = info.file;
+        }catch{
+            f = Tree.createObject({
+                type: 'file',
+                name: splitPath({ path: file }).name,
+                parent: info.parent,
+                path: file,
+                size: 0,
+                ctime: Date.now()
+            });
+            info.parent.child || (await Tree.load(info.parent))
+            info.parent.child!.push(f);
+        }
+
+        await upload_(content, f, { overwrite, timeout: timeout || 0 });
+    }
+
+    export const loadTree = Tree.load;
+}
+
+export const getActiveFile = Tree.getActive,
+    clearActiveFile = Tree.clearActive;
