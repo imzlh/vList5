@@ -2,7 +2,7 @@
     import type { vFile } from '@/env';
     import { regSelf } from '@/opener';
     import parseCue from './media/cue';
-    import { acceptDrag, FILE_PROXY_SERVER, FS, message, splitPath } from '@/utils';
+    import { acceptDrag, encodePath, FILE_PROXY_SERVER, FS, message, splitPath } from '@/utils';
     import { Lrc, Runner, type Lyric } from 'lrc-kit';
     import MediaSession, { updateMediaSession } from './media/mediaSession';
     import { computed, nextTick, onMounted, onUnmounted, ref, shallowReactive, watch } from 'vue';
@@ -423,7 +423,7 @@
                         "album": element.album,
                         "composer": element.performer,
                         "path": item.path,
-                        "url": FILE_PROXY_SERVER + finfo.dir + '/' + element.file,
+                        "url": FILE_PROXY_SERVER + encodePath(finfo.dir + '/' + element.file),
                         "start": element.start,
                         "match_name": splitPath({path: element.file}).name
                     }));

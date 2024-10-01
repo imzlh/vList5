@@ -324,6 +324,9 @@ async function upload(file: Blob, refl: vFile, option?: {
 }
 const upload_ = upload;
 
+export const encodePath = (path: string) =>
+    encodeURI(path).replace('#', '%23').replace('?', '%3F');
+
 namespace Tree{
     /**
      * 加载文件夹
@@ -364,7 +367,7 @@ namespace Tree{
     function compileObject(obj: FileOrDir, parent: vDir){
         obj.parent = parent;
         obj.path = parent.path + obj.name + (obj.type == 'dir' ? '/' : '');
-        obj.url = FILE_PROXY_SERVER + obj.path;
+        obj.url = FILE_PROXY_SERVER + encodePath(obj.path);
         obj.parent = parent;
         obj.type == 'dir' && (obj.active = new Map());
         obj.icon = getIcon(obj.name, obj.type == 'file');
@@ -426,7 +429,7 @@ namespace Tree{
         const path = preset.path ?? (preset.parent
                 ? preset.parent.path + preset.name + (preset.type == 'dir' ? '/' : '')
                 : ''),
-            url = path ? FILE_PROXY_SERVER + path : '';
+            url = path ? FILE_PROXY_SERVER + encodePath(path) : '';
         if(preset.type == 'dir'){
             var node: FileOrDir = reactive<vDir>({
                 ctime: 0,
@@ -814,8 +817,8 @@ export namespace FS{
                 : tarobj.parent.child!.unshift(node);
 
             // 修改目标
-            node.path = target;
-            node.url = FILE_PROXY_SERVER + clearPath(target);
+            node.path = clearPath(target);
+            node.url = FILE_PROXY_SERVER + encodePath(node.path);
             node.parent = tarobj.parent;
             node.type == 'file' && (node.icon = getIcon(node.name, true));
             node.type == 'dir' && (node.active = new Map(), node.child = []);

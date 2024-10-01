@@ -1,7 +1,7 @@
 <script lang="ts" setup>
     import type { AlertOpts, MessageOpinion, vFile } from '@/env';
     import Upload from '@/module/upload.vue';
-    import { alert, FILE_PROXY_SERVER, FS, message, splitPath } from '@/utils';
+    import { alert, encodePath, FILE_PROXY_SERVER, FS, message, splitPath } from '@/utils';
     import {
         CodeBlockLanguageSelector,
         EmojiSelector,
@@ -214,10 +214,10 @@
             prefix = '!';
         if(cur) muya.editor.activeContentBlock.text =
             data.substring(0, cur.start.offset) +
-            prefix + `[ ${data.substring(cur.start.offset, cur.end.offset +1) || meta.fname} ](${FILE_PROXY_SERVER + file} "${meta.fname}")` +
+            prefix + `[ ${data.substring(cur.start.offset, cur.end.offset +1) || meta.fname} ](${FILE_PROXY_SERVER + encodePath(file)} "${meta.fname}")` +
             data.substring(cur.end.offset +1);
         else muya.editor.activeContentBlock.text =
-            prefix + `[ ${data || meta.fname} ](${FILE_PROXY_SERVER + file} "${meta.fname}")`;
+            prefix + `[ ${data || meta.fname} ](${FILE_PROXY_SERVER + encodePath(file)} "${meta.fname}")`;
         muya.editor.activeContentBlock.focusHandler();
         muya.focus();
     }
