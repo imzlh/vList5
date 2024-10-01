@@ -1,6 +1,6 @@
 {
   "name": "@imzlh/vlist",
-  "version": "5.7.3",
+  "version": "5.8.0",
   "displayName": "vList",
   "description": "一个全能的现代化的文件管理UI，使用vue3",
   "license": "MIT",
@@ -11,6 +11,10 @@
     "file-sharing",
     "media-player"
   ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/imzlh/vList5.git"
+  },
   "publishConfig": {
     "access": "public",
     "registry": "https://registry.npmjs.org/"

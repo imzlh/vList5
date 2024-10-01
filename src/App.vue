@@ -129,13 +129,16 @@
 		if(locked) return;
 		const target = e.target as HTMLElement;
 		// 切换活动ID
-		if((target.classList.contains('item') || target.classList.contains('parent')) && target.dataset.position){
-			const index = target.dataset.position.lastIndexOf(':'),
-				tree = await FS.stat(target.dataset.position!.substring(0, index)),
-				id = parseInt(target.dataset.position.substring(index + 1));
-			current_tree = tree.type == 'dir' ? tree : tree.parent!, 
-			current_index = id, handleUpdate(true);
-		}
+		if(target.classList.contains('item') || target.classList.contains('parent'))
+			if(target.dataset.position){
+				const index = target.dataset.position.lastIndexOf(':'),
+					tree = await FS.stat(target.dataset.position!.substring(0, index)),
+					id = parseInt(target.dataset.position.substring(index + 1));
+				current_tree = tree.type == 'dir' ? tree : tree.parent!, 
+				current_index = id, handleUpdate(true);
+			}else{
+				current_tree = TREE.parent!, current_index = 0, handleUpdate(true);
+			}
 	})));
 
 	const tree_active = ref(false),

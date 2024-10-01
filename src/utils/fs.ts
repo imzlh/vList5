@@ -258,7 +258,7 @@ async function request(method: string,body: Object, json = false){
         }
         await request(method, body, json);
     }else if(Math.floor(xhr.status / 100) != 2){
-        throw new Error(await xhr.text());
+        throw new APIError(await xhr.text(), xhr.status);
     }
        
     // 处理返回值
@@ -266,7 +266,7 @@ async function request(method: string,body: Object, json = false){
         if(json) return await xhr.json();
         else return await xhr.text();
     }catch{
-        throw new TypeError('Server Error');
+        throw new APIError('Server Error', 500);
     }
 }
 
@@ -453,11 +453,7 @@ namespace Tree{
             throw new Error('Invalid object type (should be file or dir)');
         }
 
-        if(preset.parent){
-            // 加入父节点
-            if(!preset.parent.child) load(preset.parent).then(() => preset.parent!.child!.push(node));
-            else preset.parent.child!.push(node);
-        }else if(import.meta.env.DEV)
+        if(import.meta.env.DEV && !node.parent)
             console.warn('Parent node is required');
         return node;
     }
@@ -473,15 +469,16 @@ namespace Tree{
         await request('mkdir', { files: name.map(n => parent.path + n) });
         // 添加文件夹
         const exports: Array<vDir> = [];
-        name.forEach(n => {
+        for(const n of name){
             const obj = createObject({
                 type: 'dir',
                 name: n,
                 parent: parent
             });
             exports.push(obj);
+            if(!parent.child) await Tree.load(parent);
             parent.child!.push(obj);
-        });
+        }
         return exports;
     }
 
@@ -511,7 +508,7 @@ namespace Tree{
             if(!node.child) try{
                 await load(node);
             }catch(e){
-                if(e instanceof APIError && e.code == 404)
+                if(e instanceof APIError && (e.code == 404 || e.code == 403))
                     throw new Error(`Directory "${path}" not found. Please refresh the cache`);
                 else throw e;
             }
@@ -524,7 +521,7 @@ namespace Tree{
                     node.child!.push(nd);
                     node = nd;
                 }catch(e){
-                    if(e instanceof APIError && e.code == 404){
+                    if(e instanceof APIError && (e.code == 404 || e.code == 403)){
                         // --CODE1
                         if(create_on_miss)
                             node = (await createDir([part], node))[0];
@@ -584,6 +581,7 @@ async function uploadArray(files: IUploadArray, option?: IUploadOption){
             size: file.size,
             ctime: Date.now()
         });
+        if(!parent.child) await Tree.load(parent);
         parent.child!.push(newobj);
         option?.created && option.created(newobj);
         await upload(file, newobj, option);
@@ -593,7 +591,7 @@ async function uploadArray(files: IUploadArray, option?: IUploadOption){
     for(const { file, path, name } of files){
         try{
             var node = await Tree.find(path, true, 'file', true);
-        }catch{
+        }catch(e){
             failed.push({ file, path, name });
             continue;
         }
@@ -607,10 +605,10 @@ async function uploadArray(files: IUploadArray, option?: IUploadOption){
 
         // 开始上传
         try{
-            if(promises.length == option?.thread_pool || 1)
+            if(promises.length == (option?.thread_pool || 1))
                 await Promise.race(promises);
             promises.push(up(file, name, node.parent));
-        }catch{
+        }catch(e){
             failed.push({ file, path, name });
         }
     }
@@ -801,6 +799,7 @@ export namespace FS{
         for(const [source, target] of generator()){
             // 删除源
             const { parent, index } = await Tree.find(source, true, 'file');
+            if(!parent.child) await Tree.load(parent);
             const node = parent.child!.splice(index, 1)[0];
 
             // 获取目标
@@ -862,6 +861,7 @@ export namespace FS{
         // 删除节点
         for(const each of files){
             const { parent, index } = await Tree.find(each, true, 'file');
+            if(!parent.child) await Tree.load(parent);
             parent.child!.splice(index, 1);
         }
     }
@@ -879,7 +879,7 @@ export namespace FS{
                 parent,
                 path: dir
             });
-            parent.child || (Tree.load(parent))
+            parent.child || (await Tree.load(parent))
             parent.child!.push(node);
         }
     }
@@ -902,7 +902,7 @@ export namespace FS{
                 size: 0,
                 ctime: Date.now()
             });
-            parent.child || (Tree.load(parent))
+            parent.child || (await Tree.load(parent))
             parent.child!.push(node);
         }
     }
@@ -922,7 +922,7 @@ export namespace FS{
                 size: file.type == 'file' ? file.size : undefined,
                 ctime: file.ctime
             });
-            parent.child || (Tree.load(parent))
+            parent.child || (await Tree.load(parent))
             parent.child!.push(node);
         }
     }

@@ -265,7 +265,7 @@
         @dragleave.stop="($event.currentTarget as HTMLElement).classList.remove('moving')"
         @click="data.active = new Map()"
     >
-        <template v-for="(child, id) in data.child" :key="child.path">
+        <template v-for="(child, id) in data.child" :key="child.path + ',' + child.ctime">
 
             <tree v-if="child.type == 'dir'" :data="child" :data-position="data.path + ':' + id" />
 
