@@ -574,3 +574,68 @@ interface Command{
      */
     handler():any;
 }
+
+/**
+ * vList 外置插件配置的数据结构
+ */
+interface vApplication{
+
+    /**
+     * 插件名称
+     */
+    name: string,
+
+    /**
+     * 插件内部名称
+     */
+    package: string,
+
+    /**
+     * 插件版本
+     */
+    version: number,
+
+    /**
+     * 插件作者
+     */
+    author?: string,
+
+    /**
+     * 插件入口
+     */
+    entry: string,
+
+    /**
+     * 预加载和导入
+     */
+    preload?: Array<{
+        /**
+         * 类型，可选`style`、`script`、`module`、`preload`
+         *  - `style` 样式文件
+         *  - `script` 脚本文件
+         *  - `module` 模块文件
+         *  - `preload` 单纯预加载，不导入
+         */
+        type: "style" | "script" | "module" | "preload",
+
+        /**
+         * 文件路径
+         */
+        path: string
+    }>,
+
+    /**
+     * 图标文件
+     */
+    icon?: string,
+
+    /**
+     * 插件描述
+     */
+    description?: string,
+
+    /**
+     * 插件目录
+     */
+    home: string
+}

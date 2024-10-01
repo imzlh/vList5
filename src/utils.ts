@@ -12,5 +12,6 @@ export { create as message } from './module/message.vue';
 export { show as showFilePicker } from './module/fdpicker.vue';
 export { register as registerCommand } from './module/panel.vue';
 export { alert } from './module/alert.vue';
+export * from './utils/plugin';
 
 import "./action/tree";

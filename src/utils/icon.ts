@@ -1071,7 +1071,7 @@ const folderIcon: FolderIcon[] = [
             'tldb'
         ],
     },
-    { name: 'javascript', fileExtensions: ['esx', 'mjs', 'js'] },
+    { name: 'javascript', fileExtensions: ['esx', 'mjs', 'js', 'cjs'] },
     { name: 'react', fileExtensions: ['jsx'] },
     { name: 'react_ts', fileExtensions: ['tsx'] },
     {

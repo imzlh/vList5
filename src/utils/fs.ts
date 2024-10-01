@@ -561,11 +561,35 @@ type IUploadArray = Array<{
     path: string
 }>
 
+/**
+ * 上传函数的选项
+ */
 interface IUploadOption{
+    /**
+     * 是否覆盖已存在的文件
+     */
     overwrite?: boolean,
+
+    /**
+     * XHR超时时间
+     */
     timeout?: number,
+
+    /**
+     * 创建文件时触发的回调函数
+     * @param file 文件引用
+     */
     created?: (file: vFile) => any,
+
+    /**
+     * 上传完成后触发的回调
+     * @param file 文件引用
+     */
     uploaded?: (file: vFile) => any,
+
+    /**
+     * 处理线程数，即并发上传数量
+     */
     thread_pool?: number
 }
 

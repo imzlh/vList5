@@ -1,0 +1,70 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "description": "生成一个可以被vList接受的扩展包",
+    "$comment": "for vList 5.8(patch 24/10/1)",
+    "type": "object",
+    "properties": {
+        "name": {
+            "type": "string",
+            "minLength": 3,
+            "description": "插件包名称，用于辨认"
+        },
+        "icon": {
+            "type": "string",
+            "minLength": 2,
+            "description": "图标文件，在管理界面会显示"
+        },
+        "description": {
+            "type": "string",
+            "description": "插件描述，在管理界面可以看到"
+        },
+        "package": {
+            "type": "string",
+            "minLength": 5,
+            "pattern": "(?:[0-9a-zA-Z]+\\.)+[0-9a-zA-Z]+",
+            "description": "类似安卓的包名，只是为了vList辨认同名包"
+        },
+        "version": {
+            "type": "number",
+            "minimum": 0.0,
+            "description": "包版本号，更新的时候可能会用到"
+        },
+        "author": {
+            "type": "string",
+            "default": "unknown",
+            "description": "包作者，在应用详情中会看得到"
+        },
+        "entry": {
+            "type": "string",
+            "minLength": 3,
+            "description": "包入口，注意必须是JavaScript文件"
+        },
+        "preload": {
+            "type": "array",
+            "description": "预加载和导入文件",
+            "items": {
+                "type": "object",
+                "required": ["type", "path"],
+                "properties": {
+                    "type": {
+                        "type": "string",
+                        "enum": ["style", "script", "module", "preload"],
+                        "default": "preload",
+                        "description": "加载类型，支持\n - style CSS样式\n - script 标准JavaScript脚本\n - module 使用`import`导入的ESM模块\n - preload 只预加载资源，不导入"
+                    },
+                    "path": {
+                        "type": "string",
+                        "minLength": 2,
+                        "description": "文件相对路径"
+                    }
+                }
+            }
+        }
+    },
+    "required": [
+        "name",
+        "version",
+        "entry",
+        "package"
+    ]
+}

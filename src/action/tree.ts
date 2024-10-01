@@ -18,10 +18,11 @@ import I_OPEN from "/icon/open.webp";
 import I_OPENER from '/icon/opener.webp';
 import I_DELETE from '/icon/del.svg';
 import I_BANGUMI from '/icon/bangumi.webp';
+import I_STORE from '/app/store.webp';
 
 import Upload from '@/module/upload.vue';
 import EXPLORER from '@/module/explorer.vue';
-import { FACTION, FS, alert, clearActiveFile, createWindow, getActiveFile, message, openFile, selectOpener, size2str, splitPath } from "@/utils";
+import { FACTION, FS, TREE, alert, clearActiveFile, createWindow, getActiveFile, installPlugin, message, openFile, selectOpener, size2str, splitPath } from "@/utils";
 import type { AlertOpts, MessageOpinion, vDir, vFile } from "@/env";
 import { CtxMenuRegister } from './main';
 
@@ -226,6 +227,37 @@ TREE_REG.register(() => ({
 }), {
     'single': false,
     'sort': 'all'
+});
+
+TREE_REG.register(() => ({
+    'icon': I_STORE,
+    'text': '导入VlIST应用',
+    handle() {
+        const file = getActiveFile()[0] as vDir;
+        installPlugin(file.url)
+            .then(() => message({
+                "type": "success",
+                "title": "文件资源管理器",
+                "content": {
+                    "title": "导入成功",
+                    "content": "应用已安装"
+                },
+                "timeout": 10
+            }))
+            .catch(e => message({
+                "type": "error",
+                "title": "文件资源管理器",
+                "content": {
+                    "title": "导入失败",
+                    "content": String(e)
+                },
+                "timeout": 10
+            }));
+    }
+}), {
+    'single': true,
+    'sort': 'dir',
+    'filter': dir => dir[0].type == 'dir' && !!dir[0].child?.some(item => item.name == 'app.json')
 });
 
 TREE_REG.register(() => ({
