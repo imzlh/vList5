@@ -106,7 +106,7 @@ export default async function create(el){
         play: false,
         stop: false,
         destroy: () => player.destroy(),
-        status: player.stats,
+        status: player.getStats(),
         display: {
             fill: false,
             rotate: 0,
@@ -176,7 +176,7 @@ export default async function create(el){
     watch(() => refs.display.rotate, rotate => player.setRotate(rotate));
     watch(() => refs.display.flip.horizontal, flip => player.enableHorizontalFlip(flip));
     watch(() => refs.display.flip.vertical, flip => player.enableVerticalFlip(flip));
-    watch(() => refs.display.subDelay, delay => player.setSubTitleDelay(Number(delay)));
+    watch(() => refs.display.subDelay, delay => player.setSubtitleDelay(Number(delay)));
     watch(() => refs.display.subtitle, sub => player.setSubtitleEnable(sub));
 
     player.on('ended', () => refs.ended = true);

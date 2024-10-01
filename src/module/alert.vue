@@ -41,7 +41,7 @@
             <span>{{ _.message }}</span>
 
             <input type="text" v-model="dataref" v-if="_.type == 'prompt'" v-focus
-                @keydown="$event.key == 'Enter' && (_.callback(dataref.value), item = undefined)"
+                @keydown="$event.key == 'Enter' && call('submit')"
             >
         </div>
         <div class="btns">
