@@ -5,27 +5,34 @@
     import { contextMenu, reqFullscreen, UI } from '@/App.vue';
     import { acceptDrag, FS, message, splitPath } from '@/utils';
     import MediaSession, { updateMediaSession } from '@/opener/media/mediaSession';
-import { regSelf } from '@/opener';
+    import { regSelf } from '@/opener';
 
     const CONFIG = {
         seek_time: 10,
         media: [
             "webm",
-            "mka",
             "mkv",
             "mp4",
-            "m4a",
             "ogv",
             "ogg",
-            "opus",
-            "mp3",
-            "flac",
             // extra pack
             "pcm",
             "flv",
             "mov",
             "m2ts",
             "ivf",
+            "wav",
+            "h264",
+            "hevc",
+            "vvc",
+            // audio
+            "aac",
+            "mp3",
+            "mka",
+            "m4a",
+            "opus",
+            "mp3",
+            "flac",
             "wav"
         ],
         subtitle: [
@@ -178,12 +185,18 @@ import { regSelf } from '@/opener';
             'content': [
                 {
                     "text": "播放速度",
-                    handle: () => ui.playlist = true
+                    "child": [.5, .75, 1, 1.25, 1.5, 2, 3, 4, 8].map(val => ({
+                        "text": val + 'x',
+                        handle: () => player.value!.playBackRate = val,
+                        "icon": val == player.value?.playBackRate
+                            ? 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxNiAxNiI+CiAgPHBhdGggZD0iTTEyLjczNiAzLjk3YS43MzMuNzMzIDAgMCAxIDEuMDQ3IDBjLjI4Ni4yODkuMjkuNzU2LjAxIDEuMDVMNy44OCAxMi4wMWEuNzMzLjczMyAwIDAgMS0xLjA2NS4wMkwzLjIxNyA4LjM4NGEuNzU3Ljc1NyAwIDAgMSAwLTEuMDYuNzMzLjczMyAwIDAgMSAxLjA0NyAwbDMuMDUyIDMuMDkzIDUuNC02LjQyNWEuMjQ3LjI0NyAwIDAgMSAuMDItLjAyMloiLz4KPC9zdmc+'
+                            : undefined
+                    }))
                 },{
                     "text": "播放列表",
                     handle: () => ui.playlist = true
                 },{
-                    "text": "视频轨道",
+                    "text": "轨道选择",
                     handle: () => ui.track = true
                 },{
                     "text": "截图",
@@ -328,7 +341,7 @@ import { regSelf } from '@/opener';
     >
         <div class="video" ref="videoel" @dblclick.prevent="player && (player.play = !player.play)"
             @ended="CTRL.next()" @progress="prog($event as any)" @load="autoCloseAlert" @error="autoCloseAlert"
-        ></div>
+        />
 
         <div class="alert" :show="!!ui.alert">{{ ui.alert }}</div>
 
@@ -337,41 +350,24 @@ import { regSelf } from '@/opener';
         }" :active="ui.tool">
             <div class="icons">
                 <!--上一个-->
-                <div @click.stop="CTRL.prev()">
-                    <svg viewBox="0 0 16 16">
-                        <path
-                            d="M4 4a.5.5 0 0 1 1 0v3.248l6.267-3.636c.54-.313 1.232.066 1.232.696v7.384c0 .63-.692 1.01-1.232.697L5 8.753V12a.5.5 0 0 1-1 0V4z" />
-                    </svg>
-                </div>
+                <div @click.stop="CTRL.prev()" vs-icon="prev"/>
 
                 <!-- 播放暂停 -->
-                <div large @click.stop="player.play = !player.play">
-                    <svg viewBox="0 0 16 16" v-show="!player.play">
-                        <path
-                            d="m11.596 8.697-6.363 3.692c-.54.313-1.233-.066-1.233-.697V4.308c0-.63.692-1.01 1.233-.696l6.363 3.692a.802.802 0 0 1 0 1.393z" />
-                    </svg>
-                    <svg viewBox="0 0 16 16" v-show="player.play">
-                        <path
-                            d="M5.5 3.5A1.5 1.5 0 0 1 7 5v6a1.5 1.5 0 0 1-3 0V5a1.5 1.5 0 0 1 1.5-1.5zm5 0A1.5 1.5 0 0 1 12 5v6a1.5 1.5 0 0 1-3 0V5a1.5 1.5 0 0 1 1.5-1.5z" />
-                    </svg>
-                </div>
+                <div large @click.stop="player.play = !player.play"
+                    :vs-icon="player.play ? 'pause' : 'play'"
+                />
 
-                <div @click.stop="CTRL.next()">
-                    <svg viewBox="0 0 16 16">
-                        <path
-                            d="M12.5 4a.5.5 0 0 0-1 0v3.248L5.233 3.612C4.693 3.3 4 3.678 4 4.308v7.384c0 .63.692 1.01 1.233.697L11.5 8.753V12a.5.5 0 0 0 1 0V4z" />
-                    </svg>
-                </div>
+                <div @click.stop="CTRL.next()" vs-icon="next"/>
             </div>
 
             <div class="time">
                 <div class="current">{{ time2str(player.time.current) }}</div>
                 <div class="timebar" @click="player.func.seek(BigInt(Math.floor($event.offsetX / ($event.currentTarget as HTMLElement).clientWidth * Number(player.time.total / 1000n))) * 1000n)">
-                    <div class="prog" :style="{ width: float((player.time.current || 0n) * 10000n / (player.time.total || 1n), 2)+ '%' }"></div>
+                    <div class="prog" :style="{ width: float((player.time.current || 0n) * 10000n / (player.time.total || 1n), 2)+ '%' }"/>
                     <div class="chapter" v-if="player.time.total">
                         <div v-for="(chap, i) in player.tracks.chapter" :style="{
                             left: float((chap.start || 0n) / player.time.total, 4) + '%'
-                        }" :title="'Chapter' + i"></div>
+                        }" :title="'Chapter' + i"/>
                     </div>
                 </div>
                 <div class="total">{{ time2str(player.time.total) }}</div>
@@ -380,59 +376,31 @@ import { regSelf } from '@/opener';
             <div class="icons" style="flex-shrink: 1;overflow-x: auto;">
 
                 <!-- 播放列表 -->
-                <div small @click="ui.playlist = !ui.playlist">
-                    <svg viewBox="0 0 16 16">
-                        <path fill-rule="evenodd" d="M2.5 12a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5zm0-4a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5zm0-4a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5z"/>
-                    </svg>
-                </div>
+                <div small @click="ui.playlist = !ui.playlist" vs-icon="playlist"/>
 
                 <!-- 轨道设置 -->
-                <div small @click="ui.track = !ui.track">
-                    <svg viewBox="0 0 16 16">
-                        <path d="M14 4.577v6.846L8 15V1l6 3.577zM8.5.134a1 1 0 0 0-1 0l-6 3.577a1 1 0 0 0-.5.866v6.846a1 1 0 0 0 .5.866l6 3.577a1 1 0 0 0 1 0l6-3.577a1 1 0 0 0 .5-.866V4.577a1 1 0 0 0-.5-.866L8.5.134z"/>
-                    </svg>
-                </div>
+                <div small @click="ui.track = !ui.track" vs-icon="layers"/>
 
                 <!-- 信息 -->
-                <div @click="ui.about = !ui.about" small>
-                    <svg viewBox="0 0 16 16">
-                        <path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16zm.93-9.412-1 4.705c-.07.34.029.533.304.533.194 0 .487-.07.686-.246l-.088.416c-.287.346-.92.598-1.465.598-.703 0-1.002-.422-.808-1.319l.738-3.468c.064-.293.006-.399-.287-.47l-.451-.081.082-.381 2.29-.287zM8 5.5a1 1 0 1 1 0-2 1 1 0 0 1 0 2z"/>
-                    </svg>
-                </div>
+                <div @click="ui.about = !ui.about" small vs-icon="info"/>
 
                 <!-- 下一帧 -->
-                <div small @click="player.func.nextFrame()">
-                    <svg viewBox="0 0 16 16">
-                        <path d="m12.14 8.753-5.482 4.796c-.646.566-1.658.106-1.658-.753V3.204a1 1 0 0 1 1.659-.753l5.48 4.796a1 1 0 0 1 0 1.506z"/>
-                    </svg>
-                </div>
+                <div small @click="player.func.nextFrame()" vs-icon="small-right"/>
 
                 <!-- 截图 -->
-                <div @click="player.func.snapshot()">
-                    <svg viewBox="0 0 16 16">
-                        <path d="M15 12a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h1.172a3 3 0 0 0 2.12-.879l.83-.828A1 1 0 0 1 6.827 3h2.344a1 1 0 0 1 .707.293l.828.828A3 3 0 0 0 12.828 5H14a1 1 0 0 1 1 1v6zM2 4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-1.172a2 2 0 0 1-1.414-.586l-.828-.828A2 2 0 0 0 9.172 2H6.828a2 2 0 0 0-1.414.586l-.828.828A2 2 0 0 1 3.172 4H2z"/>
-                        <path d="M8 11a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5zm0 1a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7zM3 6.5a.5.5 0 1 1-1 0 .5.5 0 0 1 1 0z"/>
-                    </svg>
-                </div>
+                <div @click="player.func.snapshot()" vs-icon="shoot"/>
                 
                 <!--全屏-->
-                <div small @click.stop="UI.fullscreen.value ? exitFullScreen() : reqFullscreen()">
-                    <svg viewBox="0 0 16 16" v-show="!UI.fullscreen.value">
-                        <path
-                            d="M1.5 1a.5.5 0 0 0-.5.5v4a.5.5 0 0 1-1 0v-4A1.5 1.5 0 0 1 1.5 0h4a.5.5 0 0 1 0 1h-4zM10 .5a.5.5 0 0 1 .5-.5h4A1.5 1.5 0 0 1 16 1.5v4a.5.5 0 0 1-1 0v-4a.5.5 0 0 0-.5-.5h-4a.5.5 0 0 1-.5-.5zM.5 10a.5.5 0 0 1 .5.5v4a.5.5 0 0 0 .5.5h4a.5.5 0 0 1 0 1h-4A1.5 1.5 0 0 1 0 14.5v-4a.5.5 0 0 1 .5-.5zm15 0a.5.5 0 0 1 .5.5v4a1.5 1.5 0 0 1-1.5 1.5h-4a.5.5 0 0 1 0-1h4a.5.5 0 0 0 .5-.5v-4a.5.5 0 0 1 .5-.5z" />
-                    </svg>
-                    <svg viewBox="0 0 16 16" v-show="UI.fullscreen.value">
-                        <path
-                            d="M5.5 0a.5.5 0 0 1 .5.5v4A1.5 1.5 0 0 1 4.5 6h-4a.5.5 0 0 1 0-1h4a.5.5 0 0 0 .5-.5v-4a.5.5 0 0 1 .5-.5zm5 0a.5.5 0 0 1 .5.5v4a.5.5 0 0 0 .5.5h4a.5.5 0 0 1 0 1h-4A1.5 1.5 0 0 1 10 4.5v-4a.5.5 0 0 1 .5-.5zM0 10.5a.5.5 0 0 1 .5-.5h4A1.5 1.5 0 0 1 6 11.5v4a.5.5 0 0 1-1 0v-4a.5.5 0 0 0-.5-.5h-4a.5.5 0 0 1-.5-.5zm10 1a1.5 1.5 0 0 1 1.5-1.5h4a.5.5 0 0 1 0 1h-4a.5.5 0 0 0-.5.5v4a.5.5 0 0 1-1 0v-4z" />
-                    </svg>
-                </div>
+                <div small @click.stop="UI.fullscreen.value ? exitFullScreen() : reqFullscreen()"
+                    :vs-icon="UI.fullscreen.value ? 'exit-fullscreen' : 'fullscreen'"
+                />
             </div>
             
         </div>
 
         <div class="frame-mask" v-show="ui.about || ui.track || ui.playlist"
             @click="ui.about = ui.track = ui.playlist = false"
-        ></div>
+        />
 
         <div class="about frame" :display="ui.about">
             <h1>统计信息</h1>
@@ -730,36 +698,20 @@ import { regSelf } from '@/opener';
                     &[large]{
                         transform: scale(1.2);
 
-                        > svg{
-                            transform: scale(1.35);
+                        &::before{
+                            transform: scale(1.35) translateY(-5%);
                         }
                     }
-
-                    > svg{
-                        display: block;
-                        // width: 1.2rem;
-                        // height: 1.2rem;
-                        fill: currentColor;
-                        opacity: .7;
-                    // }
-
-                    // &[small] svg{
-                        width: 1rem;
-                        height: 1rem;
-                        // opacity: .4;
-                    }
-
-                    // &[large] svg{
-                    //     width: 1.5rem;
-                    //     height: 1.5rem;
-                    // }
 
                     &:hover{
-                        background-color: rgb(175 175 175 / 30%);
-                        
-                        svg{
-                            opacity: 1;
-                        }
+                        background-color: #ffffff30;
+                    }
+
+                    &::before{
+                        display: block;
+                        filter: invert(1) opacity(.6);
+                        width: 1rem;
+                        height: 1rem;
                     }
                 }
             }

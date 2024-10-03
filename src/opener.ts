@@ -211,7 +211,11 @@ export const OPENER:Array<OpenerOption> = [
             "mov",
             "m2ts",
             "ivf",
-            "wav"
+            "wav",
+            "h264",
+            "hevc",
+            "vvc",
+            "aac"
         ],
         async open(file) {
             createWindow({

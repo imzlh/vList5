@@ -224,36 +224,19 @@
         <div class="next" vs-icon="right" @click="next"></div>
         <div class="mask" v-show="ui.helper || ui.chapter" @click="ui.helper = ui.chapter = false"></div>
         <div class="helper" v-show="ui.helper">
-            <button @click="bookmark.push(endpos! / db!.length)" v-if="cached">
-                <svg viewBox="0 0 16 16">
-                    <path d="M2 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v13.5a.5.5 0 0 1-.777.416L8 13.101l-5.223 2.815A.5.5 0 0 1 2 15.5V2zm2-1a1 1 0 0 0-1 1v12.566l4.723-2.482a.5.5 0 0 1 .554 0L13 14.566V2a1 1 0 0 0-1-1H4z"/>
-                    <path d="M8 4a.5.5 0 0 1 .5.5V6H10a.5.5 0 0 1 0 1H8.5v1.5a.5.5 0 0 1-1 0V7H6a.5.5 0 0 1 0-1h1.5V4.5A.5.5 0 0 1 8 4z"/>
-                </svg>
+            <button @click="bookmark.push(endpos! / db!.length)" v-if="cached" vs-icon="bookmark">
                 <span>书签</span>
             </button>
-            <button :active="ui.goto" @click="ui.goto = !ui.goto" v-if="cached">
-                <svg viewBox="0 0 16 16">
-                    <path fill-rule="evenodd" d="M3.646 9.146a.5.5 0 0 1 .708 0L8 12.793l3.646-3.647a.5.5 0 0 1 .708.708l-4 4a.5.5 0 0 1-.708 0l-4-4a.5.5 0 0 1 0-.708zm0-2.292a.5.5 0 0 0 .708 0L8 3.207l3.646 3.647a.5.5 0 0 0 .708-.708l-4-4a.5.5 0 0 0-.708 0l-4 4a.5.5 0 0 0 0 .708z"/>
-                </svg>
+            <button :active="ui.goto" @click="ui.goto = !ui.goto" v-if="cached" vs-icon="goto">
                 <span>转到</span>
             </button>
-            <button @click="ui.chapter = !ui.chapter" v-if="cached">
-                <svg viewBox="0 0 16 16">
-                    <path fill-rule="evenodd" d="M2.5 12a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5zm0-4a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5zm0-4a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5z"/>
-                </svg>
+            <button @click="ui.chapter = !ui.chapter" v-if="cached" vs-icon="list">
                 <span>目录</span>
             </button>
-            <button @click="openSetting('TxtReader')">
-                <svg viewBox="0 0 16 16">
-                    <path d="M2.5 3.5a.5.5 0 0 1 0-1h11a.5.5 0 0 1 0 1h-11zm2-2a.5.5 0 0 1 0-1h7a.5.5 0 0 1 0 1h-7zM0 13a1.5 1.5 0 0 0 1.5 1.5h13A1.5 1.5 0 0 0 16 13V6a1.5 1.5 0 0 0-1.5-1.5h-13A1.5 1.5 0 0 0 0 6v7zm1.5.5A.5.5 0 0 1 1 13V6a.5.5 0 0 1 .5-.5h13a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-.5.5h-13z"/>
-                </svg>
+            <button @click="openSetting('TxtReader')" vs-icon="setting">
                 <span>设置</span>
             </button>
-            <button @click="fullscreen">
-                <svg viewBox="0 0 16 16">
-                    <path d="M0 3.5A1.5 1.5 0 0 1 1.5 2h13A1.5 1.5 0 0 1 16 3.5v9a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 0 12.5v-9zM1.5 3a.5.5 0 0 0-.5.5v9a.5.5 0 0 0 .5.5h13a.5.5 0 0 0 .5-.5v-9a.5.5 0 0 0-.5-.5h-13z"/>
-                    <path d="M2 4.5a.5.5 0 0 1 .5-.5h3a.5.5 0 0 1 0 1H3v2.5a.5.5 0 0 1-1 0v-3zm12 7a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1 0-1H13V8.5a.5.5 0 0 1 1 0v3z"/>
-                </svg>
+            <button @click="fullscreen" :vs-icon="UI.fullscreen.value ? 'exit-fulscreen' : 'fullscreen'">
                 <span>全屏</span>
             </button>
         </div>
@@ -362,12 +345,8 @@
                 background-color: transparent;
                 font-size: .7em;
 
-                > svg{
-                    fill: currentColor;
+                &::before{
                     width: 1.5em;
-                    height: 1.5em;
-                    display: block;
-                    margin: auto;
                 }
 
                 > span{

@@ -7,7 +7,6 @@ import type { AlertOpts, Command, CtxDispOpts, MessageOpinion, OpenerOption, Tab
 import { getOpenerId, OPENER, regSelf } from '@/opener';
 import { remove } from '@/module/message.vue';
 import { shallowReactive } from 'vue';
-import { _eval } from './eval';
 import * as vue from 'vue';
 
 const pool = {
@@ -67,15 +66,6 @@ window.addEventListener('load', () => plugin_data.forEach(item => importPlugin(i
 // @ts-ignore 全局变量clear_plugin
 globalThis.clear_plugin = () => plugin_data.splice(0, plugin_data.length);
 
-if(!('process' in globalThis)){
-    // @ts-ignore 全局变量process
-    globalThis.process = {
-        env: {
-            NODE_ENV: 'development'
-        }
-    }
-}
-
 // @ts-ignore 全局变量Vue
 globalThis.Vue = vue;
 
@@ -104,7 +94,16 @@ export async function importPlugin(data: vApplication){
     const resolve = (path: string) => new URL(path, baseURL).href;
 
     try{
-        await _eval(resolve(data.entry));
+        const text = await (await fetch(resolve(data.entry))).text();
+        await new Function(text, 'process').call(globalThis, {
+            __path: baseURL.href,
+            __meta: data,
+            resolve,
+            env: {
+                NODE_ENV: 'development',
+                ENTRY: resolve(data.entry)
+            }
+        });
     }catch(e){
         console.error(e);
         throw new Error('cannot import plugin entry');

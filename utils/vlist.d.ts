@@ -473,6 +473,43 @@ interface GlobalShared{
     'tree.loadPaths': (dir: string[]) => Promise<void>,
 }
 
+interface FakeProcess{
+    /**
+     * 当前进程的环境变量
+     */
+    env: Record<string, string> & {
+        NODE_ENV: 'production',
+        ENTRY: string
+    },
+
+    /**
+     * 当前进程的工作目录
+     */
+    __path: string,
+
+    /**
+     * 当前进程的元数据
+     */
+    __meta: Record<string, any>,
+
+    /**
+     * 分析一个路径，返回绝对路径
+     * @param path 路径
+     * @returns 绝对路径
+     */
+    resolve: (path: string) => string
+}
+
 declare global {
+    /**
+     * 获取vList的全局共享对象
+     * @param key 键名
+     */
     function _G<T extends keyof GlobalShared>(key: T): GlobalShared[T];
+
+    /**
+     * 获取应用的process信息
+     */
+    // @ts-ignore
+    const process: FakeProcess;
 }

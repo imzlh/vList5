@@ -85,6 +85,7 @@ export default async function create(el){
         "preLoadTime": 2
     });
 
+    let not_sync = false;
     const refs = reactive({
         url: '',
         playBackRate: 1,
@@ -133,6 +134,7 @@ export default async function create(el){
             nextFrame(){
                 refs.play = false;
                 player.playNextFrame();
+                not_sync = true;
             },
             resize(){
                 const size = el.getBoundingClientRect();
@@ -168,7 +170,14 @@ export default async function create(el){
     watch(() => refs.playBackRate, rate => player.setPlaybackRate(rate));
     watch(() => refs.loop, loop => player.setLoop(loop));
     watch(() => refs.volume, vol => player.setVolume(vol));
-    watch(() => refs.play, state => state ? player.play() : player.pause());
+    watch(() => refs.play, async state => {
+        if(not_sync) {
+            console.debug('avPlayer: not sync, seek to current time');
+            await player.seek(player.currentTime);
+            not_sync = false;
+        } 
+        state ? player.play() : player.pause();
+    });
     watch(() => refs.tracks.audioTrack, id => id && player.getSelectedAudioStreamId() != id && player.selectAudio(id));
     watch(() => refs.tracks.videoTrack, id => id > 0 && player.getSelectedVideoStreamId() != id && player.selectVideo(id));
     watch(() => refs.tracks.subTrack, id => id > 0 && player.getSelectedSubtitleStreamId() != id && player.selectSubtitle(id));

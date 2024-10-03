@@ -238,23 +238,11 @@
                         无结果
                     </span>
                     <!-- 上一个 -->
-                    <div @click="REPManager.last()">
-                        <svg fill="currentColor" class="bi bi-arrow-up" viewBox="0 0 16 16">
-                            <path fill-rule="evenodd" d="M8 15a.5.5 0 0 0 .5-.5V2.707l3.146 3.147a.5.5 0 0 0 .708-.708l-4-4a.5.5 0 0 0-.708 0l-4 4a.5.5 0 1 0 .708.708L7.5 2.707V14.5a.5.5 0 0 0 .5.5z"/>
-                        </svg>
-                    </div>
+                    <div @click="REPManager.last()" vs-icon="top" />
                     <!-- 下一个 -->
-                    <div @click="REPManager.next()">
-                        <svg fill="currentColor" viewBox="0 0 16 16">
-                            <path fill-rule="evenodd" d="M8 1a.5.5 0 0 1 .5.5v11.793l3.146-3.147a.5.5 0 0 1 .708.708l-4 4a.5.5 0 0 1-.708 0l-4-4a.5.5 0 0 1 .708-.708L7.5 13.293V1.5A.5.5 0 0 1 8 1z"/>
-                        </svg>
-                    </div>
+                    <div @click="REPManager.next()" vs-icon="bottom" />
                     <!-- 关闭 -->
-                    <div @click="CFG.search = CFG.replace = false">
-                        <svg fill="currentColor" viewBox="0 0 16 16">
-                            <path d="M2.146 2.854a.5.5 0 1 1 .708-.708L8 7.293l5.146-5.147a.5.5 0 0 1 .708.708L8.707 8l5.147 5.146a.5.5 0 0 1-.708.708L8 8.707l-5.146 5.147a.5.5 0 0 1-.708-.708L7.293 8 2.146 2.854Z"/>
-                        </svg>
-                    </div>
+                    <div @click="CFG.search = CFG.replace = false" vs-icon="x" />
                 </div>
                 <div v-show="CFG.replace" style="margin-top: .35rem; gap: .35rem">
                     <input type="text" placeholder="替换" v-model="CFG.replace_text">
@@ -265,51 +253,20 @@
         </div>
         <div class="md-action">
             <!-- 保存 -->
-            <div @click="save">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5">
-                    <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
-                    <polyline points="17 21 17 13 7 13 7 21" />
-                    <polyline points="7 3 7 8 15 8" />
-                </svg>
-            </div>
+            <div @click="save" vs-icon="save" />
             <!-- 重载 -->
-            <div @click="reload">
-                <svg fill="currentColor" viewBox="0 0 16 16">
-                    <path fill-rule="evenodd" d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2v1z"/>
-                    <path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466z"/>
-                </svg>
-            </div>
+            <div @click="reload" vs-icon="reload" />
             <!-- 菜单2 -->
             <span></span>
-            <div @click="muya?.undo()">
-                <svg fill="currentColor"  viewBox="0 0 16 16">
-                    <path fill-rule="evenodd" d="M14.5 1.5a.5.5 0 0 1 .5.5v4.8a2.5 2.5 0 0 1-2.5 2.5H2.707l3.347 3.346a.5.5 0 0 1-.708.708l-4.2-4.2a.5.5 0 0 1 0-.708l4-4a.5.5 0 1 1 .708.708L2.707 8.3H12.5A1.5 1.5 0 0 0 14 6.8V2a.5.5 0 0 1 .5-.5z"/>
-                </svg>
-            </div>
-            <div @click="muya?.redo()">
-                <svg fill="currentColor" viewBox="0 0 16 16">
-                    <path fill-rule="evenodd" d="M14.854 4.854a.5.5 0 0 0 0-.708l-4-4a.5.5 0 0 0-.708.708L13.293 4H3.5A2.5 2.5 0 0 0 1 6.5v8a.5.5 0 0 0 1 0v-8A1.5 1.5 0 0 1 3.5 5h9.793l-3.147 3.146a.5.5 0 0 0 .708.708l4-4z"/>
-                </svg>
-            </div>
+            <div @click="muya?.undo()" vs-icon="point-left" />
+            <div @click="muya?.redo()" vs-icon="point-right" />
             <!-- 搜索 -->
-            <div @click="CFG.search = !CFG.search,CFG.replace = false">
-                <svg fill="currentColor" viewBox="0 0 16 16">
-                    <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/>
-                </svg>
-            </div>
+            <div @click="CFG.search = !CFG.search,CFG.replace = false" vs-icon="search" />
             <!-- 替换 -->
-            <div @click="CFG.replace = !CFG.replace">
-                <svg fill="currentColor" viewBox="0 0 16 16">
-                    <path fill-rule="evenodd" d="M0 3.5A.5.5 0 0 1 .5 3H1c2.202 0 3.827 1.24 4.874 2.418.49.552.865 1.102 1.126 1.532.26-.43.636-.98 1.126-1.532C9.173 4.24 10.798 3 13 3v1c-1.798 0-3.173 1.01-4.126 2.082A9.624 9.624 0 0 0 7.556 8a9.624 9.624 0 0 0 1.317 1.918C9.828 10.99 11.204 12 13 12v1c-2.202 0-3.827-1.24-4.874-2.418A10.595 10.595 0 0 1 7 9.05c-.26.43-.636.98-1.126 1.532C4.827 11.76 3.202 13 1 13H.5a.5.5 0 0 1 0-1H1c1.798 0 3.173-1.01 4.126-2.082A9.624 9.624 0 0 0 6.444 8a9.624 9.624 0 0 0-1.317-1.918C4.172 5.01 2.796 4 1 4H.5a.5.5 0 0 1-.5-.5z"/>
-                    <path d="M13 5.466V1.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384l-2.36 1.966a.25.25 0 0 1-.41-.192zm0 9v-3.932a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384l-2.36 1.966a.25.25 0 0 1-.41-.192z"/>
-                </svg>
-            </div>
+            <div @click="CFG.replace = !CFG.replace" vs-icon="mix" />
             <!-- 添加 -->
             <div @click="CFG.upload = !CFG.upload" :active="CFG.upload">
-                <svg fill="currentColor" viewBox="0 0 16 16">
-                    <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
-                    <path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z"/>
-                </svg>
+                <i vs-icon="plus" />
 
                 <Upload :option="FS.stat(splitPath(input).dir)" class="after" :active="CFG.upload" @click.stop
                     @create="plug" @select="plug"
@@ -412,7 +369,7 @@
                 background-color: rgb(229 229 229);
             }
 
-            >svg {
+            [vs-icon] {
                 display: block;
                 height: 1rem;
                 width: 1rem;
@@ -443,6 +400,8 @@
 
             > div{
                 position: relative;
+                width: 1rem;
+                height: 1rem;
                 @include btn_div();
 
                 > div.after{
@@ -513,6 +472,8 @@
                     }
 
                     > div{
+                        width: 1rem;
+                        height: 1rem;
                         @include btn_div();
                     }
 

@@ -73,7 +73,7 @@
 			>
 				<img :src="data.icon" onerror="this.style.display = 'none';" class="icon">
 				<span>{{ data.name }}</span>
-				<i class="close" vs-icon="x" @click.stop="delete tabs[i];"></i>
+				<i class="close" button vs-icon="x" @click.stop="delete tabs[i];"></i>
 			</div>
 		</template>
 	</TransitionGroup>
@@ -193,7 +193,8 @@
 
 				position: absolute;
 				right: .35rem;
-				top: .5rem;
+				top: 50%;
+				transform: translateY(-50%);
 			}
 		}
 	}
