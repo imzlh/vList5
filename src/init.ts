@@ -133,7 +133,7 @@ document.documentElement.addEventListener('pointerleave', () => {
     dragEl.el.style.top = `${dragEl.ry}px`,
     dragEl = undefined;
     document.documentElement.style.cursor = 'default';
-})
+});
 
 // 挂载应用
 const app = createApp(App);
@@ -165,6 +165,13 @@ app.directive('drag', {
         }));
     }
 });
+
+// v-colorscale
+import { toFilter } from './utils/colorScale';
+app.directive('colorscale', (el, binding) => 
+    // @ts-ignore
+    el.style.setProperty('--vs-colorscale', toFilter(...binding.value))
+);
 
 // OPTIONAL vWebView
 import { vWebView } from  './utils/webview';

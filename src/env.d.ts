@@ -639,3 +639,38 @@ interface vApplication{
      */
     home: string
 }
+
+// ---------- directive ----------
+
+declare module 'vue' {
+    /**
+     * vList预定义指令
+     */
+    interface ComponentCustomProperties {
+        /**
+         * 适用于vs-icon的颜色变换，用于将黑色图标转换颜色值
+         */
+        colorscale: Directive<HTMLElement, [number, number, number]>,
+        
+        /**
+         * 将iframe插入到指定元素中
+         */
+        webview: Directive<HTMLElement, string, {
+            'right-bottom'?: boolean,
+            'left-bottom'?: boolean,
+            'left-top'?: boolean
+        }>,
+
+        /**
+         * 将触摸抽象为pointer
+         */
+        touch: Directive<HTMLElement, any, {
+            prevent?: boolean,
+        }>,
+
+        /**
+         * 允许将元素拖动，默认为拖动父元素
+         */
+        drag: Directive<HTMLElement, any>
+    }
+}

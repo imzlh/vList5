@@ -39,7 +39,12 @@
         }), current = computed(() => CFG.playlist[CFG.currentID]),
         audio = new Audio(data.url),
         lrc_elem = ref<Array<HTMLElement>>([]),
-        ev = defineEmits(['show']);
+        ev = defineEmits(['show']),
+        getIcon = computed(() => ({
+            "all": "point-right",
+            "one": "loop",
+            "random": "random"
+        })[CFG.loop]);
 
     audio.preload = 'none';
 
@@ -486,51 +491,23 @@
                 </div>
                 <div class="btns">
                     <!--音量-->
-                    <div tabindex="-1" class="volume-c" size="small">
-                        <svg viewBox="0 0 16 16" fill="currentColor">
-                            <path
-                                d="M9 4a.5.5 0 0 0-.812-.39L5.825 5.5H3.5A.5.5 0 0 0 3 6v4a.5.5 0 0 0 .5.5h2.325l2.363 1.89A.5.5 0 0 0 9 12V4zm3.025 4a4.486 4.486 0 0 1-1.318 3.182L10 10.475A3.489 3.489 0 0 0 11.025 8 3.49 3.49 0 0 0 10 5.525l.707-.707A4.486 4.486 0 0 1 12.025 8z" />
-                        </svg>
+                    <div tabindex="-1" class="volume-c" size="small" vs-icon="volume" button="small" invert>
                         <div class="after volume"
                             @click.stop.prevent="audio.volume = $event.offsetX / ($event.currentTarget as HTMLElement).clientWidth">
                             <div :style="{ width: CFG.volume * 100 + '%' }"></div>
                         </div>
                     </div>
                     <!--上一个-->
-                    <div @click.stop="CFG.currentID--">
-                        <svg viewBox="0 0 16 16" fill="currentColor">
-                            <path
-                                d="M4 4a.5.5 0 0 1 1 0v3.248l6.267-3.636c.54-.313 1.232.066 1.232.696v7.384c0 .63-.692 1.01-1.232.697L5 8.753V12a.5.5 0 0 1-1 0V4z" />
-                        </svg>
-                    </div>
+                    <div @click.stop="CFG.currentID--" vs-icon="prev" invert button />
                     <!--播放/暂停-->
-                    <div size="large" @click.stop="audio.paused ? audio.play() : audio.pause()">
-                        <svg viewBox="0 0 16 16" fill="currentColor" v-show="!CFG.playing">
-                            <path
-                                d="m11.596 8.697-6.363 3.692c-.54.313-1.233-.066-1.233-.697V4.308c0-.63.692-1.01 1.233-.696l6.363 3.692a.802.802 0 0 1 0 1.393z" />
-                        </svg>
-                        <svg viewBox="0 0 16 16" fill="currentColor" v-show="CFG.playing">
-                            <path
-                                d="M5.5 3.5A1.5 1.5 0 0 1 7 5v6a1.5 1.5 0 0 1-3 0V5a1.5 1.5 0 0 1 1.5-1.5zm5 0A1.5 1.5 0 0 1 12 5v6a1.5 1.5 0 0 1-3 0V5a1.5 1.5 0 0 1 1.5-1.5z" />
-                        </svg>
-
-                    </div>
+                    <div size="large"
+                        @click.stop="audio.paused ? audio.play() : audio.pause()" 
+                        :vs-icon="audio.paused ? 'play' : 'pause'" invert button="large"
+                    />
                     <!--下一个-->
-                    <div @click.stop="CFG.currentID++">
-                        <svg viewBox="0 0 16 16" fill="currentColor">
-                            <path
-                                d="M12.5 4a.5.5 0 0 0-1 0v3.248L5.233 3.612C4.693 3.3 4 3.678 4 4.308v7.384c0 .63.692 1.01 1.233.697L11.5 8.753V12a.5.5 0 0 0 1 0V4z" />
-                        </svg>
-                    </div>
+                    <div @click.stop="CFG.currentID++" vs-icon="next" invert button />
                     <!-- 侧栏 -->
-                    <div size="small" @click="CFG.show_playlist = true">
-                        <svg viewBox="0 0 16 16" fill="currentColor">
-                            <path d="M12 13c0 1.105-1.12 2-2.5 2S7 14.105 7 13s1.12-2 2.5-2 2.5.895 2.5 2z"/>
-                            <path fill-rule="evenodd" d="M12 3v10h-1V3h1z"/>
-                            <path d="M11 2.82a1 1 0 0 1 .804-.98l3-.6A1 1 0 0 1 16 2.22V4l-5 1V2.82z"/>
-                            <path fill-rule="evenodd" d="M0 11.5a.5.5 0 0 1 .5-.5H4a.5.5 0 0 1 0 1H.5a.5.5 0 0 1-.5-.5zm0-4A.5.5 0 0 1 .5 7H8a.5.5 0 0 1 0 1H.5a.5.5 0 0 1-.5-.5zm0-4A.5.5 0 0 1 .5 3H8a.5.5 0 0 1 0 1H.5a.5.5 0 0 1-.5-.5z"/>
-                        </svg>
-                    </div>
+                    <div size="small" @click="CFG.show_playlist = true" vs-icon="music-list" invert button="small" />
                 </div>
             </div>
             <div class="right" v-if="CFG.lrc.length">
@@ -545,20 +522,7 @@
             <h1>
                 播放列表
                 <!-- 循环模式 -->
-                <div @click="switchMode">
-                    <svg viewBox="0 0 16 16" fill="currentColor" v-show="CFG.loop == 'random'">
-                        <path fill-rule="evenodd" d="M0 3.5A.5.5 0 0 1 .5 3H1c2.202 0 3.827 1.24 4.874 2.418.49.552.865 1.102 1.126 1.532.26-.43.636-.98 1.126-1.532C9.173 4.24 10.798 3 13 3v1c-1.798 0-3.173 1.01-4.126 2.082A9.624 9.624 0 0 0 7.556 8a9.624 9.624 0 0 0 1.317 1.918C9.828 10.99 11.204 12 13 12v1c-2.202 0-3.827-1.24-4.874-2.418A10.595 10.595 0 0 1 7 9.05c-.26.43-.636.98-1.126 1.532C4.827 11.76 3.202 13 1 13H.5a.5.5 0 0 1 0-1H1c1.798 0 3.173-1.01 4.126-2.082A9.624 9.624 0 0 0 6.444 8a9.624 9.624 0 0 0-1.317-1.918C4.172 5.01 2.796 4 1 4H.5a.5.5 0 0 1-.5-.5z"/>
-                        <path d="M13 5.466V1.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384l-2.36 1.966a.25.25 0 0 1-.41-.192zm0 9v-3.932a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384l-2.36 1.966a.25.25 0 0 1-.41-.192z"/>
-                    </svg>
-                    <svg viewBox="0 0 16 16" fill="currentColor" v-show="CFG.loop == 'all'">
-                        <path fill-rule="evenodd"
-                            d="M4.5 11.5A.5.5 0 0 1 5 11h10a.5.5 0 0 1 0 1H5a.5.5 0 0 1-.5-.5zm-2-4A.5.5 0 0 1 3 7h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5zm-2-4A.5.5 0 0 1 1 3h10a.5.5 0 0 1 0 1H1a.5.5 0 0 1-.5-.5z" />
-                    </svg>
-                    <svg viewBox="0 0 16 16" fill="currentColor" v-show="CFG.loop == 'one'">
-                        <path d="M11.534 7h3.932a.25.25 0 0 1 .192.41l-1.966 2.36a.25.25 0 0 1-.384 0l-1.966-2.36a.25.25 0 0 1 .192-.41zm-11 2h3.932a.25.25 0 0 0 .192-.41L2.692 6.23a.25.25 0 0 0-.384 0L.342 8.59A.25.25 0 0 0 .534 9z"/>
-                        <path fill-rule="evenodd" d="M8 3c-1.552 0-2.94.707-3.857 1.818a.5.5 0 1 1-.771-.636A6.002 6.002 0 0 1 13.917 7H12.9A5.002 5.002 0 0 0 8 3zM3.1 9a5.002 5.002 0 0 0 8.757 2.182.5.5 0 1 1 .771.636A6.002 6.002 0 0 1 2.083 9H3.1z"/>
-                    </svg>
-                </div>
+                <div @click="switchMode" :vs-icon="getIcon" button />
             </h1>
             <div v-for="(item,id) in CFG.playlist" :active="id == CFG.currentID" :style="{
                     '--backdrop': item.cover ? `url(${item.cover})` : 'gray'
@@ -640,70 +604,17 @@
 
                 > .btns{
                     display: flex;
+                    gap: .35rem;
                     justify-content: center;
                     align-items: center;
                     color: rgba(255, 255, 255, 0.6);
+                    font-size: 1.25rem;
 
-                    > div{
-                        padding: .2rem;
-                        margin: 0 .25rem;
-                        border-radius: .3rem;
-                        transition: all .2s;
+                    > div.volume-c{
                         position: relative;
+                        overflow: hidden;
 
-                        > svg{
-                            width: 1.6rem;
-                            height: 1.6rem;
-                            display: block;
-                        }
-
-                        &:hover{
-                            background-color: rgba(193, 186, 186, 0.2);
-                        }
-
-                        &:not([btn-after]):active{
-                            transform: scale(.9);
-                        }
-
-                        &[size=small]{
-                            padding: .15rem;
-                            border-radius: .2rem;
-                            height: 1.2rem;
-                            width: 1.2rem;
-                            transition: all .2s;
-                            overflow: hidden;
-
-                            > svg{
-                                width: 1.2rem;
-                                height: 1.2rem;
-                                opacity: .4;
-                            }
-
-                            &:hover svg{
-                                opacity: .8;
-                            }
-
-                            &[active=true]{
-                                overflow: visible;
-
-                                > svg{
-                                    opacity: 1;
-                                }
-                            }
-                        }
-
-                        &[size=large]{
-                            padding: .25rem;
-                            margin: 0 .25rem;
-                            border-radius: .4rem;
-
-                            > svg{
-                                width: 2rem;
-                                height: 2rem;
-                            }
-                        }
-
-                        &.volume-c:focus{
+                        &:focus{
                             overflow: visible;
                             transition: none;
                             transform: none;

@@ -233,34 +233,13 @@
         <div class="selection">
             <!-- 上一页 -->
             <div class="icon" data-action="history-back" :disable="current == trace.length -1"
-                @click="current ++"
-            >
-                <svg viewBox="0 0 448 512">
-                    <path fill="currentColor"
-                        d="M9.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.2 288 416 288c17.7 0 32-14.3 32-32s-14.3-32-32-32l-306.7 0L214.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z">
-                    </path>
-                </svg>
-            </div>
+                @click="current ++" vs-icon="left" />
             <!-- 下一页 -->
             <div class="icon" data-action="history-resume" :disable="current == 0"
-                @click="current --"
-            >
-                <svg viewBox="0 0 448 512">
-                    <path fill="currentColor"
-                        d="M438.6 278.6c12.5-12.5 12.5-32.8 0-45.3l-160-160c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3L338.8 224 32 224c-17.7 0-32 14.3-32 32s14.3 32 32 32l306.7 0L233.4 393.4c-12.5 12.5-12.5 32.8 0 45.3s32.8 12.5 45.3 0l160-160z">
-                    </path>
-                </svg>
-            </div>
+                @click="current --" vs-icon="right" />
             <!-- 文件夹返回 -->
             <div class="icon" data-action="file-back" :disable="CFG.parent.path == '/'"
-                @click="goto(splitPath(CFG.parent).dir)"
-            >
-                <svg viewBox="0 0 384 512">
-                    <path fill="currentColor"
-                        d="M214.6 41.4c-12.5-12.5-32.8-12.5-45.3 0l-160 160c-12.5 12.5-12.5 32.8 0 45.3s32.8 12.5 45.3 0L160 141.2V448c0 17.7 14.3 32 32 32s32-14.3 32-32V141.2L329.4 246.6c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3l-160-160z">
-                    </path>
-                </svg>
-            </div>
+                @click="goto(splitPath(CFG.parent).dir)" vs-icon="point-up" />
             <!-- 路径 -->
             <div class="path" data-mode="normal" :style="{
                 width: CFG.input_size + 'px'
@@ -280,10 +259,7 @@
             <!-- 搜索 -->
             <div class="search" :style="{
                 width: search_size + 'px'
-            }">
-                <svg fill="currentColor" viewBox="0 0 16 16">
-                    <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/>
-                </svg>
+            }" vs-icon="search">
                 <input type="text" placeholder="支持正则的筛选" class="search-input">
             </div>
         </div>
@@ -475,7 +451,7 @@
                     background-color: rgba(0, 178, 255, .16);
                 }
 
-                >svg {
+                &::before {
                     display: block;
                     width: .9rem;
                     height: .9rem;

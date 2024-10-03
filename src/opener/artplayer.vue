@@ -68,11 +68,7 @@
                 "selector": [{
                     html: '启用字幕',
                     tooltip: '已启用',
-                    icon: `<i class="art-icon">
-                                <svg width="22" height="22" viewBox="0 0 16 16">
-                                    <path fill-rule="evenodd" d="M0 .5A.5.5 0 0 1 .5 0h4a.5.5 0 0 1 0 1h-4A.5.5 0 0 1 0 .5Zm0 2A.5.5 0 0 1 .5 2h7a.5.5 0 0 1 0 1h-7a.5.5 0 0 1-.5-.5Zm9 0a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5Zm-9 2A.5.5 0 0 1 .5 4h3a.5.5 0 0 1 0 1h-3a.5.5 0 0 1-.5-.5Zm5 0a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5Zm7 0a.5.5 0 0 1 .5-.5h3a.5.5 0 0 1 0 1h-3a.5.5 0 0 1-.5-.5Zm-12 2A.5.5 0 0 1 .5 6h6a.5.5 0 0 1 0 1h-6a.5.5 0 0 1-.5-.5Zm8 0a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5Zm-8 2A.5.5 0 0 1 .5 8h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5Zm7 0a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 0 1h-7a.5.5 0 0 1-.5-.5Zm-7 2a.5.5 0 0 1 .5-.5h8a.5.5 0 0 1 0 1h-8a.5.5 0 0 1-.5-.5Zm0 2a.5.5 0 0 1 .5-.5h4a.5.5 0 0 1 0 1h-4a.5.5 0 0 1-.5-.5Zm0 2a.5.5 0 0 1 .5-.5h2a.5.5 0 0 1 0 1h-2a.5.5 0 0 1-.5-.5Z"/>
-                                </svg>
-                            </i>`,
+                    icon: `<i class="art-icon" vs-icon="text" invert />`,
                     switch: true,
                     onSwitch: function (item:Record<string,any>) {
                         item.tooltip = item.switch ? '已关闭' : '已启用';
@@ -199,45 +195,28 @@
                     name: 'last',
                     index: 5,
                     position: 'left',
-                    html: `<i class="art-icon">
-                                <svg width="22" height="22" viewBox="0 0 16 16">
-                                    <path d="M4 4a.5.5 0 0 1 1 0v3.248l6.267-3.636c.54-.313 1.232.066 1.232.696v7.384c0 .63-.692 1.01-1.232.697L5 8.753V12a.5.5 0 0 1-1 0V4z"/>
-                                </svg>
-                            </i>`,
+                    html: `<i class="art-icon" vs-icon="prev" invert />`,
                     tooltip: '上一个视频',
                     click: () => control.last()
                 }, {
                     name: 'forward',
                     index: 15,
                     position: 'left',
-                    html: `<i class="art-icon">
-                                <svg width="22" height="22" viewBox="0 0 16 16">
-                                    <path d="M7.596 7.304a.802.802 0 0 1 0 1.392l-6.363 3.692C.713 12.69 0 12.345 0 11.692V4.308c0-.653.713-.998 1.233-.696l6.363 3.692Z"/>
-                                    <path d="M15.596 7.304a.802.802 0 0 1 0 1.392l-6.363 3.692C8.713 12.69 8 12.345 8 11.692V4.308c0-.653.713-.998 1.233-.696l6.363 3.692Z"/>
-                                    </svg>
-                            </i>`,
-                    tooltip: '快进 ' + CONFIG.seek_time + 's',
+                    html: `<i class="art-icon" vs-icon="forward" invert />`,
+                    tooltip: '快进 ' + CONFIG.seek_time.value + 's',
                     click: () => art && (art.forward = CONFIG.seek_time.value)
                 }, {
                     name: 'backward',
                     index: 8,
                     position: 'left',
-                    html: `<i class="art-icon">
-                                <svg viewBox="0 0 20 20" width="22" height="22">
-                                    <path d="M7.712 4.819A1.5 1.5 0 0110 6.095v2.973c.104-.131.234-.248.389-.344l6.323-3.905A1.5 1.5 0 0119 6.095v7.81a1.5 1.5 0 01-2.288 1.277l-6.323-3.905a1.505 1.505 0 01-.389-.344v2.973a1.5 1.5 0 01-2.288 1.276l-6.323-3.905a1.5 1.5 0 010-2.553L7.712 4.82z"></path>
-                                </svg>
-                            </i>`,
+                    html: `<i class="art-icon" vs-icon="backward" invert />`,
                     tooltip: '快退 ' + CONFIG.seek_time + 's',
                     click: () => art && (art.backward = CONFIG.seek_time.value)
                 }, {
                     name: 'next',
                     index: 20,
                     position: 'left',
-                    html: `<i class="art-icon">
-                                <svg width="22" height="22" viewBox="0 0 16 16">
-                                    <path d="M12.5 4a.5.5 0 0 0-1 0v3.248L5.233 3.612C4.693 3.3 4 3.678 4 4.308v7.384c0 .63.692 1.01 1.233.697L11.5 8.753V12a.5.5 0 0 0 1 0V4z"/>
-                                </svg>
-                            </i>`,
+                    html: `<i class="art-icon" vs-icon="next" invert />`,
                     tooltip: '下一个视频',
                     click: () => control.next()
                 }
@@ -247,11 +226,7 @@
                     html: '字幕',
                     name: 'subtitle',
                     tooltip: '选取当前字幕',
-                    icon: `<i class="art-icon">
-                                <svg width="22" height="22" viewBox="0 0 16 16">
-                                    <path fill-rule="evenodd" d="M4.5 11.5A.5.5 0 0 1 5 11h10a.5.5 0 0 1 0 1H5a.5.5 0 0 1-.5-.5zm-2-4A.5.5 0 0 1 3 7h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5zm-2-4A.5.5 0 0 1 1 3h10a.5.5 0 0 1 0 1H1a.5.5 0 0 1-.5-.5z"/>
-                                </svg>
-                            </i>`,
+                    icon: `<i class="art-icon" vs-icon="text" invert />`,
                     selector: [],
                     onSelect: function (item) {
                         if (item.url){
@@ -265,12 +240,7 @@
                     name: 'playlists',
                     width: 250,
                     tooltip: '选择播放的视频',
-                    icon: ` <i class="art-icon">
-                                <svg width="22" height="22"  viewBox="0 0 16 16">
-                                    <path d="M2.678 11.894a1 1 0 0 1 .287.801 10.97 10.97 0 0 1-.398 2c1.395-.323 2.247-.697 2.634-.893a1 1 0 0 1 .71-.074A8.06 8.06 0 0 0 8 14c3.996 0 7-2.807 7-6 0-3.192-3.004-6-7-6S1 4.808 1 8c0 1.468.617 2.83 1.678 3.894zm-.493 3.905a21.682 21.682 0 0 1-.713.129c-.2.032-.352-.176-.273-.362a9.68 9.68 0 0 0 .244-.637l.003-.01c.248-.72.45-1.548.524-2.319C.743 11.37 0 9.76 0 8c0-3.866 3.582-7 8-7s8 3.134 8 7-3.582 7-8 7a9.06 9.06 0 0 1-2.347-.306c-.52.263-1.639.742-3.468 1.105z"/>
-                                    <path d="M4 5.5a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 0 1h-7a.5.5 0 0 1-.5-.5zM4 8a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 0 1h-7A.5.5 0 0 1 4 8zm0 2.5a.5.5 0 0 1 .5-.5h4a.5.5 0 0 1 0 1h-4a.5.5 0 0 1-.5-.5z"/>
-                                </svg>        
-                            </i>`,
+                    icon: ` <i class="art-icon" vs-icon="list" invert />`,
                     selector: [],
                     onSelect: function (item) {
                         if (item.url == undefined)
@@ -280,12 +250,7 @@
                 },{
                     html: '循环播放',
                     tooltip: '此视频循环播放',
-                    icon: `<i class="art-icon">
-                                <svg width="22" height="22" viewBox="0 0 16 16">
-                                    <path d="M11.534 7h3.932a.25.25 0 0 1 .192.41l-1.966 2.36a.25.25 0 0 1-.384 0l-1.966-2.36a.25.25 0 0 1 .192-.41zm-11 2h3.932a.25.25 0 0 0 .192-.41L2.692 6.23a.25.25 0 0 0-.384 0L.342 8.59A.25.25 0 0 0 .534 9z"/>
-                                    <path fill-rule="evenodd" d="M8 3c-1.552 0-2.94.707-3.857 1.818a.5.5 0 1 1-.771-.636A6.002 6.002 0 0 1 13.917 7H12.9A5.002 5.002 0 0 0 8 3zM3.1 9a5.002 5.002 0 0 0 8.757 2.182.5.5 0 1 1 .771.636A6.002 6.002 0 0 1 2.083 9H3.1z"/>
-                                </svg>
-                            </i>`,
+                    icon: `<i class="art-icon" vs-icon="loop" invert />`,
                     switch: false,
                     onSwitch: item => control.loop = !item.switch
                 }
@@ -329,5 +294,8 @@
         background-color: #3f3f3f;
         position: sticky;
         top: 0;
+    }
+    .art-icon[vs-icon]::before{
+        transform: scale(1.5);
     }
 </style>

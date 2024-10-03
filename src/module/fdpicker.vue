@@ -1,7 +1,7 @@
 <script lang="ts">
     import type { FileOrDir, vDir, vFile } from '@/env';
     import { contextMenu, FS, openFile} from '@/utils';
-    import { reactive, ref, shallowRef, watch } from 'vue';
+    import { computed, reactive, ref, shallowRef, watch } from 'vue';
     import List from './list.vue';
     import type { CtxDispOpts } from '@/env';
     import I_LIST from '/icon/viewinfo.webp';
@@ -10,16 +10,19 @@
     const data = reactive({
         display: false,
         history: [] as Array<string>,
-        data: shallowRef<vDir>(),
+        data: undefined as vDir | undefined,
         current: -1,
         showPath: false,
-        path: '',
         displaymode: 'list',
         type: 'file',
         layout: {
             table: [60, 20, 20],
             orderBy: 'name' as 'name' | 'name_rev' | 'date' | 'date_rev' | 'size' | 'size_rev'
         }
+    }),
+    path = computed({
+        get: () => data.history[data.current],
+        set: v => data.current = data.history.push(v) -1
     });
 
     let resolver:undefined|Function;
@@ -28,16 +31,12 @@
     export function show(f: string, filter: 'file'): Promise<vFile[]>;
     export function show(f: string, filter: undefined): Promise<FileOrDir[]>;
     export function show(f: string, filter: 'dir' | 'file' | undefined) {
+        f ||= '/';
         return new Promise(rs => {
             data.history = [f],data.current = 0,data.display = true;
             data.type = filter || 'all';
             resolver = rs;
         });
-    }
-
-    async function switchTo(dir:string){
-        data.data = await FS.loadPath(dir);
-        data.current = data.history.push(dir) -1;
     }
 
     function dirBack(){
@@ -49,16 +48,17 @@
         // 没有上一级
         if(pos == -1) return false;
         // 切换
-        return switchTo(dir.substring(0,pos));
+        return path.value = dir.substring(0,pos);
     }
 
-    function getPath(){
+    const getPath = computed(() => {
         let prefix = '/';
-        return ([{path: '/', name: '根目录'}] as Array<any>).concat(data.path.split('/').map(item => item ? {
+        if(!path.value) return [];
+        return ([{path: '/', name: '根目录'}] as Array<any>).concat(path.value.split('/').map(item => item ? {
             path: prefix += item + '/',
             name: item
         } : null));
-    }
+    });
 
     function submit(){
         resolver && resolver([...data.data!.active.keys()]);
@@ -72,7 +72,7 @@
             content: [
                 {
                     "text": '打开',
-                    "handle": () => item.type == 'dir' ? switchTo(item.path) : openFile(item)
+                    "handle": () => item.type == 'dir' ? (path.value = item.path) : openFile(item)
                 },{
                     "text": "显示为",
                     "child": [
@@ -114,10 +114,7 @@
         } satisfies CtxDispOpts);
     }
 
-    watch(() => data.history[data.current],v =>{ v &&
-        FS.loadPath(v).then(_ => data.data = _);
-        data.path = v || '/';
-    });
+    watch(path, v => v && FS.loadPath(v).then(_ => data.data = _));
 </script>
 
 <script lang="ts" setup>
@@ -129,29 +126,11 @@
         <div class="head">
             <div class="flex">
                 <!-- 上一页 -->
-                <div class="icon" data-action="history-back" :disabled="_.current == 0" @click="_.current --">
-                    <svg viewBox="0 0 448 512">
-                        <path fill="currentColor"
-                            d="M9.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.2 288 416 288c17.7 0 32-14.3 32-32s-14.3-32-32-32l-306.7 0L214.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z">
-                        </path>
-                    </svg>
-                </div>
+                <div class="icon" data-action="history-back" :disabled="_.current == 0" @click="_.current --" vs-icon="left" button />
                 <!-- 下一页 -->
-                <div class="icon" data-action="history-resume" :disabled="_.current == _.history.length -1" @click="_.current ++">
-                    <svg viewBox="0 0 448 512">
-                        <path fill="currentColor"
-                            d="M438.6 278.6c12.5-12.5 12.5-32.8 0-45.3l-160-160c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3L338.8 224 32 224c-17.7 0-32 14.3-32 32s14.3 32 32 32l306.7 0L233.4 393.4c-12.5 12.5-12.5 32.8 0 45.3s32.8 12.5 45.3 0l160-160z">
-                        </path>
-                    </svg>
-                </div>
+                <div class="icon" data-action="history-resume" :disabled="_.current == _.history.length -1" @click="_.current ++" button vs-icon="right" />
                 <!-- 文件夹返回 -->
-                <div class="icon" data-action="file-back" @click="dirBack">
-                    <svg viewBox="0 0 384 512">
-                        <path fill="currentColor"
-                            d="M214.6 41.4c-12.5-12.5-32.8-12.5-45.3 0l-160 160c-12.5 12.5-12.5 32.8 0 45.3s32.8 12.5 45.3 0L160 141.2V448c0 17.7 14.3 32 32 32s32-14.3 32-32V141.2L329.4 246.6c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3l-160-160z">
-                        </path>
-                    </svg>
-                </div>
+                <div class="icon" data-action="file-back" @click="dirBack" vs-icon="point-up" button />
                 <div class="title">
                     选择文件
                 </div>
@@ -164,14 +143,14 @@
             <!-- 路径 -->
             <div class="path">
                 <!-- 路径输入 -->
-                <input type="text" v-if="_.showPath" :value="_.path" >
+                <input type="text" v-if="_.showPath" :value="path" >
                 <!-- 路径分层 -->
                 <div class="bread" v-else
                     @click="_.showPath = true" @blur="_.showPath = false"
                     tabindex="-11"
                 >
-                    <template v-for="item of getPath()">
-                        <div @click.stop="switchTo(item.path)" v-if="item">
+                    <template v-for="item of getPath">
+                        <div @click.stop="path = item.path" v-if="item">
                             {{ item.name }}
                         </div>
                     </template>
@@ -182,7 +161,7 @@
         <div v-if="_.data" style="padding-top: 4rem;box-sizing: border-box;height: 100%">
             <List :dir="_.data" :layout="_.layout"
                 @ctxmenu="ctxmenu"
-                @open="(file:FileOrDir) => file.type == 'dir' ? switchTo(file.path) : submit()"
+                @open="(file:FileOrDir) => file.type == 'dir' ? (path = file.path) : submit()"
             ></List>
         </div>
     </div>
@@ -249,11 +228,9 @@
                     }
                 }
 
-                svg{
-                    fill: currentColor;
+                [vs-icon]::before{
                     width: 1rem;
                     height: 1rem;
-                    margin: 0 .2rem;
                 }
 
                 > button{
