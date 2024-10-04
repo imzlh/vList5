@@ -17,7 +17,7 @@ import AV1_WASM from 'libmedia/dist/decode/av1-simd.wasm?url';
 import OPUS_WASM from 'libmedia/dist/decode/opus-simd.wasm?url';
 import FLAC_WASM from 'libmedia/dist/decode/flac-simd.wasm?url';
 import OGG_WASM from 'libmedia/dist/decode/vorbis-simd.wasm?url';
-import AC3_WASM from 'libmedia/dist/decode/vorbis-simd.wasm?url';
+import AC3_WASM from 'libmedia/dist/decode/ac3-simd.wasm?url';
 import EAC3_WASM from 'libmedia/dist/decode/eac3-simd.wasm?url';
 import DTS_WASM from 'libmedia/dist/decode/dca-simd.wasm?url';
 import VP9_WASM from 'libmedia/dist/decode/vp9-simd.wasm?url';

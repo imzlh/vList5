@@ -3,7 +3,7 @@
     import createAV, { AVState, type Export } from './avplayer/avplayer';
     import type { MessageOpinion, vFile } from '@/env';
     import { contextMenu, reqFullscreen, UI } from '@/App.vue';
-    import { acceptDrag, FS, message, splitPath } from '@/utils';
+    import { acceptDrag, clipFName, FS, message, splitPath } from '@/utils';
     import MediaSession, { updateMediaSession } from '@/opener/media/mediaSession';
     import { regSelf } from '@/opener';
 
@@ -191,6 +191,7 @@
 
     onUnmounted(regSelf('avPlayer', CTRL.play));
 
+    const ICON_CHECK = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxNiAxNiI+CiAgPHBhdGggZD0iTTEyLjczNiAzLjk3YS43MzMuNzMzIDAgMCAxIDEuMDQ3IDBjLjI4Ni4yODkuMjkuNzU2LjAxIDEuMDVMNy44OCAxMi4wMWEuNzMzLjczMyAwIDAgMS0xLjA2NS4wMkwzLjIxNyA4LjM4NGEuNzU3Ljc1NyAwIDAgMSAwLTEuMDYuNzMzLjczMyAwIDAgMSAxLjA0NyAwbDMuMDUyIDMuMDkzIDUuNC02LjQyNWEuMjQ3LjI0NyAwIDAgMSAuMDItLjAyMloiLz4KPC9zdmc+';
     function ctxmenu(e: MouseEvent){
         contextMenu({
             'pos_x': e.clientX,
@@ -201,16 +202,31 @@
                     "child": [.5, .75, 1, 1.25, 1.5, 2, 3, 4, 8].map(val => ({
                         "text": val + 'x',
                         handle: () => player.value!.playBackRate = val,
-                        "icon": val == player.value?.playBackRate
-                            ? 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxNiAxNiI+CiAgPHBhdGggZD0iTTEyLjczNiAzLjk3YS43MzMuNzMzIDAgMCAxIDEuMDQ3IDBjLjI4Ni4yODkuMjkuNzU2LjAxIDEuMDVMNy44OCAxMi4wMWEuNzMzLjczMyAwIDAgMS0xLjA2NS4wMkwzLjIxNyA4LjM4NGEuNzU3Ljc1NyAwIDAgMSAwLTEuMDYuNzMzLjczMyAwIDAgMSAxLjA0NyAwbDMuMDUyIDMuMDkzIDUuNC02LjQyNWEuMjQ3LjI0NyAwIDAgMSAuMDItLjAyMloiLz4KPC9zdmc+'
-                            : undefined
+                        "icon": val == player.value?.playBackRate ? ICON_CHECK : undefined
                     }))
                 },{
                     "text": "播放列表",
-                    handle: () => ui.playlist = true
+                    "child": ui.videos.map((item, i) => ({
+                        "text": clipFName(item, 20),
+                        "icon": ui.videoID == i ? ICON_CHECK : undefined,
+                        handle: () => ui.videoID = i
+                    }))
                 },{
-                    "text": "轨道选择",
-                    handle: () => ui.track = true
+                    "text": "音轨",
+                    "child" : player.value?.tracks.audio.map((item, i) => ({
+                        "text": item.metadata.languageString || i.toString(),
+                        "icon": player.value?.tracks.audioTrack == i ? ICON_CHECK : undefined,
+                        handle: () => player.value!.tracks.audioTrack = i
+                    }))
+                }, {
+                    "text": "字幕",
+                    "child" : player.value?.tracks.subtitle.length 
+                        ? player.value.tracks.subtitle.map((item, i) => ({
+                            "text": item.metadata.languageString || i.toString(),
+                            "icon": player.value?.tracks.subTrack == i ? ICON_CHECK : undefined,
+                            handle: () => player.value!.tracks.subTrack = i
+                        }))
+                        : [{ text: '空' }]
                 },{
                     "text": "截图",
                     "child": [
