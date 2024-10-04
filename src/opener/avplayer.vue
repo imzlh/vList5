@@ -353,7 +353,7 @@
                 <div @click.stop="CTRL.prev()" vs-icon="prev"/>
 
                 <!-- 播放暂停 -->
-                <div large @click.stop="player.play = !player.play"
+                <div @click.stop="player.play = !player.play"
                     :vs-icon="player.play ? 'pause' : 'play'"
                 />
 
