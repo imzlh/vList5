@@ -55,7 +55,10 @@
     function active(){
         ui.tool = true;
         if(timer) clearTimeout(timer);
-        timer = setTimeout(() => ui.tool = false, 3000);
+        timer = setTimeout(() => {
+            ui.tool = false;
+            timer = undefined;
+        }, 3000);
     }
 
     const videoel = ref<HTMLDivElement>(),
@@ -68,6 +71,7 @@
             videos: [] as Array<vFile & { name: string, sub: Record<string, string> }>,
             videoID: 0,
             tool: false,
+            volume: false,
             alert: ''
         }),
         root = ref<HTMLElement>();
@@ -91,6 +95,15 @@
         })
     );
     onUnmounted(() => player.value?.destroy());
+
+    let timer2: number | NodeJS.Timeout | undefined;
+    watch(() => player.value?.volume, () => {
+        if(timer2) clearTimeout(timer2);
+        timer2 = setTimeout(() => {
+            ui.volume = false;
+            timer2 = undefined;
+        }, 3000);
+    })
 
     watch(() => _prop.visibility, val => val && player.value && (
         MediaSession.value = {
@@ -241,7 +254,7 @@
             break;
 
             case 'ArrowDown':
-                player.value.volume <= 0.1
+                player.value.volume >= 0.1
                     ? player.value.volume -= .1
                     : player.value.volume = 0;
             break;
@@ -396,6 +409,12 @@
                 />
             </div>
             
+        </div>
+
+        <div class="volume" v-if="player" v-show="ui.volume || ui.tool"
+            @click.stop="player.volume = 1 - $event.offsetY / ($event.currentTarget as HTMLElement).clientHeight"
+        >
+            <div :style="{ height: player.volume * 100 + '%' }"></div>
         </div>
 
         <div class="frame-mask" v-show="ui.about || ui.track || ui.playlist"
@@ -714,6 +733,29 @@
                         height: 1rem;
                     }
                 }
+            }
+        }
+
+        > .volume{
+            position: absolute;
+            right: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            width: .8rem;
+            border-radius: .4rem;
+            height: 10rem;
+            max-height: 80%;
+            background-color: rgb(255 255 255 / 30%);
+            backdrop-filter: blur(.2rem);
+            cursor: ns-resize;
+
+            > div{
+                position: absolute;
+                bottom: 0;
+                left: 0;
+                width: 100%;
+                border-radius: .4rem;
+                background-color: rgba(255, 255, 255, 0.8);
             }
         }
 

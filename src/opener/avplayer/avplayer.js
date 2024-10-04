@@ -163,7 +163,9 @@ export default async function create(el){
             }
             refs.ended = false;
             refs.tracks.chapter = player.getChapters();
+            // 其他设置
             player.play().then(() => refs.play = true);
+            player.setSubtitleDelay(refs.display.subDelay);
         }
     )});
     watch(() => refs.stop, res => res ? player.resume() : player.stop())
