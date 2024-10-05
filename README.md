@@ -36,6 +36,7 @@ vList最初就是为了Nginx设计的，经历了4代的积淀已经拥有成熟
     - EPub/ TXT书本支持
     - 便捷白板
     - 终端记录(asciinema)
+    - Office文档 xslx(R/W) / docx(R)
     - ...(欢迎PR或issue)
  - 完善的UI
     - 手机端

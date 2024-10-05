@@ -19,7 +19,7 @@
         manager.value.setImage(file);
     });
 
-    const fullscreen = () => document.fullscreenElement ? document.exitFullscreen() : reqFullscreen();
+    const fullscreen = () => UI.fullscreen.value ? document.exitFullscreen() : reqFullscreen();
     const openEditor = () => import('./imgedit.vue').then(m => createWindow({
         "name": "图片编辑",
         "icon": I_DESIGNER,
@@ -51,7 +51,7 @@
             <!-- 旋转 -->
             <div @click="manager.rotate += 90" vs-icon="rotate" button />
             <!-- 全屏 -->
-            <div @click="fullscreen" button :vs-icon="UI.fullscreen ? 'exit-fullscreen' : 'fullscreen'" />
+            <div @click="fullscreen" button :vs-icon="UI.fullscreen.value ? 'exit-fullscreen' : 'fullscreen'" />
         </div>
         <span class="vcount" v-if="manager">{{ manager.id_ref.value + 1 }} / <span style="color: darkgray;">{{ manager.filelist_ref.value.length }}</span></span>
     </div>

@@ -60,9 +60,14 @@
     "vite-plugin-pwa": "^0.20.0",
     "vue": "^3.4.21",
     "vue-reader": "^1.2.15",
-    "vue-tsc": "^2.0.11"
+    "vue-tsc": "^2.0.11",
+    "x-data-spreadsheet": "^1.1.9"
   },
   "files": [
     "dist/**"
-  ]
+  ],
+  "dependencies": {
+    "less": "^4.2.0",
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
+  }
 }

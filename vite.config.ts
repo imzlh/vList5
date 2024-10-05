@@ -220,7 +220,8 @@ export default defineConfig({
                             '/epub',
                             '/psd',
                             '/whiteboard',
-                            '/docx'
+                            '/docx',
+                            '/xlsx'
                         ].some(item => id.includes(item)))
                     ) return 'main';
                     // monaco
@@ -239,7 +240,7 @@ export default defineConfig({
                     if(id.includes('/asciinema'))
                         return 'asciinema';
                     // additional pack
-                    if(id.includes('/psd') || id.includes('/artplayer') || id.includes('/epub.vue') || id.includes('vue-reader') || id.includes('docx'))
+                    if(id.includes('/psd') || id.includes('/artplayer') || id.includes('/epub.vue') || id.includes('vue-reader') || id.includes('/docx') || id.includes('/xlsx'))
                         return 'additional';
                 },
             },

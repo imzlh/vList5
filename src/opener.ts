@@ -13,7 +13,8 @@ import I_MEDIA from '/app/video.webp';
 import I_PS from '/app/ps.webp';
 import I_ASCIINEMA from '/app/asciinema.svg';
 import I_NOTES from '/app/notes.webp';
-import I_WORD from '/app/word.webp';
+import I_WORD from '/app/word.svg';
+import I_EXCEL from '/app/excel.svg';
 
 export const OPENER:Array<OpenerOption> = [
     // Monaco-Editor(VsCode)
@@ -95,6 +96,25 @@ export const OPENER:Array<OpenerOption> = [
                 "option": file
             });
         },
+    },
+    // x-spreadsheet
+    // @link https://github.com/myliang/x-spreadsheet
+    {
+        "name": "Light Excel",
+        "type": "text/sheet",
+        "typeDesc": "在线编辑、预览Excel表格",
+        "icon": I_EXCEL,
+        "format": [
+            "xlsx"
+        ],
+        async open(file) {
+            createWindow({
+                "content": (await import('@/opener/xlsx.vue')).default,
+                "icon": I_EXCEL,
+                "name": file.name + " - Excel",
+                "option": file
+            });
+        }
     },
     // asciinema
     // @link https://asciinema.org/
