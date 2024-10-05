@@ -28,7 +28,7 @@ export default defineConfig({
                 "globPatterns": [
                     '**/*.{js,css,html,webp,ico,svg,woff2}'
                 ],
-                maximumFileSizeToCacheInBytes: 8 * 1024 * 1024,
+                maximumFileSizeToCacheInBytes: 10 * 1024 * 1024,
                 globIgnores: [
                     'type/(*.svg)'
                 ]
@@ -238,8 +238,11 @@ export default defineConfig({
                     // asciinema
                     if(id.includes('/asciinema'))
                         return 'asciinema';
+                    // office
+                    if(id.includes('/office/'))
+                        return 'office';
                     // additional pack
-                    if(id.includes('/psd') || id.includes('/artplayer') || id.includes('/epub.vue') || id.includes('vue-reader') || id.includes('/office/'))
+                    if(id.includes('/psd') || id.includes('/artplayer') || id.includes('/epub.vue') || id.includes('vue-reader'))
                         return 'additional';
                 },
             },
