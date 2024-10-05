@@ -31,26 +31,27 @@
     "build-only": "vite build",
     "type-check": "vue-tsc --build --force"
   },
-  "dependencies": {},
   "devDependencies": {
-    "@types/node": "^20.14.11",
-    "cheap": "https://github.com/zhaohappy/cheap.git",
-    "libmedia-common": "https://github.com/zhaohappy/common.git",
-    "npm-run-all2": "^6.1.2",
     "@muyajs/core": "^0.0.32",
     "@petamoriken/float16": "^3.8.7",
     "@tldraw/assets": "^2.4.6",
+    "@types/ini": "^4.1.1",
+    "@types/node": "^20.14.11",
     "@vitejs/plugin-vue": "^5.0.4",
     "@vue/tsconfig": "^0.5.1",
     "@webtoon/psd": "^0.4.0",
     "artplayer": "^5.1.5",
     "asciinema-player": "^3.8.0",
     "assjs": "^0.1.0",
+    "cheap": "https://github.com/zhaohappy/cheap.git",
     "ini": "^5.0.0",
     "jssha": "^3.3.1",
     "libmedia": "https://github.com/zhaohappy/libmedia.git",
+    "libmedia-common": "https://github.com/zhaohappy/common.git",
     "lrc-kit": "^1.1.1",
+    "mammoth": "^1.8.0",
     "monaco-editor": "^0.50.0",
+    "npm-run-all2": "^6.1.2",
     "react-filerobot-image-editor": "^4.8.1",
     "sass": "^1.77.4",
     "tldraw": "^2.4.6",
@@ -59,8 +60,9 @@
     "vite-plugin-pwa": "^0.20.0",
     "vue": "^3.4.21",
     "vue-reader": "^1.2.15",
-    "vue-tsc": "^2.0.11",
-    "@types/ini": "^4.1.1"
+    "vue-tsc": "^2.0.11"
   },
-  "files": ["dist/**"]
+  "files": [
+    "dist/**"
+  ]
 }

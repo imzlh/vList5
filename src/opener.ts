@@ -13,6 +13,7 @@ import I_MEDIA from '/app/video.webp';
 import I_PS from '/app/ps.webp';
 import I_ASCIINEMA from '/app/asciinema.svg';
 import I_NOTES from '/app/notes.webp';
+import I_WORD from '/app/word.webp';
 
 export const OPENER:Array<OpenerOption> = [
     // Monaco-Editor(VsCode)
@@ -72,6 +73,25 @@ export const OPENER:Array<OpenerOption> = [
                 "content": (await import ('@/opener/markdown.vue')).default,
                 "icon": I_MUYA,
                 "name": file.name + " - Muya",
+                "option": file
+            });
+        },
+    },
+    // mammoth.js
+    // @link https://github.com/mwilliamson/mammoth.js
+    {
+        "name": "Docx Viewer",
+        "type": "text/docx",
+        "typeDesc": "在线读取docx文档,基于mammoth.js",
+        "icon": I_WORD,
+        "format": [
+            "docx"
+        ],
+        async open(file) {
+            createWindow({
+                "content": (await import('@/opener/docx.vue')).default,
+                "icon": I_WORD,
+                "name": file.name + " - Docx Viewer",
                 "option": file
             });
         },

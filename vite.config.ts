@@ -219,7 +219,8 @@ export default defineConfig({
                             '/vscode',
                             '/epub',
                             '/psd',
-                            '/whiteboard'
+                            '/whiteboard',
+                            '/docx'
                         ].some(item => id.includes(item)))
                     ) return 'main';
                     // monaco
@@ -238,7 +239,7 @@ export default defineConfig({
                     if(id.includes('/asciinema'))
                         return 'asciinema';
                     // additional pack
-                    if(id.includes('/psd') || id.includes('/artplayer') || id.includes('/epub.vue') || id.includes('vue-reader'))
+                    if(id.includes('/psd') || id.includes('/artplayer') || id.includes('/epub.vue') || id.includes('vue-reader') || id.includes('docx'))
                         return 'additional';
                 },
             },
