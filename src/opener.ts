@@ -15,6 +15,8 @@ import I_ASCIINEMA from '/app/asciinema.svg';
 import I_NOTES from '/app/notes.webp';
 import I_WORD from '/app/word.svg';
 import I_EXCEL from '/app/excel.svg';
+import I_PPT from '/app/ppt.svg';
+import I_OFFICE from '/app/office.svg';
 
 export const OPENER:Array<OpenerOption> = [
     // Monaco-Editor(VsCode)
@@ -78,40 +80,27 @@ export const OPENER:Array<OpenerOption> = [
             });
         },
     },
-    // docx-previewer
-    // @link https://github.com/kavya-5/docx-previewer
+    // office pack
+    // Copyright(C) 2024 izGroup
     {
-        "name": "Docx Viewer",
-        "type": "text/docx",
-        "typeDesc": "在线读取和预览docx文档",
-        "icon": I_WORD,
+        "name": "Office Pack",
+        "type": "application/vnd.ms-office",
+        "typeDesc": "在线预览Word/Excel/PowerPoint文档",
+        "icon": I_OFFICE,
         "format": [
+            "xlsx",
+            "pptx",
             "docx"
         ],
         async open(file) {
             createWindow({
-                "content": (await import('@/opener/docx.vue')).default,
-                "icon": I_WORD,
-                "name": file.name + " - Docx Viewer",
-                "option": file
-            });
-        },
-    },
-    // x-spreadsheet
-    // @link https://github.com/myliang/x-spreadsheet
-    {
-        "name": "Light Excel",
-        "type": "text/sheet",
-        "typeDesc": "在线编辑、预览Excel表格",
-        "icon": I_EXCEL,
-        "format": [
-            "xlsx"
-        ],
-        async open(file) {
-            createWindow({
-                "content": (await import('@/opener/xlsx.vue')).default,
-                "icon": I_EXCEL,
-                "name": file.name + " - Excel",
+                "content": (await import('@/opener/office.vue')).default,
+                "icon": ({
+                    'docx': I_WORD,
+                    'xlsx': I_EXCEL,
+                    'pptx': I_PPT
+                })[splitPath(file).ext] || I_OFFICE,
+                "name": file.name + " - Office",
                 "option": file
             });
         }
