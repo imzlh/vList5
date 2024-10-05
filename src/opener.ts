@@ -77,12 +77,12 @@ export const OPENER:Array<OpenerOption> = [
             });
         },
     },
-    // mammoth.js
-    // @link https://github.com/mwilliamson/mammoth.js
+    // docx-previewer
+    // @link https://github.com/kavya-5/docx-previewer
     {
         "name": "Docx Viewer",
         "type": "text/docx",
-        "typeDesc": "在线读取docx文档,基于mammoth.js",
+        "typeDesc": "在线读取和预览docx文档",
         "icon": I_WORD,
         "format": [
             "docx"

@@ -1,7 +1,7 @@
 <script lang="ts" setup>
     import type { vFile } from '@/env';
-    import { convertToHtml, images } from 'mammoth';
-    import { onUnmounted, type PropType } from 'vue';
+    import { onMounted, onUnmounted, ref, type PropType } from 'vue';
+    import { renderAsync } from 'docx-preview';
 
     const { option: file } = defineProps({
             option: {
@@ -9,42 +9,49 @@
                     required: true
             }
         }),
-        imgtmp: Array<string> = [],
         data = await (await fetch(file.url)).arrayBuffer(),
-        html = await convertToHtml({ arrayBuffer: data }, {
-            convertImage: images.imgElement(async img => {
-                const data = new Blob([await img.readAsArrayBuffer()]),
-                    url = URL.createObjectURL(data);
-                imgtmp.push(url);
-                return { altText: img.contentType, src: url };
-            }),
-            ignoreEmptyParagraphs: false,
-            includeEmbeddedStyleMap: true,
-        });
+        box = ref<HTMLDivElement>(),
+        style = ref<HTMLDivElement>();
 
-    onUnmounted(() => imgtmp.forEach(url => URL.revokeObjectURL(url)));
+    let blobs: string[] = [];
+
+    onMounted(() => renderAsync(data, box.value!, style.value!, {
+        experimental: true,
+        renderChanges: true
+    }).then(() => blobs = 
+        Array.from(box.value!.innerHTML.matchAll(
+            /(?<quote>'|")blob:\/\/[a-zA-Z0-9.-]+\/[a-z0-9-]+\k<quote>/g
+        )).map(match => match[0])
+    ));
+    onUnmounted(() => blobs.forEach(url => URL.revokeObjectURL(url)));
 </script>
 
 <template>
-
-    <div class="wrapper">
-        <div class="document" v-html="html.value" />
-    </div>
+    <div class="v-docx-wrapper" ref="box" v-bind="$attrs"></div>
+    <div ref="style"></div>
 </template>
 
-<style lang="scss" scoped>
-    .wrapper {
+<style>
+    .v-docx-wrapper {
         width: 100%;
         height: 100%;
         overflow: auto;
+    }
 
-        > .document {
-            width: 80%;
-            margin: 6rem auto;
-            padding: 2rem;
-            background-color: #fff;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-            border: solid .1rem #ccc;
-        }
+    .docx-wrapper {
+        background: transparent !important;
+        padding: 2rem !important;
+        display: block !important;
+        width: 90%;
+        max-width: 600pt;
+        box-sizing: border-box;
+        margin: 3rem auto;
+        box-shadow: 0 0 .75rem #d9d9d9;
+    }
+
+    .docx-wrapper>section.docx {
+        box-shadow: none !important;
+        margin-bottom: 0 !important;
+        line-height: 1.5;
     }
 </style>
