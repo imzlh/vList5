@@ -1,6 +1,6 @@
 <script lang="ts" setup>
     
-    import { onMounted, onUnmounted, ref } from 'vue';
+    import { onMounted, onUnmounted, ref, type App } from 'vue';
     
     // @ts-ignore
     import renderPPTX, { __v_store__ } from './pptist';
@@ -29,7 +29,8 @@
         shadow.appendChild(style);
         shadow.appendChild(div);
         
-        onUnmounted(renderPPTX(div));
+        const app = renderPPTX(div) as App;
+        onUnmounted(app.unmount());
     });
 
     onUnmounted(() => __v_store__.value = undefined);
