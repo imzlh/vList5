@@ -30,7 +30,7 @@
         shadow.appendChild(div);
         
         const app = renderPPTX(div) as App;
-        onUnmounted(app.unmount());
+        onUnmounted(() => app.unmount());
     });
 
     onUnmounted(() => __v_store__.value = undefined);
