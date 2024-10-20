@@ -42,11 +42,11 @@
         background: transparent !important;
         padding: 2rem !important;
         display: block !important;
-        width: 90%;
-        max-width: 600pt;
+        max-width: 95%;
         box-sizing: border-box;
         margin: 3rem auto;
         box-shadow: 0 0 .75rem #d9d9d9;
+        overflow: hidden;
     }
 
     .docx-wrapper>section.docx {

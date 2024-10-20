@@ -6,6 +6,7 @@
     import { createElement } from "react";
     import { Editor, Tldraw, type TldrawProps } from 'tldraw';
     import ASSETS from './whiteboard/build';
+    import { decode, encode2Blob } from '@/utils/bjson';
 
     import "tldraw/tldraw.css";
 
@@ -15,7 +16,7 @@
         editor = ref<Editor>(),
         debug = ref(import.meta.env.DEV);
 
-    fetch(file.url).then(res => res.json()).catch(e =>
+    fetch(file.url).then(res => res.body!).then(dat => decode(dat)).catch(e =>
         message({
             "type": "error",
             "title": "Whiteboard",
@@ -31,16 +32,17 @@
     );
 
     function save() {
-        const data = JSON.stringify(editor.value!.getSnapshot());
-        FS.write(file.path, new Blob([data], { type: 'application/json' }));
-        message({
-            "type": "success",
-            "title": "Whiteboard",
-            "content": {
-                "title": "保存成功",
-                "content": "白板数据已同步到远程服务器"
-            }
-        });
+        const data = editor.value!.getSnapshot();
+        encode2Blob(data).then(res => FS.write(file.path, res)).then(() => 
+            message({
+                "type": "success",
+                "title": "Whiteboard",
+                "content": {
+                    "title": "保存成功",
+                    "content": "白板数据已同步到远程服务器"
+                }
+            })
+        );
     }
 
     onMounted(() => {

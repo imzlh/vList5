@@ -133,7 +133,16 @@ export default defineConfig({
                     }
                 ]
             }
-        })
+        }),
+        // 将vite-client移动位置
+        {
+            name: 'my-plugin',
+            transformIndexHtml(html) {
+                return html
+                    .replace(/<head>\s*<script\s+type="module"\s+src="\/@vite\/client"><\/script>/, '')
+                    .replace('</head>', '<script type="module" src="/@vite/client"></script></head>');
+            }
+        }
     ],
     resolve: {
         alias: {

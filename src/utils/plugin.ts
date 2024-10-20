@@ -41,7 +41,7 @@ const pool = {
     'tree.load': FS.loadTree,
     'tree.get': FS.stat,
     'tree.loadPath': FS.loadPath,
-    'tree.loadPaths': FS.loadPaths,
+    'tree.loadPaths': FS.loadPaths
 } as any;
 
 /**
@@ -66,8 +66,15 @@ window.addEventListener('load', () => plugin_data.forEach(item => importPlugin(i
 // @ts-ignore 全局变量clear_plugin
 globalThis.clear_plugin = () => plugin_data.splice(0, plugin_data.length);
 
-// @ts-ignore 全局变量Vue
-globalThis.Vue = vue;
+// @ts-ignore 全局变量process
+globalThis.process = {
+    env: {
+        NODE_ENV: 'development'
+    }
+}
+
+// @ts-ignore 加载importmap(VNode)
+globalThis.vExport = { vue, FS };
 
 export async function installPlugin(path: string){
     // 读取插件信息
@@ -92,22 +99,6 @@ export async function installPlugin(path: string){
 export async function importPlugin(data: vApplication){
     const baseURL = new URL(data.home, new URL(FILE_PROXY_SERVER, location.href));
     const resolve = (path: string) => new URL(path, baseURL).href;
-
-    try{
-        const text = await (await fetch(resolve(data.entry))).text();
-        await new Function(text, 'process').call(globalThis, {
-            __path: baseURL.href,
-            __meta: data,
-            resolve,
-            env: {
-                NODE_ENV: 'development',
-                ENTRY: resolve(data.entry)
-            }
-        });
-    }catch(e){
-        console.error(e);
-        throw new Error('cannot import plugin entry');
-    }
 
     if(data.preload)
         for(const item of data.preload){
@@ -143,4 +134,11 @@ export async function importPlugin(data: vApplication){
                 break;
             }
         }
+
+    try{
+        await import(resolve(data.entry));
+    }catch(e){
+        console.error(e);
+        throw new Error('cannot import plugin entry');
+    }
 }
