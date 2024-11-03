@@ -3,7 +3,8 @@
     import { onMounted, ref, type PropType } from 'vue';
     import Spreadsheet from "x-data-spreadsheet";
     import { read, write } from 'xlsx';
-    import { FS, message, reqFullscreen, UI } from '@/utils';
+    import { contextMenu, FS, message, reqFullscreen, splitPath, UI } from '@/utils';
+    import { encode2Blob, decode } from '@/utils/bjson';
 
     const { option: file } = defineProps({
             option: {
@@ -11,17 +12,31 @@
                     required: true
             }
         }),
-        data = read(await (await fetch(file.url)).arrayBuffer()),
         box = ref<HTMLDivElement>();
 
-    let obj: undefined | Spreadsheet;
+    let obj: undefined | Spreadsheet, isSpreadsheet = false;
+    var data: SheetData[];
 
-    async function save() {
-        // @ts-expect-error
-        const wb = xtos(obj!.getData()),
-            data: ArrayBuffer = write(wb, { compression: true, type: 'array' });
-        const blob = new Blob([data], { type: "application/octet-stream" });
-        await FS.write(file.path, blob, true);
+    if(file.name.endsWith('.xlsx')){
+        data = stox(read(await (await fetch(file.url)).arrayBuffer()))
+    }else{
+        data = await decode((await fetch(file.url)).body!);
+        isSpreadsheet = true;
+    }
+
+    async function save(vsheet = isSpreadsheet) {
+        var blob;
+        if(vsheet){
+            blob = await encode2Blob(obj!.getData());
+        }else{
+            // @ts-expect-error
+            const wb = xtos(obj!.getData()),
+                data: ArrayBuffer = write(wb, { compression: true, type: 'array' });
+            blob = new Blob([data], { type: "application/octet-stream" });
+        }
+
+        const prefix = file.path.substring(0, file.path.lastIndexOf(".") + 1);
+        await FS.write(prefix + (vsheet ? "vsheet" : "xlsx"), blob, true);
         message({
             "type": "success",
             "title": "Excel",
@@ -32,10 +47,26 @@
             }
         });
     }
+
+    function ctx(e: MouseEvent) {
+        contextMenu({
+            pos_x: e.clientX,
+            pos_y: e.clientY,
+            content: [
+                {
+                    "text": isSpreadsheet ? "保存" : "另存为vsheet",
+                    handle: () => save(true)
+                }, {
+                    "text": isSpreadsheet ? "另存为xlsx" : "保存",
+                    handle: () => save(false)
+                }
+            ]
+        });
+    }
     
     const fs = () => UI.fullscreen.value ? document.exitFullscreen() : reqFullscreen();
 
-    onMounted(() => obj = new Spreadsheet(box.value!).loadData(stox(data)));
+    onMounted(() => obj = new Spreadsheet(box.value!).loadData(data));
 </script>
 
 <script lang="ts">
@@ -148,7 +179,7 @@
 
 <template>
     <div class="helper">
-        <div vs-icon="save" @click="save" button="large" inline />
+        <div vs-icon="save" @click="ctx" button="large" inline />
         <div :vs-icon="UI.fullscreen.value ? 'exit-fullscreen' : 'fullscreen'" @click="fs" button="large" inline />
     </div>
     <div class="wrapper" ref="box" />

@@ -1,8 +1,9 @@
 <script lang="ts">
     import type { MenuItem } from '@/env';
     import { ref, watch, nextTick } from 'vue';
+    import I_PACKED from '/icon/letter.svg?url';
 
-    const active = ref(-1);
+    export const active = ref(-1);
 
     export default {
         name: 'ctxTree',
@@ -71,6 +72,10 @@
                 if(item.child) return;
                 if(item.handle) item.handle(event);
                 this.$emit('blur',item);
+            },
+            tryGetIcon(name: string){
+                if(/[a-zA-Z]/.test(name))
+                return I_PACKED + '#' + name.match(/[a-zA-Z]/)[0]!.toLowerCase();
             }
         }
     }
@@ -83,7 +88,7 @@
                 @mouseenter="enter" @mouseleave="leave"
                 @click="active = i;clickMe(item,$event);"
             >
-                <img :src="item.icon" v-if="item.icon" class="icon">
+                <img :src="item.icon ?? tryGetIcon(item.text)" v-if="item.icon || tryGetIcon(item.text)" class="icon">
                 <span class="icon" v-else></span>
 
                 <span class="text">{{ item.text }}</span>
@@ -147,6 +152,8 @@
             >.text {
                 text-overflow: clip;
                 text-align: start;
+                font-size: .95em;
+                color: rgb(81, 71, 71);
 
                 flex-grow: 1;
                 line-height: 1.25em;

@@ -1,5 +1,5 @@
 import I_VSCODE from '/app/vscode.webp';
-import I_CHROME from '/app/chrome.webp';
+import I_CHROME from '/app/chrome.svg';
 import I_HEX from '/app/hex.webp';
 import type { MessageOpinion, OpenerOption, vFile } from './env';
 import { clipFName, createWindow, message, selectOpener, splitPath } from './utils';
@@ -90,7 +90,8 @@ export const OPENER:Array<OpenerOption> = [
         "format": [
             "xlsx",
             "pptx",
-            "docx"
+            "docx",
+            "vsheet"
         ],
         async open(file) {
             createWindow({
@@ -98,7 +99,8 @@ export const OPENER:Array<OpenerOption> = [
                 "icon": ({
                     'docx': I_WORD,
                     'xlsx': I_EXCEL,
-                    'pptx': I_PPT
+                    'pptx': I_PPT,
+                    'vsheet': I_EXCEL
                 })[splitPath(file).ext] || I_OFFICE,
                 "name": file.name + " - Office",
                 "option": file

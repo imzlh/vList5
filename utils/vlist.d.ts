@@ -1,4 +1,4 @@
-import Vue from 'vue'
+import * as Vue from 'vue'
 
 /**
  * 弹出框调用必须的数据结构

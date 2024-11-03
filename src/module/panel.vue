@@ -89,6 +89,7 @@
         }
     };
     document.addEventListener('keydown', event => event.ctrlKey && event.key === 'r' && (ui.display = true, event.preventDefault()));
+    export const showCommandPanel = () => ui.display = true;
 </script>
 
 <template>

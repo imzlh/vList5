@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-    import Xlsx from './office/xlsx.vue';
+    import Xlsx from './office/excel.vue';
     import Docx from './office/docx.vue';
     import Pptx from './office/pptx.vue';
     import type { vFile } from '@/env';
@@ -11,7 +11,7 @@
 </script>
 
 <template>
-    <Xlsx v-if="ext === 'xlsx'" :option="file" />
+    <Xlsx v-if="ext === 'xlsx' || ext === 'vsheet'" :option="file" />
     <Docx v-else-if="ext === 'docx'" :option="file" />
     <Pptx v-else-if="ext === 'pptx'" :option="file" />
     <div v-else vs-icon="warning" inline>不支持该格式文件</div>

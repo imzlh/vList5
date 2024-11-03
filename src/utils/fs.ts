@@ -963,12 +963,12 @@ export namespace FS{
         const info = await Tree.find(file, true, 'file', true);
         let f: vFile;
         // 错误处理
-        if(info.file.type == 'dir')
-            throw new Error('Attempt to write to a directory');
-        // 找到对象
         try{
+            if(info.file.type == 'dir') throw 0;
             f = info.file;
-        }catch{
+        }catch(e){
+            if(e === 0)
+                throw new Error('Attempt to write to a directory');
             f = Tree.createObject({
                 type: 'file',
                 name: splitPath({ path: file }).name,
@@ -980,7 +980,6 @@ export namespace FS{
             info.parent.child || (await Tree.load(info.parent))
             info.parent.child!.push(f);
         }
-
         await upload_(content, f, { overwrite, timeout: timeout || 0 });
     }
 
