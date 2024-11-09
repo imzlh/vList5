@@ -4,7 +4,7 @@
     
     // @ts-ignore
     import renderPPTX, { __v_store__ } from './pptist';
-    import STYLE from './style.css?raw';
+    import STYLE from './style.css?url';
     import type { vFile } from '@/env';
 
     if(__v_store__.value) throw new Error('pptx has already been rendered');
@@ -14,11 +14,13 @@
     onMounted(() => {
         const shadow = container.value!.attachShadow({ mode: 'open' }),
             div = document.createElement('div'),
-            style = document.createElement('style');
+            style = document.createElement('link');
         // 使得position: fixed以容器为基准
         div.setAttribute('style', 'width: 100%; height: 100%; transform: scale(1);');
         div.tabIndex = -1;
-        style.innerHTML = STYLE;
+        style.rel = 'stylesheet';
+        style.href = STYLE;
+        style.type = 'text/css';
 
         __v_store__.value = {
             file: __prop.option as vFile,
