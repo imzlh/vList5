@@ -75,7 +75,7 @@
             },
             tryGetIcon(name: string){
                 if(/[a-zA-Z]/.test(name))
-                return I_PACKED + '#' + name.match(/[a-zA-Z]/)[0]!.toLowerCase();
+                return I_PACKED + '#' + name.match(/[a-zA-Z]/)![0].toLowerCase();
             }
         }
     }

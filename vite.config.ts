@@ -255,6 +255,10 @@ export default defineConfig({
                         return 'additional';
                 },
             },
+            input: {
+                'index': './index.html',
+                'init': "./src/init.ts"
+            }
         },
         chunkSizeWarningLimit: 1000
     },
