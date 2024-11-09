@@ -42,6 +42,7 @@ class APIError extends Error{
 export const TREE = reactive<vDir>({
     "type": "dir",
     "ctime": 0,
+    "mtime": -1,
     "name": "/",
     "dispName": "此服务器",
     "url": FILE_PROXY_SERVER,
@@ -54,6 +55,7 @@ export const TREE = reactive<vDir>({
         "url": "",
         "type": "dir",
         "ctime": -1,
+        "mtime": -1,
         "icon": "",
         "parent": null,
         "active": new Map()
@@ -371,6 +373,8 @@ namespace Tree{
         obj.parent = parent;
         obj.type == 'dir' && (obj.active = new Map());
         obj.icon = getIcon(obj.name, obj.type == 'file');
+        obj.ctime || (obj.ctime = obj.mtime || Date.now());
+        obj.mtime || (obj.mtime = Date.now());
         return isReactive(obj) ? obj : reactive(obj);
     }
 
@@ -412,8 +416,9 @@ namespace Tree{
      * @param parent 父节点
      * @returns 文件或文件夹信息
      */
-    function stat(path: string, parent: vDir): Promise<vFile | vDir> {
-        return request('stat', { path }).then(res => compileObject(res, parent));
+    async function stat(path: string, parent: vDir): Promise<vFile | vDir> {
+        const res = await request('stat', { path });
+        return compileObject(res, parent);
     }
 
     /**
@@ -432,7 +437,8 @@ namespace Tree{
             url = path ? FILE_PROXY_SERVER + encodePath(path) : '';
         if(preset.type == 'dir'){
             var node: FileOrDir = reactive<vDir>({
-                ctime: 0,
+                ctime: Date.now(),
+                mtime: Date.now(),
                 type: 'dir',
                 name: '',
                 parent: null,
@@ -444,7 +450,8 @@ namespace Tree{
         }else if(preset.type == 'file'){
             var node: FileOrDir = reactive<vFile>({
                 type: 'file',
-                ctime: 0,
+                ctime: Date.now(),
+                mtime: Date.now(),
                 name: '',
                 parent: null,
                 icon: preset.name ? getIcon(preset.name, true) : '',

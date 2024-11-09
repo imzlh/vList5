@@ -1,6 +1,6 @@
 {
   "name": "@imzlh/vlist",
-  "version": "5.8.1",
+  "version": "5.8.2",
   "displayName": "vList",
   "description": "一个全能的现代化的文件管理UI，使用vue3",
   "license": "MIT",

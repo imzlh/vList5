@@ -36,7 +36,7 @@
                     <div class="body" :data-level="item.type">
                         <div>
                             <h3>{{ item.content.title }}</h3>
-                            <span>{{ item.content.content }}</span>
+                            <span v-html="item.content.content" />
                         </div>
                     </div>
                 </template>

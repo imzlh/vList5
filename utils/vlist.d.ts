@@ -280,6 +280,11 @@ interface FileAndDir {
      * 显示的名称
      */
     dispName?:string,
+    
+    /**
+     * 修改时间
+     */
+    mtime: number,
 
     /**
      * 创建时间

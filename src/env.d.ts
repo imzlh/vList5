@@ -70,6 +70,11 @@ interface FileAndDir {
     ctime: number,
 
     /**
+     * 修改时间
+     */
+    mtime: number,
+
+    /**
      * 文件（夹）直链
      */
     url: string,
