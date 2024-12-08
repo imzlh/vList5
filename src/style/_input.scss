@@ -1,5 +1,5 @@
 // 仿Windows11的滑块
-@mixin v-winui-range($track-color: linear-gradient(90deg, #0067c0 100%, #888888 100%)) {
+@mixin winui-range($track-color: linear-gradient(90deg, #0067c0 100%, #888888 100%)) {
     appearance: none;
     background: transparent;
     margin: .4em 0;
@@ -38,7 +38,7 @@
 }
 
 // 复选框
-@mixin v-checkbox() {
+@mixin checkbox() {
     appearance: none;
     width: 3em;
     padding: .2em;
@@ -67,7 +67,7 @@
 }
 
 // 仿照win10的复选框
-@mixin v-winui-checkbox() {
+@mixin winui-checkbox() {
     width: 1em;
     height: 1em;
     margin: 0;
@@ -83,7 +83,7 @@
     }
 }
 
-@mixin v-winui-input() {
+@mixin winui-input() {
     border-radius: .3em;
     padding: .35em;
     background-color: white;

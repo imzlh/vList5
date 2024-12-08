@@ -41288,7 +41288,7 @@ function XI(e) {
     t.push(l[0]);
   }
   r = r.replace(i, "");
-  const a = /@import[\s\S]*?url\([^)]*\)[\s\S]*?;/gi, o = "((\\s*?(?:\\/\\*[\\s\\S]*?\\*\\/)?\\s*?@media[\\s\\S]*?){([\\s\\S]*?)}\\s*?})|(([\\s\\S]*?){([\\s\\S]*?)})", s = new RegExp(o, "gi");
+  const a = /@use[\s\S]*?url\([^)]*\)[\s\S]*?;/gi, o = "((\\s*?(?:\\/\\*[\\s\\S]*?\\*\\/)?\\s*?@media[\\s\\S]*?){([\\s\\S]*?)}\\s*?})|(([\\s\\S]*?){([\\s\\S]*?)})", s = new RegExp(o, "gi");
   for (; ; ) {
     let l = a.exec(r);
     if (l === null) {
@@ -41311,7 +41311,7 @@ async function kve(e, t) {
             let s = o + 1;
             const l = a.href, u = EI(l).then((c) => FI(c, t)).then((c) => XI(c).forEach((f) => {
               try {
-                i.insertRule(f, f.startsWith("@import") ? s += 1 : i.cssRules.length);
+                i.insertRule(f, f.startsWith("@use") ? s += 1 : i.cssRules.length);
               } catch (d) {
                 console.error("Error inserting rule from remote css", {
                   rule: f,

@@ -48,8 +48,6 @@
 </template>
 
 <style lang="scss">
-    @import '@/style/icon.scss';
-
     .messages {
         // overflow: hidden;
         transform: none;

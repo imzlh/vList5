@@ -30,7 +30,7 @@ export const OPENER:Array<OpenerOption> = [
             "php",
             "js", "css",
             "scss", "ts",
-            "json", "ini", "xml", "yaml",
+            "json", "ini", "xml", "yaml", "conf", "properties", "cfg",
             "c", "cpp", "h",
             "java",
             "go",

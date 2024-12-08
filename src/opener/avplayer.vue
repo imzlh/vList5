@@ -552,7 +552,7 @@
 </template>
 
 <style lang="scss">
-    @import '@/style/input.scss';
+    @use '@/style/input.scss';
 
     .av-container{
         height: 100%;

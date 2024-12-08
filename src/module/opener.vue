@@ -82,7 +82,7 @@
 </template>
 
 <style lang="scss">
-    @import '@/style/input.scss';
+    @use '@/style/input.scss';
 
     .opener-chooser{
         position: fixed;
@@ -123,7 +123,7 @@
             user-select: none;
 
             > input{
-                @include v-winui-checkbox;
+                @include input.winui-checkbox;
             }
         }
 

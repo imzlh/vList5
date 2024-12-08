@@ -85,8 +85,7 @@
 </template>
 
 <style lang="scss">
-    @import '@/style/icon.scss';
-    @import '@/style/input.scss';
+    @use '@/style/input.scss';
 
     .setting-container {
         position: relative;
@@ -112,7 +111,7 @@
                 cursor: pointer;
 
                 &::after {
-                    content: $icon_right;
+                    content: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708z"/></svg>');
                     display: inline-block;
                     height: .8rem;
                     width: .8rem;
@@ -163,7 +162,7 @@
                     &.input, &.choose {
                         min-width: 10rem;
 
-                        @include v-winui-input();
+                        @include input.winui-input();
                     }
 
                     &.choose {
@@ -268,12 +267,12 @@
 
                     &.range {
                         flex-grow: 9;
-                        @include v-winui-range();
+                        @include input.winui-range();
                     }
 
                     &.check{
                         flex-grow: 0;
-                        @include v-checkbox();
+                        @include input.checkbox();
                     }
                 }
             }

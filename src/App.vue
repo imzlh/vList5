@@ -11,6 +11,8 @@
 	import Tree from './module/tree.vue';
 	import Command from './module/panel.vue';
 
+	import './style/icon.css';
+
 	const list_ele = ref<HTMLElement>();
 	window.addEventListener('resize', () => layout_displayLeft.value = false);
 
@@ -336,8 +338,7 @@
 
 <style lang="scss">
 	// 全局导入
-	@import './style/font.css';
-	@import './style/icon.css';
+	@use './style/font.css';
 
 	body {
 		margin: 0;

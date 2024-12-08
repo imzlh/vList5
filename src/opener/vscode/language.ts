@@ -43,6 +43,8 @@ export namespace VSLang{
         ass: ['ass', 'ssa']
     } as Record<string,Array<string>>;
 
+    export const langs = Object.keys(LangMap);
+
     export function getLang(file: vFile): string{
         let lang = 'plaintext';
         const ext = splitPath(file)['ext'].toLowerCase();

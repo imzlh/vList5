@@ -761,7 +761,7 @@
 </template>
 
 <style lang="scss">
-    @import '../style/input.scss';
+    @use '../style/input.scss';
 
     .vpf_container{
         position: relative;

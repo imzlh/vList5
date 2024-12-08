@@ -3,6 +3,7 @@ import { KeyCode, editor, languages, Uri } from 'monaco-editor';
 import genConfig from './configure';
 import { FS, message, splitPath } from "@/utils";
 import { VSLang } from "./language";
+import { ref } from "vue";
 
 export default class Editor{
 
@@ -12,7 +13,7 @@ export default class Editor{
     constructor(file: vFile, container: HTMLElement){
         this.editor = editor.create(container, {
             ...genConfig(),
-            language: VSLang.getLang(file)
+            language: this.langRef.value = VSLang.getLang(file)
         });
         this.file = file;
 
@@ -36,7 +37,7 @@ export default class Editor{
 
     async load(){
         const ext = splitPath(this.file).ext;
-        if(ext == '.ts' || ext == '.tsx' || ext == '.js' || ext == '.jsx')
+        if(ext == '.ts' || ext == '.tsx' || ext == '.js' || ext == '.jsx'){
             // 获取内容
             try{
                 await analysis_import(this.file, this.editor);
@@ -52,7 +53,7 @@ export default class Editor{
                     "timeout": 5
                 });
             }
-        else{
+        }else{
             const content = await (await fetch(this.file.url)).text();
             this.editor.setValue(content);
         }
@@ -80,8 +81,11 @@ export default class Editor{
         this.editor.dispose();
     }
 
+    public langRef = ref('');
+
     set lang(lang: string) {
         editor.setModelLanguage(this.editor.getModel()!, lang);
+        this.langRef.value = lang;
     }
 
     get lang() {
