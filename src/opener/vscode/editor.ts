@@ -1,7 +1,7 @@
 import type { vFile } from "@/env";
 import { KeyCode, editor, languages, Uri } from 'monaco-editor';
 import genConfig from './configure';
-import { FS, message } from "@/utils";
+import { FS, message, splitPath } from "@/utils";
 import { VSLang } from "./language";
 
 export default class Editor{
@@ -35,20 +35,26 @@ export default class Editor{
     }
 
     async load(){
-        // 获取内容
-        try{
-            await analysis_import(this.file, this.editor);
-        }catch(e){
-            console.error(e);
-            message({
-                "type": "error",
-                "title": "文件资源管理器",
-                "content":{
-                    "title": '无法读取文件夹',
-                    "content": '网络错误'
-                },
-                "timeout": 5
-            });
+        const ext = splitPath(this.file).ext;
+        if(ext == '.ts' || ext == '.tsx' || ext == '.js' || ext == '.jsx')
+            // 获取内容
+            try{
+                await analysis_import(this.file, this.editor);
+            }catch(e){
+                console.error(e);
+                message({
+                    "type": "error",
+                    "title": "文件资源管理器",
+                    "content":{
+                        "title": '无法读取文件夹',
+                        "content": '网络错误'
+                    },
+                    "timeout": 5
+                });
+            }
+        else{
+            const content = await (await fetch(this.file.url)).text();
+            this.editor.setValue(content);
         }
         return this;
     }
