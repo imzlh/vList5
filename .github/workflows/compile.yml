@@ -26,7 +26,7 @@ jobs:
       uses: actions/setup-node@v4
       with:
         node-version: ${{ matrix.node-version }}
-    - run: npm i --dev
+    - run: npm i --force
     - run: npm run build --if-present
     - run: tar -zcvf release.tgz dist/
     - name: Upload binaries to release
