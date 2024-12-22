@@ -417,7 +417,7 @@ namespace Tree{
      * @returns 文件或文件夹信息
      */
     async function stat(path: string, parent: vDir): Promise<vFile | vDir> {
-        const res = await request('stat', { path });
+        const res = await request('stat', { path }, true);
         return compileObject(res, parent);
     }
 
@@ -505,7 +505,8 @@ namespace Tree{
         path: string,
         force = false,                   // 确保这个路径存在，只是被隐藏了
         type: 'dir' | 'file' = 'dir',    // 有的时候目标同时是文件和文件夹
-        create_on_miss = false           // 当找不到文件夹时，是否创建
+        create_on_miss = false,          // 当找不到文件夹时，是否创建
+        quiet = true                     // 静默模式，访问时不自动展开树
     ) {
         const paths = clearPath(path).split('/').filter(Boolean),
             name = paths.pop()!;
@@ -517,6 +518,7 @@ namespace Tree{
             // 刷新子节点
             if(!node.child) try{
                 await load(node);
+                if(quiet) node.unfold = true;
             }catch(e){
                 if(e instanceof APIError && (e.code == 404 || e.code == 403))
                     throw new Error(`Directory "${path}" not found. Please refresh the cache`);
@@ -548,6 +550,20 @@ namespace Tree{
                 node = node.child![index] as vDir;
             }
         }
+        
+        if(!node.child){
+            await Tree.load(node, true);
+            if(quiet) node.unfold = true;
+        }
+        // 找到目标节点
+        const index = node.child!.findIndex(c => c.name == name && c.type == 'dir');
+        if(index == -1 && force) try{
+                const nd = await stat(node.path + name, node) as vDir;
+                node.child!.push(nd);
+            }catch(e){
+                console.warn('force flag warning:\n', e);
+            }
+
         return {
             parent: node,
             get index(){
@@ -773,8 +789,8 @@ export namespace FS{
      * @param reload 是否重新加载
      * @returns 目录节点
      */
-    export async function loadPath(path: string, reload = false){
-        const { file } = await Tree.find(path, true, 'dir', true);
+    export async function loadPath(path: string, reload = false, quiet = true){
+        const { file } = await Tree.find(path, true, 'dir', true, quiet);
         if(file.type != 'dir') throw new Error(`"${path}" is not a directory`);
         
         // 读取所有展开的文件夹，在重载后自动展开
@@ -808,7 +824,7 @@ export namespace FS{
         (file.child && !reload) || await Tree.load(file);
         // 展开所有文件夹
         for(const folder of opened_folders)
-            loadPath(folder, true);
+            await loadPath(folder, reload, quiet);
         return file;
     }
 
@@ -995,3 +1011,17 @@ export namespace FS{
 
 export const getActiveFile = Tree.getActive,
     clearActiveFile = Tree.clearActive;
+
+
+// ============== HASH API ================
+// 路径读取
+if(location.hash.startsWith('#/')){
+    const hash = location.hash.substring(1);
+    FS.loadPath(hash, false);
+}
+
+// 监听hash变化
+window.addEventListener('hashchange', () => {
+    const hash = location.hash.substring(1);
+    FS.loadPath(hash, false);
+});
