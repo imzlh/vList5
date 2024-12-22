@@ -181,7 +181,7 @@ function getLocalizeCode(CURRENT_LOCALE_DATA: string) {
                let result = match
                if (typeof arg === 'string') {
                    result = arg
-               } else if (typeof arg === 'number' || typeof arg === 'boolean' || arg === void 0 || arg === null) {
+               } else if (typeof arg === 'number' || typeof arg === 'boolean' || arg === undefined || arg === null) {
                    result = String(arg)
                }
    
@@ -294,7 +294,7 @@ function getLocalizeCode(CURRENT_LOCALE_DATA: string) {
        return {
            localize: createScopedLocalize(data[key]),
            localize2: createScopedLocalize2(data[key]),
-           getConfiguredDefaultLocale: (_a = data.getConfiguredDefaultLocale) !== null && _a !== void 0 ? _a : _ => undefined,
+           getConfiguredDefaultLocale: (_a = data.getConfiguredDefaultLocale) !== null && _a !== undefined ? _a : _ => undefined,
        }
    }
    
@@ -304,7 +304,7 @@ function getLocalizeCode(CURRENT_LOCALE_DATA: string) {
     */
    export function load(name, req, load, config) {
        var _a
-       const pluginConfig = (_a = config['vs/nls']) !== null && _a !== void 0 ? _a : {}
+       const pluginConfig = (_a = config['vs/nls']) !== null && _a !== undefined ? _a : {}
        if (!name || name.length === 0) {
    
            // TODO: We need to give back the mangled names here
@@ -314,7 +314,7 @@ function getLocalizeCode(CURRENT_LOCALE_DATA: string) {
                getConfiguredDefaultLocale: () => {
                    var _a
    
-                   return (_a = pluginConfig.availableLanguages) === null || _a === void 0 ? void 0 : _a['*'] 
+                   return (_a = pluginConfig.availableLanguages) === null || _a === undefined ? undefined : _a['*'] 
                },
            })
        }
@@ -335,7 +335,7 @@ function getLocalizeCode(CURRENT_LOCALE_DATA: string) {
            messages.getConfiguredDefaultLocale = () => {
                var _a
    
-               return (_a = pluginConfig.availableLanguages) === null || _a === void 0 ? void 0 : _a['*'] 
+               return (_a = pluginConfig.availableLanguages) === null || _a === undefined ? undefined : _a['*'] 
            }
            load(messages)
        }
@@ -373,7 +373,7 @@ function getLocalizeCode(CURRENT_LOCALE_DATA: string) {
                        const messages = await getMessagesFromTranslationsService(pluginConfig.translationServiceUrl, genericLanguage, name);
    
                        // We got some messages, so we configure the configuration to use the generic language for this session.
-                       (_a = pluginConfig.availableLanguages) !== null && _a !== void 0 ? _a : pluginConfig.availableLanguages = {}
+                       (_a = pluginConfig.availableLanguages) !== null && _a !== undefined ? _a : pluginConfig.availableLanguages = {}
                        pluginConfig.availableLanguages['*'] = genericLanguage
    
                        return messagesLoaded(messages)
