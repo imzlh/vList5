@@ -6,6 +6,10 @@
     import { contextMenu, FS, message, reqFullscreen, splitPath, UI } from '@/utils';
     import { encode2Blob, decode } from '@/utils/bjson';
 
+    // @ts-ignore
+    import zhCN from 'x-data-spreadsheet/dist/locale/zh-cn';
+    Spreadsheet.locale('zh-cn', zhCN);
+
     const { option: file } = defineProps({
             option: {
                 type: Object as PropType<vFile>,

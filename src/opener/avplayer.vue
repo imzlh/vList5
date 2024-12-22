@@ -875,7 +875,7 @@
                     margin-bottom: .5rem;
 
                     >input[type=checkbox]{
-                        @include v-checkbox;
+                        @include input.checkbox;
                     }
 
                     > .range{
@@ -927,7 +927,7 @@
                             left: 0;
                             width: 100%;
                             box-sizing: border-box;
-                            @include v-winui-range;
+                            @include input.winui-range;
                         }
                     }
 

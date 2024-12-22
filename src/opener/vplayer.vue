@@ -1120,7 +1120,7 @@
                                     opacity: .6;
                                     font-size: 1rem;
 
-                                    @include v-winui-range();
+                                    @include input.winui-range();
                                 }
                             }
                         }
