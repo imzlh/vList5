@@ -138,9 +138,10 @@ export default defineConfig({
         {
             name: 'my-plugin',
             transformIndexHtml(html) {
-                return html
-                    .replace(/<head>\s*<script\s+type="module"\s+src="\/@vite\/client"><\/script>/, '')
-                    .replace('</head>', '<script type="module" src="/@vite/client"></script></head>');
+                if(process.env.NODE_ENV === 'development')
+                    return html
+                        .replace(/<head>\s*<script\s+type="module"\s+src="\/@vite\/client"><\/script>/, '')
+                        .replace('</head>', '<script type="module" src="/@vite/client"></script></head>');
             }
         }
     ],

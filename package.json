@@ -59,13 +59,12 @@
     "vue": "^3.5.13",
     "vue-reader": "^1.2.15",
     "vue-tsc": "=2.0.29",
-    "x-data-spreadsheet": ">=1.1.9"
+    "x-data-spreadsheet": ">=1.1.9",
+    "less": "^4.2.0",
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
   },
   "files": [
     "dist/**"
   ],
-  "dependencies": {
-    "less": "^4.2.0",
-    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
-  }
+  "dependencies": {}
 }
