@@ -24,25 +24,7 @@ import VP9_WASM from 'libmedia/dist/decode/vp9-simd.wasm?url';
 import RSP_WASM from 'libmedia/dist/resample/resample-simd.wasm?url';
 import SP_WASM from 'libmedia/dist/stretchpitch/stretchpitch-simd.wasm?url';
 import { markRaw, reactive, watch } from 'vue';
-import AVPLAYER_SRC from 'libmedia/dist/avplayer/avplayer?url';
-
-// 初始化avPlayer
-async function importAVPlayer(){
-    const _CSS = window.CSS;
-    window.CSS = {
-        ..._CSS,
-        // 空函数，用于导入ASS时避免出错
-        registerProperty(){}
-    };
-
-    const script = document.createElement('script');
-    script.src = AVPLAYER_SRC;
-    document.body.append(script);
-    await new Promise(rs => script.onload = rs);
-    
-    AVPlayer.setLogLevel(import.meta.DEV ? 1 : 4); // WARN LEVEL
-    window.CSS = _CSS;
-}
+import AVPlayer from '@libmedia/avplayer';
 
 const CODEC_MAP = {
     12: MP4_WASM,
@@ -63,8 +45,7 @@ const CODEC_MAP = {
 };
 
 export default async function create(el){
-    if(!globalThis.AVPlayer) await importAVPlayer();
-    const player = new globalThis.AVPlayer({
+    const player = new AVPlayer({
         "container": el,
         "enableHardware": true,
         "getWasm": (type, codecId) => {
@@ -81,7 +62,6 @@ export default async function create(el){
             }
         },
         "enableWebGPU": true,
-        "simd": true,
         "preLoadTime": 2
     });
 
@@ -199,15 +179,15 @@ export default async function create(el){
     });
 
     watch(() => refs.time.total, total => el.duration = total || 0n);
-    player.on('ended', () => el.dispatchEvent(new Event('ended')));
-    player.on('loading', () => el.dispatchEvent(new Event('waiting')));
-    player.on('loaded', () => el.dispatchEvent(new Event('load')));
-    player.on('played', () => el.dispatchEvent(new Event('play')));
-    player.on('paused', () => el.dispatchEvent(new Event('pause')));
-    player.on('seeking', () => el.dispatchEvent(new Event('seeking')));
-    player.on('seeked', () => el.dispatchEvent(new Event('seeked')));
-    player.on('time', time => el.currentTime = time);
-    player.on('progress', prop => el.dispatchEvent(new CustomEvent('progress', {detail: prop})))
+    // player.on('ended', () => el.dispatchEvent(new Event('ended')));
+    // player.on('loading', () => el.dispatchEvent(new Event('waiting')));
+    // player.on('loaded', () => el.dispatchEvent(new Event('load')));
+    // player.on('played', () => el.dispatchEvent(new Event('play')));
+    // player.on('paused', () => el.dispatchEvent(new Event('pause')));
+    // player.on('seeking', () => el.dispatchEvent(new Event('seeking')));
+    // player.on('seeked', () => el.dispatchEvent(new Event('seeked')));
+    // player.on('time', time => el.currentTime = time);
+    // player.on('progress', prop => el.dispatchEvent(new CustomEvent('progress', {detail: prop})))
 
     // WebLock
     if('wakeLock' in navigator){

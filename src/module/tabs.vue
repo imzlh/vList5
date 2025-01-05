@@ -69,7 +69,7 @@
 	<TransitionGroup name="tab" tag="div" v-bind="$attrs" class="tab" v-drag>
 		<template v-for="(data, i) in tabs" :key="i">
 			<div v-if="data" @click="current = i" @contextmenu.prevent="ctxMenu($event, i)"
-				:active="current == i"
+				:active="current == i" :title="data.name"
 			>
 				<img :src="data.icon" onerror="this.style.display = 'none';" class="icon">
 				<span>{{ data.name }}</span>
@@ -94,7 +94,7 @@
 			<suspense>
 				<div class="webview" v-if="typeof data.content === 'string'" v-webview="data.content"></div>
 				<component v-else :is="toRaw(data.content)" :option="data.option" :visibility="current == i"
-					@close="delete tabs[i];" @hide="current = ''" @show="current = i" @chTitle="data.name = $event"
+					@close="delete tabs[i];" @hide="current = ''" @show="current = i" @title="data.name = $event"
 				/>
 
 				<template #fallback>

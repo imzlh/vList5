@@ -11,7 +11,20 @@
         <link rel="mask-icon" href="favicon.ico" color="#ffffff">
         <meta name="theme-color" content="#ffffff">
         <title>vList5</title>
-        <script src="src/loader.ts" defer></script>
+        <script>
+            const createURL = (exportVar) => URL.createObjectURL(
+                new Blob(['export default ' + exportVar], { type: 'text/javascript' })
+            ), script = document.createElement('script');
+            script.type = 'importmap';
+            script.innerHTML = JSON.stringify({
+                "imports": {
+                    "vue": createURL('vExport.vue'),
+                    "fs": createURL('vExport.fs')
+                }
+            });
+            document.currentScript.after(script);
+        </script>
+        <script type="module" src="./src/init.ts"></script>
     </head>
 
     <body tabindex="-1" style="position: fixed !important;">

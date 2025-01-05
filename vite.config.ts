@@ -8,9 +8,25 @@ import nlsPlugin, {
     esbuildPluginMonacoEditorNls,
 } from "./src/opener/vscode/vite_plugin.i18n";
 import I18n from './src/opener/vscode/translate.i18n.json';
+import { basename, join, matchesGlob, resolve } from 'node:path';
+import { copyFile, readdir } from 'node:fs/promises';
 
 // 这里定义应用名称
 const APP_NAME = 'izCloud';
+
+// avplayer: 将动态文件放在viteDep
+if(process.env.NODE_ENV === 'development'){
+    const dep_path = resolve(__dirname, 'node_modules/.vite/deps'),
+        src_path = resolve(__dirname, 'node_modules/@libmedia/avplayer/dist/esm'),
+        mods = await readdir(src_path);
+
+    for (const mod of mods){
+        if(! mod.match(/[0-9]+\.avplayer\.js$/)) continue;
+        const src = resolve(src_path, mod),
+            dst = join(dep_path, basename(mod));
+        await copyFile(src, dst);
+    }
+}
 
 // https://vitejs.dev/config/
 export default defineConfig({
@@ -219,7 +235,6 @@ export default defineConfig({
                         ['svg', 'png', 'jpg', 'webp', 'ico'].some(item => id.endsWith('.' + item)) ||
                         ((!id.includes('node_modules/') || [
                             'vue',
-                            '/libmedia'
                         ].some(item => id.includes(item)))
                         && ![
                             '/asciinema',
@@ -245,14 +260,18 @@ export default defineConfig({
                     // 所有React组件
                     if(id.includes('react') || id.includes('/imgedit') ||  id.includes('/whiteboard') || id.includes('tldraw'))
                         return 'reactapp';
-                    // asciinema
-                    if(id.includes('/asciinema'))
-                        return 'asciinema';
                     // office
                     if(id.includes('/office/'))
                         return 'office';
                     // additional pack
-                    if(id.includes('/psd') || id.includes('/artplayer') || id.includes('/epub.vue') || id.includes('vue-reader'))
+                    if(id.includes('/psd') 
+                        || id.includes('/asciinema') 
+                        || id.includes('/artplayer') 
+                        || id.includes('/epub.vue') 
+                        || id.includes('vue-reader') 
+                        || id.includes('libmedia')
+                        || id.includes('avplayer')
+                    )
                         return 'additional';
                 },
             },

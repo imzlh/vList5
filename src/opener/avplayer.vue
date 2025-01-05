@@ -1,55 +1,102 @@
 <script lang="ts" setup>
-    import { onMounted, onUnmounted, reactive, ref, watch, type Directive } from 'vue';
-    import createAV, { AVState, type Export } from './avplayer/avplayer';
+    import { computed, onMounted, onUnmounted, reactive, ref, shallowRef, watch, type Directive } from 'vue';
     import type { MessageOpinion, vFile } from '@/env';
     import { contextMenu, reqFullscreen, UI } from '@/App.vue';
-    import { acceptDrag, clipFName, FS, message, splitPath } from '@/utils';
+    import { acceptDrag, clipFName, createWindow, FS, message, splitPath } from '@/utils';
     import MediaSession, { updateMediaSession } from '@/opener/media/mediaSession';
     import { regSelf } from '@/opener';
+    import I_AVPLAYER from '/app/video.webp';
+    import AVPlayer from '@libmedia/avplayer';
+    // import AVPlayer, { AVPlayerProgress, AVPlayerStatus } from '@libmedia/avplayer';
+    import Stats from '@libmedia/avpipeline/struct/stats'
+    // import { AVMediaType } from '@libmedia/avutil/codec'
+    import { getWasm } from './avplayer/wasm';
+    // @ts-ignore
+    import { snapshot } from './avplayer/snapshot';
+    import { AVLogLevel, AVMediaType, AVPlayerProgress, AVPlayerStatus } from './avplayer/enum';
+    import I_VLC from '/app/vlc.svg';
 
+    AVPlayer.setLogLevel(
+        import.meta.env.DEV ? AVLogLevel.DEBUG : AVLogLevel.ERROR
+    );
+    
     const CONFIG = {
-        seek_time: 10,
-        media: [
-            "webm",
-            "mkv",
-            "mp4",
-            "ogv",
-            "ogg",
-            // extra pack
-            "pcm",
-            "flv",
-            "mov",
-            "m2ts",
-            "ivf",
-            "wav",
-            "h264",
-            "hevc",
-            "vvc",
-            // audio
-            "aac",
-            "mp3",
-            "mka",
-            "m4a",
-            "opus",
-            "mp3",
-            "flac",
-            "wav"
-        ],
-        subtitle: [
-            "ass",
-            "ssa",
-            "srt",
-            "vtt",
-            "ttml"
-        ]
-    },vSpeed = {
-        mounted(el, bind){
-            watch(() => player.value?.playBackRate, val => 
-                el.setAttribute('active', val == bind.value ? 'true' : 'false')
-            );
-            el.onclick = () => player.value && (player.value.playBackRate = bind.value);
-        }
-    } satisfies Directive<HTMLElement, number>;
+            seek_time: 10,
+            media: [
+                "webm",
+                "mkv",
+                "mp4",
+                "ogv",
+                "ogg",
+                // extra pack
+                "pcm",
+                "flv",
+                "mov",
+                "m2ts",
+                "ivf",
+                "wav",
+                "h264",
+                "hevc",
+                "vvc",
+                // audio
+                "aac",
+                "mp3",
+                "mka",
+                "m4a",
+                "opus",
+                "mp3",
+                "flac",
+                "wav"
+            ],
+            subtitle: [
+                "ass",
+                "ssa",
+                "srt",
+                "vtt",
+                "ttml"
+            ]
+        },
+        videoel = ref<HTMLDivElement>(),
+        _prop = defineProps(['option', 'visibility']),
+        _ev = defineEmits(['title']),
+        vol_div = ref<HTMLDivElement>(),
+        file = _prop.option as vFile,
+        ui = reactive({
+            about: false,
+            track: false,
+            playlist: false,
+            videos: [] as Array<vFile & { name: string, sub: Record<string, string> }>,
+            chapter_nodes: [] as bigint[],
+            videoID: 0,
+            tool: false,
+            volume: false,
+            loaded: false,
+            error: false,
+            media_is_audio: false,
+            alert: '',
+
+            playing: false,
+            time: 0n,
+            total: 1n,
+
+            speed: 1,
+            sub_delay: 0,
+
+            video_id: 0,
+            audio_id: 0,
+            sub_id: 0,
+        }),
+        tracks = shallowRef<ReturnType<typeof get_tracks>>(),
+        stat = ref<Stats>(),
+        root = ref<HTMLDivElement>(),
+        vSpeed = {
+            mounted(el, bind){
+                watch(() => ui.speed, val => 
+                    el.setAttribute('active', val == bind.value ? 'true' : 'false')
+                );
+                el.onclick = () => player?.setPlaybackRate(bind.value);
+            }
+        } satisfies Directive<HTMLElement, number>;
 
     let timer: number | NodeJS.Timeout | undefined;
     function active(){
@@ -60,21 +107,6 @@
             timer = undefined;
         }, 3000);
     }
-
-    const videoel = ref<HTMLDivElement>(),
-        _prop = defineProps(['option', 'visibility']),
-        file = _prop.option as vFile,
-        ui = reactive({
-            about: false,
-            track: false,
-            playlist: false,
-            videos: [] as Array<vFile & { name: string, sub: Record<string, string> }>,
-            videoID: 0,
-            tool: false,
-            volume: false,
-            alert: ''
-        }),
-        root = ref<HTMLElement>();
     
     active();
 
@@ -87,32 +119,154 @@
 
     const exitFullScreen = () => document.exitFullscreen();
 
-    const player = ref<Export>();
-    onMounted(() => 
-        createAV(videoel.value as HTMLDivElement).then(val => {
-            player.value = val;
-            CTRL.play(file);
-        })
-    );
-    onUnmounted(() => player.value?.destroy());
+    // 初始化AVPlayer事件
+    let player: AVPlayer | undefined;
+    onMounted(() => {
+        player = new AVPlayer({
+            "container": videoel.value!,
+            "enableHardware": true,
+            getWasm,
+            "enableWebGPU": true,
+            "preLoadTime": 2
+        });
 
+        // @ts-ignore DEBUG
+        globalThis.player = player;
+
+        // 注册加载
+        player.on('progress', (prog: AVPlayerProgress) => {
+            switch(prog){
+                case AVPlayerProgress.ANALYZE_FILE:
+                    alert('分析文件中...');
+                break;
+
+                case AVPlayerProgress.LOAD_AUDIO_DECODER:
+                    alert('加载音频解码器...');
+                break;
+
+                case AVPlayerProgress.LOAD_VIDEO_DECODER:
+                    alert('加载视频解码器...');
+                break;
+
+                case AVPlayerProgress.OPEN_FILE:
+                    alert('打开文件中...');
+                break;
+            }
+        });
+        player.on('ended', () => CTRL.next());
+        player.on('error', err => (
+            alert(err.name + ':'+ err.message),
+            ui.error = true
+        ));
+        player.on('loaded', function(){
+            player?.setPlaybackRate(ui.speed);
+            player?.setSubtitleDelay(ui.sub_delay)
+            ui.error = false;
+
+            tracks.value = get_tracks();
+            
+            ui.media_is_audio = !player!.getStreams().some(track => track.mediaType == 'Video');
+
+            _ev('title', ui.videos[ui.videoID].name + ' - avPlayer');
+            ui.alert = '加载完成';
+        });
+        player.on('timeout' , () => alert('加载超时!'));
+        player.on('time', () => (ui.time = player!.currentTime));
+        player.on('loaded', () => (ui.total = player!.getDuration()));
+        player.on('played', () => (ui.playing = true));
+        player.on('paused', () => (ui.playing = false));
+        player.on('changing', (type: AVMediaType) => {
+            switch(type){
+                case AVMediaType.AVMEDIA_TYPE_AUDIO:
+                    ui.audio_id = -1;
+                break;
+
+                case AVMediaType.AVMEDIA_TYPE_VIDEO:
+                    ui.video_id = -1;
+                break;
+
+                case AVMediaType.AVMEDIA_TYPE_SUBTITLE:
+                    ui.sub_id = -1;
+                break;
+            }
+        });
+        player.on('changed', (type: AVMediaType) => {
+            switch(type){
+                case AVMediaType.AVMEDIA_TYPE_AUDIO:
+                    ui.audio_id = player?.getSelectedAudioStreamId() || -1;
+                break;
+
+                case AVMediaType.AVMEDIA_TYPE_VIDEO:
+                    ui.video_id = player?.getSelectedVideoStreamId() || -1;
+                break;
+
+                case AVMediaType.AVMEDIA_TYPE_SUBTITLE:
+                    ui.sub_id = player?.getSelectedSubtitleStreamId() || -1;
+                break;
+            }
+        })
+
+        stat.value = player.getStats();
+        ui.loaded = true;
+
+        CTRL.play(file);
+    });
+    onUnmounted(() => player?.destroy());
+
+    function get_tracks(){
+        const tracks = player?.getStreams();
+        if(!tracks) return;
+        const audio = [], video = [], sub = [];
+        for(const track of tracks)
+            switch(track.mediaType){
+                case 'Audio':
+                    audio.push(track);
+                break;
+                case 'Video':
+                    video.push(track);
+                break;
+                case 'Subtitles':
+                    sub.push(track);
+                break;
+            }
+
+        return { audio, video, sub };
+    }
+
+    // snapshot
+    function snap(type: 'webp' | 'png' | 'jpeg'){
+        const src: Promise<string> = snapshot(player, type);
+        src.then(url => createWindow({
+            "content": url,
+            "icon": I_AVPLAYER,
+            "name": player!.currentTime + '.' + type + ' - avPlayer',
+            onDestroy(){
+                URL.revokeObjectURL(url);
+            }
+        }))
+    }
+
+    // 音量更改
     let timer2: number | NodeJS.Timeout | undefined;
-    watch(() => player.value?.volume, () => {
+    function volume_change(v: number){
+        player!.setVolume(v);
+        vol_div.value!.style.height = (v * 100) + '%';
         if(timer2) clearTimeout(timer2);
         timer2 = setTimeout(() => {
             ui.volume = false;
             timer2 = undefined;
         }, 3000);
-    })
+    }
 
-    watch(() => _prop.visibility, val => val && player.value && (
+    // 当窗口激活，控制MediaSession
+    watch(() => _prop.visibility, val => val && player && (
         MediaSession.value = {
             next: () => CTRL.next(),
             prev: () => CTRL.prev(),
-            play: () => player.value && (player.value.play = true),
-            pause: () => player.value && (player.value.play = false),
-            set time(val: number){ player.value?.func.seek(BigInt(val) * 1000n); },
-            get time(){ return Number((player.value?.time.current || 0n) / 1000n); },
+            play: () => player?.play(),
+            pause: () => player?.pause(),
+            set time(val: number){ player?.seek(BigInt(val) * 1000n); },
+            get time(){ return Number(player!.currentTime / 1000n); },
             seekOnce: CONFIG.seek_time
         },
         updateMediaSession({
@@ -123,6 +277,38 @@
         })
     ), { immediate: true });
 
+    // 加载视频
+    watch(() => ui.videos[ui.videoID], async function(vid){
+        if(!vid || !player) return;
+        
+        // 停止播放
+        player.getSource() && await player.stop();
+
+        // 清空
+        ui.chapter_nodes = [];
+        
+        // 加载
+        await player.load(vid.url, {
+            "ext": vid.name.split('.').pop(),
+            "externalSubtitles": Object.entries(vid.sub).map(([ext, url]) => ({
+                "title": ext,
+                "source": url,
+                "lang": "zh-CN"
+            }))
+        });
+        await player.play();
+
+        // 更新
+        ui.chapter_nodes = player.getChapters().map(chap => chap.end)
+        updateMediaSession({
+            "title": vid.name,
+            "artist": "vPlayer",
+            "album": "vPlayer",
+            "artwork": []
+        });
+    });
+
+    // 控制
     const CTRL = {
         dir: '?',
         temp_url: null as null|string,
@@ -167,6 +353,7 @@
 
             if (id !== undefined){
                 ui.videoID = id;
+                event
             }else message({
                 "type": "error",
                 "title": "vPlayer",
@@ -189,10 +376,28 @@
         }
     };
 
+    // 注册打开方式
     onUnmounted(regSelf('avPlayer', CTRL.play));
+
+    // 监听文件拖拽
+    watch(root, val => acceptDrag(val as HTMLElement, f => 
+        f.type == 'file' && (function(){
+            const info = splitPath(f);
+            if(CONFIG.media.includes(info.ext.toLowerCase()))
+                CTRL.play({...f, name: info.name});
+            else if(CONFIG.subtitle.includes(info.ext.toLowerCase()))
+                player?.loadExternalSubtitle({
+                    source: f.url,
+                    lang: 'zh-CN',
+                    title: info.name
+                });
+        })()
+    ));
 
     const ICON_CHECK = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxNiAxNiI+CiAgPHBhdGggZD0iTTEyLjczNiAzLjk3YS43MzMuNzMzIDAgMCAxIDEuMDQ3IDBjLjI4Ni4yODkuMjkuNzU2LjAxIDEuMDVMNy44OCAxMi4wMWEuNzMzLjczMyAwIDAgMS0xLjA2NS4wMkwzLjIxNyA4LjM4NGEuNzU3Ljc1NyAwIDAgMSAwLTEuMDYuNzMzLjczMyAwIDAgMSAxLjA0NyAwbDMuMDUyIDMuMDkzIDUuNC02LjQyNWEuMjQ3LjI0NyAwIDAgMSAuMDItLjAyMloiLz4KPC9zdmc+';
     function ctxmenu(e: MouseEvent){
+        const tracks = get_tracks();
+        if(!tracks) return;
         contextMenu({
             'pos_x': e.clientX,
             'pos_y': e.clientY,
@@ -201,8 +406,8 @@
                     "text": "播放速度",
                     "child": [.5, .75, 1, 1.25, 1.5, 2, 3, 4, 8].map(val => ({
                         "text": val + 'x',
-                        handle: () => player.value!.playBackRate = val,
-                        "icon": val == player.value?.playBackRate ? ICON_CHECK : undefined
+                        handle: () => player!.setPlaybackRate(val),
+                        "icon": val == player!.getPlaybackRate() ? ICON_CHECK : undefined
                     }))
                 },{
                     "text": "播放列表",
@@ -213,18 +418,18 @@
                     }))
                 },{
                     "text": "音轨",
-                    "child" : player.value?.tracks.audio.map((item, i) => ({
+                    "child" : tracks.audio.map((item, i) => ({
                         "text": item.metadata.languageString || i.toString(),
-                        "icon": player.value?.tracks.audioTrack == i ? ICON_CHECK : undefined,
-                        handle: () => player.value!.tracks.audioTrack = i
+                        "icon": player?.getSelectedAudioStreamId() == item.id ? ICON_CHECK : undefined,
+                        handle: () => player?.selectAudio(item.id)
                     }))
                 }, {
                     "text": "字幕",
-                    "child" : player.value?.tracks.subtitle.length 
-                        ? player.value.tracks.subtitle.map((item, i) => ({
+                    "child" : tracks.sub.length 
+                        ? tracks.sub.map((item, i) => ({
                             "text": item.metadata.languageString || i.toString(),
-                            "icon": player.value?.tracks.subTrack == i ? ICON_CHECK : undefined,
-                            handle: () => player.value!.tracks.subTrack = i
+                            "icon": player?.getSelectedSubtitleStreamId() == item.id ? ICON_CHECK : undefined,
+                            handle: () => player?.selectSubtitle(item.id)
                         }))
                         : [{ text: '空' }]
                 },{
@@ -232,18 +437,18 @@
                     "child": [
                         {
                             text: 'webp',
-                            handle: () => player.value?.func.snapshot('webp')
+                            handle: () => snap('webp')
                         },{
                             text: 'png',
-                            handle: () => player.value?.func.snapshot('png')
+                            handle: () => snap('png')
                         },{
                             text: 'jpg/jpeg',
-                            handle: () => player.value?.func.snapshot('jpeg')
+                            handle: () => snap('jpeg')
                         }
                     ]
                 },{
                     text: "校准轨道",
-                    handle: () => player.value?.func.seek(player.value.time.current +1n)
+                    handle: () => player && player.seek(player.currentTime +1n)
                 },'---',{
                     "text": "统计信息",
                     handle: () => ui.about = true
@@ -253,31 +458,31 @@
     }
 
     function basicKbdHandle(e: KeyboardEvent){
-        if(!player.value || player.value.time.total == 0n) return;
+        if(!player || player.getDuration() == 0n) return;
         switch(e.key){
             case 'ArrowRight':
-                player.value.func.seek(player.value.time.current + 10000n);
+                player.seek(player.currentTime + 10000n);
             break;
 
             case 'ArrowLeft':
-                player.value.func.seek(player.value.time.current - 10000n);
+                player.seek(player.currentTime - 10000n);
             break;
 
             case 'ArrowUp':
-                player.value.volume <= 0.9
-                    ? player.value.volume += .1
-                    : player.value.volume = 1;
+                player.setVolume(
+                    player.getVolume() >= 0.9 ? 1 : player.getVolume() +.1
+                )
             break;
 
             case 'ArrowDown':
-                player.value.volume >= 0.1
-                    ? player.value.volume -= .1
-                    : player.value.volume = 0;
+                player.setVolume(
+                    player.getVolume() <= 0.1 ? 0 : player.getVolume() -.1
+                )
             break;
 
             case ' ':
             case 'Enter':
-                player.value.play = !player.value.play;
+                switch_player_status();
             break;
 
             default:
@@ -293,74 +498,19 @@
         return n1 + '.' + n2;
     }
 
-    function prog(prog: CustomEvent<AVState>){
-        switch(prog.detail){
-            case AVState.ANALYZE_FILE:
-                ui.alert = '分析文件中...';
-            break;
-
-            case AVState.LOAD_AUDIO_DECODER:
-                ui.alert = '加载音频解码器...';
-            break;
-
-            case AVState.LOAD_VIDEO_DECODER:
-                ui.alert = '加载视频解码器...';
-            break;
-
-            case AVState.OPEN_FILE:
-                ui.alert = '打开文件中...';
-            break;
-        }
-    }
-
     let alertTimer: number | NodeJS.Timeout | undefined;
-    function autoCloseAlert(){
-        ui.alert = '加载完毕'; 
+    function alert(alert: string){
+        ui.alert = alert;
         if(alertTimer) clearTimeout(alertTimer);
         alertTimer = setTimeout(() => {
-            ui.alert = '', alertTimer = undefined;
-        }, 2000);
+           ui.alert = '', alertTimer = undefined;
+        }, 3000);
     }
 
-    watch(() => ui.videos[ui.videoID], function(vid){
-        if(!vid || !player.value) return;
-        player.value.url = vid.url;
-        updateMediaSession({
-            "title": vid.name,
-            "artist": "vPlayer",
-            "album": "vPlayer",
-            "artwork": []
-        });
-        watch(() => player.value?.time.current, val => val && vid.sub && Object.entries(vid.sub).forEach(([ext, url]) => 
-            player.value?.func.extSub({
-                "title": ext,
-                "source": url,
-                "lang": "zh-CN"
-            })
-        ), { once: true });
-    });
-
-    watch(() => _prop.visibility, dis => dis && player.value && updateMediaSession({
-        "title": ui.videos[ui.videoID]?.name || '未在播放',
-        "artist": "vPlayer",
-        "album": "vPlayer",
-        "artwork": []
-    }))
-
-    watch(root, val => acceptDrag(val as HTMLElement, f => 
-        f.type == 'file' && (function(){
-            const info = splitPath(f);
-            if(CONFIG.media.includes(info.ext.toLowerCase()))
-                CTRL.play({...f, name: info.name});
-            else if(CONFIG.subtitle.includes(info.ext.toLowerCase()))
-                player.value?.func.extSub({
-                    source: f.url,
-                    lang: 'zh-CN',
-                    title: info.name
-                });
-        })()
-    ));
-    watch(() => UI.app_width.value * UI.height_total.value, () => player.value && player.value.func.resize());
+    const switch_player_status = () => player && (
+        // @ts-ignore FIXME
+        player.getStatus() == AVPlayerStatus.PAUSED ? player.play() : player.pause()
+    );
 </script>
 
 <template>
@@ -368,186 +518,197 @@
         @contextmenu.prevent="ctxmenu" @keydown.stop="basicKbdHandle"
         @pointermove="active" @click="active"
     >
-        <div class="video" ref="videoel" @dblclick.prevent="player && (player.play = !player.play)"
-            @ended="CTRL.next()" @progress="prog($event as any)" @load="autoCloseAlert" @error="autoCloseAlert"
-        />
+        <div class="video" ref="videoel" @dblclick.prevent="player && switch_player_status()"/>
+
+        <img :src="I_VLC" alt="Audio" :show="ui.media_is_audio" class="audio">
 
         <div class="alert" :show="!!ui.alert">{{ ui.alert }}</div>
 
-        <div class="bar" v-if="player" :style="{
-            pointerEvents: player.time.total == 0n ? 'none' : 'all'
-        }" :active="ui.tool">
-            <div class="icons">
-                <!--上一个-->
-                <div @click.stop="CTRL.prev()" vs-icon="prev"/>
+        <!-- 控制元素，开始 -->
+        <template v-if="ui.loaded && player">
+            <div class="bar" :active="ui.tool">
+                <div class="icons">
+                    <!--上一个-->
+                    <div @click.stop="CTRL.prev()" vs-icon="prev"/>
 
-                <!-- 播放暂停 -->
-                <div @click.stop="player.play = !player.play"
-                    :vs-icon="player.play ? 'pause' : 'play'"
-                />
+                    <!-- 播放暂停 -->
+                    <div @click.stop="switch_player_status"
+                        :vs-icon="ui.playing ? 'pause' : 'play'"
+                    />
 
-                <div @click.stop="CTRL.next()" vs-icon="next"/>
-            </div>
-
-            <div class="time">
-                <div class="current">{{ time2str(player.time.current) }}</div>
-                <div class="timebar" @click="player.func.seek(BigInt(Math.floor($event.offsetX / ($event.currentTarget as HTMLElement).clientWidth * Number(player.time.total / 1000n))) * 1000n)">
-                    <div class="prog" :style="{ width: float((player.time.current || 0n) * 10000n / (player.time.total || 1n), 2)+ '%' }"/>
-                    <div class="chapter" v-if="player.time.total">
-                        <div v-for="(chap, i) in player.tracks.chapter" :style="{
-                            left: float((chap.start || 0n) / player.time.total, 4) + '%'
-                        }" :title="'Chapter' + i"/>
-                    </div>
+                    <div @click.stop="CTRL.next()" vs-icon="next"/>
                 </div>
-                <div class="total">{{ time2str(player.time.total) }}</div>
-            </div>
-            
-            <div class="icons" style="flex-shrink: 1;overflow-x: auto;">
 
-                <!-- 播放列表 -->
-                <div small @click="ui.playlist = !ui.playlist" vs-icon="playlist"/>
-
-                <!-- 轨道设置 -->
-                <div small @click="ui.track = !ui.track" vs-icon="layers"/>
-
-                <!-- 信息 -->
-                <div @click="ui.about = !ui.about" small vs-icon="info"/>
-
-                <!-- 下一帧 -->
-                <div small @click="player.func.nextFrame()" vs-icon="small-right"/>
-
-                <!-- 截图 -->
-                <div @click="player.func.snapshot()" vs-icon="shoot"/>
+                <div class="time">
+                    <div class="current">{{ time2str(ui.time) }}</div>
+                    <div class="timebar" @click="player.seek(BigInt(Math.floor($event.offsetX / ($event.currentTarget as HTMLElement).clientWidth * Number(player.getDuration() / 1000n))) * 1000n)">
+                        <div class="prog" :style="{ width: float(ui.time * 100000n / ui.total, 3) + '%' }"/>
+                        <div class="chapter">
+                            <div v-for="(chap, i) in ui.chapter_nodes" :style="{
+                                left: float((chap || 0n) / ui.total, 4) + '%'
+                            }" :title="'Chapter' + i"/>
+                        </div>
+                    </div>
+                    <div class="total">{{ time2str(ui.total) }}</div>
+                </div>
                 
-                <!--全屏-->
-                <div small @click.stop="UI.fullscreen.value ? exitFullScreen() : reqFullscreen()"
-                    :vs-icon="UI.fullscreen.value ? 'exit-fullscreen' : 'fullscreen'"
-                />
+                <div class="icons" style="flex-shrink: 1;overflow-x: auto;">
+
+                    <!-- 播放列表 -->
+                    <div small @click="ui.playlist = !ui.playlist" vs-icon="playlist"/>
+
+                    <!-- 轨道设置 -->
+                    <div small @click="ui.track = !ui.track" vs-icon="layers"/>
+
+                    <!-- 信息 -->
+                    <div @click="ui.about = !ui.about" small vs-icon="info"/>
+
+                    <!-- 下一帧 -->
+                    <div small v-if="!ui.media_is_audio" @click="player.pause().then(() => player!.playNextFrame())" vs-icon="small-right"/>
+
+                    <!-- 截图 -->
+                    <div v-if="!ui.media_is_audio" @click="snap('webp')" vs-icon="shoot"/>
+                    
+                    <!--全屏-->
+                    <div small @click.stop="UI.fullscreen.value ? exitFullScreen() : reqFullscreen()"
+                        :vs-icon="UI.fullscreen.value ? 'exit-fullscreen' : 'fullscreen'"
+                        v-if="!ui.media_is_audio"
+                    />
+                </div>
+                
             </div>
-            
-        </div>
 
-        <div class="volume" v-if="player" v-show="ui.volume || ui.tool"
-            @click.stop="player.volume = 1 - $event.offsetY / ($event.currentTarget as HTMLElement).clientHeight"
-        >
-            <div :style="{ height: player.volume * 100 + '%' }"></div>
-        </div>
+            <div class="volume" v-if="player" v-show="ui.volume || ui.tool"
+                @click.stop="volume_change(
+                    1 - $event.offsetY / ($event.currentTarget as HTMLElement).clientHeight
+                )"
+            >
+                <div ref="vol_div" style="height: 100%;"></div>
+            </div>
 
-        <div class="frame-mask" v-show="ui.about || ui.track || ui.playlist"
-            @click="ui.about = ui.track = ui.playlist = false"
-        />
+            <div class="frame-mask" v-show="ui.about || ui.track || ui.playlist"
+                @click="ui.about = ui.track = ui.playlist = false"
+            />
 
-        <div class="about frame" :display="ui.about">
-            <h1>统计信息</h1>
-            <table v-if="player?.status">
-                <tbody>
-                    <tr>
-                        <td>音频编码</td>
-                        <td>{{ player.status.audiocodec }}</td>
-                    </tr>
-                    <tr>
-                        <td>视频编码</td>
-                        <td>{{ player.status.videocodec }}</td>
-                    </tr>
-                    <tr>
-                        <td>视频大小</td>
-                        <td>{{ player.status.width }} x {{ player.status.height }}</td>
-                    </tr>
-                    <tr>
-                        <td>音频比特率</td>
-                        <td>{{ player.status.audioBitrate }}</td>
-                    </tr>
-                    <tr>
-                        <td>音频声道</td>
-                        <td>{{ player.status.channels }}</td>
-                    </tr>
-                    <tr>
-                        <td>音频采样率</td>
-                        <td>{{ player.status.sampleRate }}</td>
-                    </tr>
-                    <tr>
-                        <td>音频帧率</td>
-                        <td>{{ player.status.audioDecodeFramerate }}</td>
-                    </tr>
-                    <tr>
-                        <td>视频丢包率</td>
-                        <td v-if="player.status.videoPacketCount > 0n">
-                            {{ player.status.videoDropPacketCount / player.status.videoPacketCount * 100n }}%
-                        </td>
-                        <td v-else> 0 </td>
-                    </tr>
-                    <tr>
-                        <td>视频错误率</td>
-                        <td v-if="player.status.videoPacketCount > 0">
-                            {{ player.status.videoDecodeErrorPacketCount / Number(player.status.videoPacketCount) }}
-                        </td>
-                        <td v-else> 0 </td>
-                    </tr>
-                    <tr>
-                        <td>视频比特率</td>
-                        <td>{{ player.status.videoBitrate }}</td>
-                    </tr>
-                    <tr>
-                        <td>视频帧率</td>
-                        <td>{{ player.status.videoRenderFramerate }}</td>
-                    </tr>
-                    <tr>
-                        <td>传输速率</td>
-                        <td>{{ player.status.bandwidth /1000 }} Kbps</td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
+            <div class="about frame" :display="ui.about">
+                <h1>统计信息</h1>
+                <table>
+                    <tbody>
+                        <tr>
+                            <td>音频编码</td>
+                            <td>{{ stat!.audiocodec }}</td>
+                        </tr>
+                        <tr>
+                            <td>视频编码</td>
+                            <td>{{ stat!.videocodec }}</td>
+                        </tr>
+                        <tr>
+                            <td>视频大小</td>
+                            <td>{{ stat!.width }} x {{ stat!.height }}</td>
+                        </tr>
+                        <tr>
+                            <td>音频比特率</td>
+                            <td>{{ stat!.audioBitrate }}</td>
+                        </tr>
+                        <tr>
+                            <td>音频声道</td>
+                            <td>{{ stat!.channels }}</td>
+                        </tr>
+                        <tr>
+                            <td>音频采样率</td>
+                            <td>{{ stat!.sampleRate }}</td>
+                        </tr>
+                        <tr>
+                            <td>音频帧率</td>
+                            <td>{{ stat!.audioDecodeFramerate }}</td>
+                        </tr>
+                        <tr>
+                            <td>视频丢包率</td>
+                            <td v-if="stat!.videoPacketCount > 0n">
+                                {{  // @ts-ignore
+                                    stat!.videoDropPacketCount / stat!.videoPacketCount * 100n 
+                                }}%
+                            </td>
+                            <td v-else> 0 </td>
+                        </tr>
+                        <tr>
+                            <td>视频错误率</td>
+                            <td v-if="stat!.videoPacketCount > 0">
+                                {{ stat!.videoDecodeErrorPacketCount / Number(stat!.videoPacketCount) }}
+                            </td>
+                            <td v-else> 0 </td>
+                        </tr>
+                        <tr>
+                            <td>视频比特率</td>
+                            <td>{{ stat!.videoBitrate }}</td>
+                        </tr>
+                        <tr>
+                            <td>视频帧率</td>
+                            <td>{{ stat!.videoRenderFramerate }}</td>
+                        </tr>
+                        <tr>
+                            <td>传输速率</td>
+                            <td>{{ stat!.bandwidth /1000 }} Kbps</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
 
-        <div class="offcv track" :display="ui.track">
-            <ul v-if="player?.tracks.audio">
-                <h1>音频轨道({{ player.tracks.audio.length }})</h1>
-                <li v-for="item in player.tracks.audio"
-                    :active="item.id == player.tracks.audioTrack"
-                    @click="player.tracks.audioTrack = item.id"
-                >({{ item.id }}) {{ item.metadata.languageString || item.metadata.language }}</li>
-            </ul>
-            <ul v-if="player?.tracks.video">
-                <h1>视频轨道({{ player.tracks.video.length }})</h1>
-                <li v-for="item in player.tracks.video"
-                    :active="item.id == player.tracks.videoTrack"
-                    @click="player.tracks.videoTrack = item.id"
-                >({{ item.id }}) {{ item.metadata.languageString || item.metadata.language }}</li>
-            </ul>
-            <ul v-if="player?.tracks.subtitle">
-                <h1>字幕轨道({{ player.tracks.subtitle.length }})</h1>
-                <div class="subtitle" v-if="player.tracks.subtitle.length" :delay="player.display.subDelay">
-                    <input type="checkbox" v-model="player.display.subtitle" title="显示字幕">
-                    <div class="range" v-if="player.display.subtitle" >
-                        <input title="字幕延迟" min="-5000" max="5000" step="100" type="range" v-model="player.display.subDelay">
+            <div class="offcv track" :display="ui.track">
+                <ul v-if="tracks?.audio" :style="{
+                    pointerEvents: ui.audio_id == -1 ? 'none' : 'auto'
+                }">
+                    <h1>音频轨道({{ tracks.audio.length }})</h1>
+                    <li v-for="item in tracks.audio"
+                        :active="item.id == ui.audio_id"
+                        @click="ui.audio_id = item.id"
+                    >({{ item.id }}) {{ item.metadata.languageString || item.metadata.language }}</li>
+                </ul>
+                <ul v-if="tracks?.video">
+                    <h1>视频轨道({{ tracks.video.length }})</h1>
+                    <li v-for="item in tracks.video"
+                        :active="item.id == ui.video_id"
+                        @click="ui.video_id = item.id"
+                    >({{ item.id }}) {{ item.metadata.languageString || item.metadata.language }}</li>
+                </ul>
+                <ul v-if="tracks?.sub">
+                    <h1>字幕轨道({{ tracks.sub.length }})</h1>
+                    <div class="subtitle" v-if="tracks.sub.length" :delay="ui.sub_delay">
+                        <input type="checkbox" @change="
+                            player.setSubtitleEnable(($event.target as HTMLInputElement).checked)
+                        " value="true" title="显示字幕">
+                        <div class="range" >
+                            <input title="字幕延迟" min="-5000" max="5000" step="100" type="range" v-model="ui.sub_delay">
+                        </div>
                     </div>
-                    <span v-else>字幕已关闭</span>
-                </div>
-                <li v-for="item in player.tracks.subtitle"
-                    :active="item.id == player.tracks.subTrack"
-                    @click="player.tracks.subTrack = item.id"
-                >({{ item.id }}) {{ item.metadata.languageString || item.metadata.language }}</li>
-            </ul>
-        </div>
+                    <li v-for="item in tracks.sub"
+                        :active="item.id == ui.sub_id"
+                        @click="player.selectSubtitle(item.id)"
+                    >({{ item.id }}) {{ item.metadata.languageString || item.metadata.language }}</li>
+                </ul>
+            </div>
 
-        <div class="offcv videos" :display="ui.playlist">
-            <h1>播放速度</h1>
-            <ul class="select">
-                <li v-speed=".5">0.5x</li>
-                <li v-speed=".75">0.75x</li>
-                <li v-speed="1">1x</li>
-                <li v-speed="1.25">1.25x</li>
-                <li v-speed="1.5">1.5x</li>
-                <li v-speed="2">2x</li>
-                <li v-speed="3">3x</li>
-            </ul>
-            <h1>播放列表</h1>
-            <div>
-                <div :active="ui.videoID == i" v-for="(item,i) in ui.videos" @click="ui.videoID = i">
-                    {{ item.name }}
+            <div class="offcv videos" :display="ui.playlist">
+                <h1>播放速度</h1>
+                <ul class="select">
+                    <li v-speed=".5">0.5x</li>
+                    <li v-speed=".75">0.75x</li>
+                    <li v-speed="1">1x</li>
+                    <li v-speed="1.25">1.25x</li>
+                    <li v-speed="1.5">1.5x</li>
+                    <li v-speed="2">2x</li>
+                    <li v-speed="3">3x</li>
+                </ul>
+                <h1>播放列表</h1>
+                <div>
+                    <div :active="ui.videoID == i" v-for="(item,i) in ui.videos" @click="ui.videoID = i">
+                        {{ item.name }}
+                    </div>
                 </div>
             </div>
-        </div>
+        </template>
+
+        
     </div>
 </template>
 
@@ -584,6 +745,20 @@
 
             &:active{
                 transform: scale(0.9);
+            }
+        }
+
+        > .audio{
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: min(30%, 6rem);
+            opacity: 0;
+
+            &[show=true]{
+                opacity: 1;
+                transition: opacity 0.2s;
             }
         }
 

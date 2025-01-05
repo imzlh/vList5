@@ -22,6 +22,7 @@
     "target": "ES2022",
     "typeRoots": ["node_modules/@types/"],
     "baseUrl": ".",
+    "verbatimModuleSyntax": false,
     "paths": {
       "@/*": ["./src/*"],
       "/*": ["./public/*", "./*"],
