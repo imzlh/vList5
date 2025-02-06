@@ -26,7 +26,7 @@
     <div class="messages">
         <!-- 消息列表 -->
         <template v-for="(item, i) of message" :key="item.uuid">
-            <div v-if="item" class="msg" :data-active="item.hidden ? null : ''" @click="item.hidden = true">
+            <div v-if="item" class="msg" :data-active="item.hidden ? null : ''" @click="msg_destroy(i)">
                 <header v-if="item.title">
                     <img v-if="item.icon" :src="item.icon">
                     <span>{{ item.title }}</span>

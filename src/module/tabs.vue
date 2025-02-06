@@ -202,6 +202,8 @@
 	.app {
 		width: 100%;
 		height: 100%;
+		position: relative;
+		z-index: 1;
 		transition: transform .2s;
 
 		>.app-meta-header {
