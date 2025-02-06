@@ -9,22 +9,27 @@ import nlsPlugin, {
 } from "./src/opener/vscode/vite_plugin.i18n";
 import I18n from './src/opener/vscode/translate.i18n.json';
 import { basename, join, matchesGlob, resolve } from 'node:path';
-import { copyFile, readdir } from 'node:fs/promises';
+import { copyFileSync, existsSync, mkdir, mkdirSync, readdirSync } from 'node:fs';
 
 // 这里定义应用名称
 const APP_NAME = 'izCloud';
 
 // avplayer: 将动态文件放在viteDep
 if(process.env.NODE_ENV === 'development'){
+    if(!existsSync('node_modules/.vite/deps'))
+        mkdirSync('node_modules/.vite/deps', { recursive: true });
+
+    console.log('Please wait for copying avplayer dependencies...');
+
     const dep_path = resolve(__dirname, 'node_modules/.vite/deps'),
         src_path = resolve(__dirname, 'node_modules/@libmedia/avplayer/dist/esm'),
-        mods = await readdir(src_path);
+        mods = readdirSync(src_path);
 
     for (const mod of mods){
         if(! mod.match(/[0-9]+\.avplayer\.js$/)) continue;
         const src = resolve(src_path, mod),
             dst = join(dep_path, basename(mod));
-        await copyFile(src, dst);
+        copyFileSync(src, dst);
     }
 }
 

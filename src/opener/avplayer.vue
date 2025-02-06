@@ -8,12 +8,12 @@
     import I_AVPLAYER from '/app/video.webp';
     import AVPlayer from '@libmedia/avplayer';
     // import AVPlayer, { AVPlayerProgress, AVPlayerStatus } from '@libmedia/avplayer';
-    import Stats from '@libmedia/avpipeline/struct/stats'
+    // import Stats from '@libmedia/avpipeline/struct/stats'
     // import { AVMediaType } from '@libmedia/avutil/codec'
     import { getWasm } from './avplayer/wasm';
     // @ts-ignore
     import { snapshot } from './avplayer/snapshot';
-    import { AVLogLevel, AVMediaType, AVPlayerProgress, AVPlayerStatus } from './avplayer/enum';
+    import { AVLogLevel, AVMediaType, AVPlayerProgress, AVPlayerStatus, Stats } from './avplayer/enum';
     import I_VLC from '/app/vlc.svg';
 
     AVPlayer.setLogLevel(
@@ -206,6 +206,7 @@
             }
         })
 
+        // @ts-ignore SAME
         stat.value = player.getStats();
         ui.loaded = true;
 

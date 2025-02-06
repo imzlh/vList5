@@ -2,7 +2,7 @@
     import type { vFile } from "@/env";
     import { FS, message } from "@/utils";
     import { createRoot } from 'react-dom/client';
-    import { onMounted, onUnmounted, ref, watch } from "vue";
+    import { onMounted, onUnmounted, ref, watch, shallowRef } from "vue";
     import { createElement } from "react";
     import { Editor, Tldraw, type TldrawProps } from 'tldraw';
     import ASSETS from './whiteboard/build';
@@ -13,8 +13,7 @@
     const container = ref<HTMLDivElement>(),
         _prop = defineProps(['option']),
         file = _prop.option as vFile,
-        editor = ref<Editor>(),
-        debug = ref(import.meta.env.DEV);
+        editor = shallowRef<Editor>();
 
     fetch(file.url).then(res => res.body!).then(dat => decode(dat)).catch(e =>
         message({
@@ -57,10 +56,9 @@
 </script>
 
 <template>
-    <div ref="container" class="v-tl-container" :debug="debug" v-bind="$attrs"></div>
+    <div ref="container" class="v-tl-container" v-bind="$attrs"></div>
     <div class="v-tl-tools">
         <button @click="save">保存</button>
-        <button @click="debug = !debug">调试</button>
     </div>
 </template>
 

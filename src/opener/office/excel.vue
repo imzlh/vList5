@@ -3,7 +3,7 @@
     import { onMounted, ref, type PropType } from 'vue';
     import Spreadsheet from "x-data-spreadsheet";
     import { read, write } from 'xlsx';
-    import { contextMenu, FS, message, reqFullscreen, splitPath, UI } from '@/utils';
+    import { contextMenu, FS, message, reqFullscreen, UI } from '@/utils';
     import { encode2Blob, decode } from '@/utils/bjson';
 
     // @ts-ignore

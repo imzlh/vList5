@@ -38,6 +38,9 @@ import './opener';
 // 全局右键
 import './utils/globalCtxmenu';
 
+// 浏览器环境优化
+import './utils/browser';
+
 // 主要的应用入口
 import App from './App.vue';
 

@@ -29,5 +29,6 @@ coverage
 
 *.tsbuildinfo
 package-lock.json
+pnpm-lock.yaml
 
 **/__*
