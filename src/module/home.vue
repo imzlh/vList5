@@ -136,9 +136,16 @@
     }
     
     // 拦截日志
+    const _ce = console.error;
     console.info = (...args) => void logs.push({ type: 'info', message: formatLog(args), time: new Date().toLocaleString(), trace: Error().stack?.split('\n').slice(2) });
     console.warn = (...args) => void logs.push({ type: 'warn', message: formatLog(args), time: new Date().toLocaleString(), trace: Error().stack?.split('\n').slice(2) });
-    console.error = (...args) => void logs.push({ type: 'error', message: formatLog(args), time: new Date().toLocaleString(), trace: Error().stack?.split('\n').slice(2) });
+    console.error = import.meta.env.DEV 
+        ? (...args) => void logs.push({ type: 'error', message: formatLog(args), time: new Date().toLocaleString(), trace: Error().stack?.split('\n').slice(2) })
+        : function(){
+            // @ts-ignore
+            _ce.apply(console, arguments);
+            logs.push({ type: 'error', message: formatLog(Array.from(arguments).map(arg => highlight(arg))), time: new Date().toLocaleString(), trace: Error().stack?.split('\n').slice(2) });
+        }
     console.trace = console.log = console.info;
     if(import.meta.env.DEV) console.debug = console.info;
     console.clear = () => {logs.splice(0, logs.length), objCache.splice(0, objCache.length)};

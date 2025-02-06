@@ -39,4 +39,3 @@ jobs:
         tag: ${{ github.ref }}
         overwrite: true
         body: "这是已经打包完成的版本，解压后开箱即用"
-    

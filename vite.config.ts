@@ -250,7 +250,8 @@ export default defineConfig({
                             '/epub',
                             '/psd',
                             '/whiteboard',
-                            '/office'
+                            '/office',
+                            '/avplayer'
                         ].some(item => id.includes(item)))
                     ) return 'main';
                     // monaco
